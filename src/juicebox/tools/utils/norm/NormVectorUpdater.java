@@ -24,15 +24,14 @@
 
 package juicebox.tools.utils.norm;
 
-import juicebox.HiC;
-import juicebox.data.DatasetReaderV2;
-import juicebox.data.ExpectedValueFunction;
-import juicebox.data.ExpectedValueFunctionImpl;
-import juicebox.data.basics.ListOfDoubleArrays;
-import juicebox.data.basics.ListOfFloatArrays;
+import javastraw.reader.DatasetReaderV2;
+import javastraw.reader.datastructures.ListOfDoubleArrays;
+import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.expected.ExpectedValueFunction;
+import javastraw.reader.expected.ExpectedValueFunctionImpl;
+import javastraw.reader.type.HiCZoom;
+import javastraw.reader.type.NormalizationType;
 import juicebox.tools.utils.original.ExpectedValueCalculation;
-import juicebox.windowui.HiCZoom;
-import juicebox.windowui.NormalizationType;
 import org.broad.igv.tdf.BufferedByteWriter;
 
 import java.io.IOException;
@@ -169,7 +168,7 @@ public class NormVectorUpdater {
 
         for (ExpectedValueCalculation ev : expectedValueCalculations) {
             ev.computeDensity();
-            HiC.Unit unit = ev.isFrag ? HiC.Unit.FRAG : HiC.Unit.BP;
+            HiCZoom.HiCUnit unit = ev.isFrag ? HiCZoom.HiCUnit.FRAG : HiCZoom.HiCUnit.BP;
             appendExpectedValuesToBuffer(expectedBuffers, ev.getType(),
                     unit, ev.getGridSize(), ev.getDensityAvg(),
                     ev.getChrScaleFactors());
@@ -191,7 +190,7 @@ public class NormVectorUpdater {
 
     private static void appendExpectedValuesToBuffer(List<BufferedByteWriter> expectedBuffers,
                                                      NormalizationType normalizationType,
-                                                     HiC.Unit unit, int binSize,
+                                                     HiCZoom.HiCUnit unit, int binSize,
                                                      ListOfDoubleArrays expectedValuesNoNormalization,
                                                      Map<Integer, Double> normFactors) throws IOException {
 

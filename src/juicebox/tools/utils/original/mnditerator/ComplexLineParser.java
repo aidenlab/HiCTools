@@ -24,7 +24,7 @@
 
 package juicebox.tools.utils.original.mnditerator;
 
-import juicebox.data.ChromosomeHandler;
+import javastraw.reader.basics.ChromosomeHandler;
 
 import java.util.Map;
 

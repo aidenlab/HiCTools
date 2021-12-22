@@ -25,12 +25,12 @@
 package juicebox.tools.utils.original;
 
 import htsjdk.tribble.util.LittleEndianOutputStream;
+import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.type.NormalizationHandler;
 import juicebox.HiCGlobals;
-import juicebox.data.ChromosomeHandler;
 import juicebox.tools.utils.original.mnditerator.AlignmentPair;
 import juicebox.tools.utils.original.mnditerator.AsciiPairIterator;
 import juicebox.tools.utils.original.mnditerator.PairIterator;
-import juicebox.windowui.NormalizationHandler;
 import org.broad.igv.util.Pair;
 
 import java.io.*;
@@ -120,8 +120,8 @@ public class MultithreadedPreprocessor extends Preprocessor {
             }
             catOutputLine.append(" ").append(outputFile + "_footer").append(" > ").append(outputFile).append("\n");
             removeLine.append(" ").append(outputFile + "_footer\n");
-            finalOutput.println(catOutputLine.toString());
-            finalOutput.println(removeLine.toString());
+            finalOutput.println(catOutputLine);
+            finalOutput.println(removeLine);
             finalOutput.close();
         } catch (Exception e) {
             e.printStackTrace();

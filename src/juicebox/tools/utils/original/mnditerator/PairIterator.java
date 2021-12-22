@@ -25,7 +25,7 @@
 
 package juicebox.tools.utils.original.mnditerator;
 
-import juicebox.data.ChromosomeHandler;
+import javastraw.reader.basics.ChromosomeHandler;
 
 import java.io.IOException;
 import java.util.Iterator;

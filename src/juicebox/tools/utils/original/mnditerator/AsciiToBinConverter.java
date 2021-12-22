@@ -25,8 +25,8 @@
 package juicebox.tools.utils.original.mnditerator;
 
 import htsjdk.tribble.util.LittleEndianOutputStream;
-import juicebox.data.ChromosomeHandler;
-import juicebox.data.basics.Chromosome;
+import javastraw.reader.basics.Chromosome;
+import javastraw.reader.basics.ChromosomeHandler;
 
 import java.io.*;
 import java.util.HashMap;

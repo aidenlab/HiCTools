@@ -26,11 +26,10 @@ package juicebox.tools.utils.original;
 
 import htsjdk.tribble.util.LittleEndianInputStream;
 import htsjdk.tribble.util.LittleEndianOutputStream;
-import juicebox.HiC;
-import juicebox.data.ContactRecord;
-import juicebox.data.basics.Chromosome;
-import juicebox.data.v9depth.V9Depth;
-import juicebox.windowui.HiCZoom;
+import javastraw.reader.basics.Chromosome;
+import javastraw.reader.block.ContactRecord;
+import javastraw.reader.depth.V9Depth;
+import javastraw.reader.type.HiCZoom;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.broad.igv.tdf.BufferedByteWriter;
 import org.broad.igv.util.collections.DownsampledDoubleArrayList;
@@ -130,8 +129,8 @@ public class MatrixZoomDataPP {
         v9Depth = V9Depth.setDepthMethod(v9BaseDepth, blockBinCount);
     }
 
-    HiC.Unit getUnit() {
-        return isFrag ? HiC.Unit.FRAG : HiC.Unit.BP;
+    HiCZoom.HiCUnit getUnit() {
+        return isFrag ? HiCZoom.HiCUnit.FRAG : HiCZoom.HiCUnit.BP;
     }
 
     double getSum() {

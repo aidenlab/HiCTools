@@ -24,28 +24,12 @@
 
 package juicebox.tools.clt;
 
-
-import juicebox.HiC;
-import juicebox.HiCGlobals;
-import juicebox.data.*;
-import juicebox.data.basics.Chromosome;
-import juicebox.matrix.BasicMatrix;
-import juicebox.tools.utils.common.MatrixTools;
-import juicebox.tools.utils.juicer.hiccups.HiCCUPSConfiguration;
-import juicebox.tools.utils.juicer.hiccups.HiCCUPSUtils;
-import juicebox.track.feature.Feature2DList;
-import juicebox.track.feature.Feature2DParser;
-import juicebox.windowui.HiCZoom;
-import juicebox.windowui.NormalizationHandler;
-import juicebox.windowui.NormalizationType;
-
-import java.io.File;
-import java.util.*;
-
 /**
  * Created by muhammadsaadshamim on 7/22/15.
  */
 class UnitTests {
+
+    /*
 
     public static void pearsonsAndEigenvector() {
 
@@ -55,7 +39,7 @@ class UnitTests {
         Chromosome chrom = ds.getChromosomeHandler().getChromosomeFromName("10");
         Matrix matrix = ds.getMatrix(chrom, chrom);
         HiCGlobals.MAX_PEARSON_ZOOM = 50000;
-        HiCZoom zoom = new HiCZoom(HiC.Unit.BP, 50000);
+        HiCZoom zoom = new HiCZoom(HiCZoom.HiCUnit.BP, 50000);
         MatrixZoomData zd = matrix.getZoomData(zoom);
         ExpectedValueFunction df = ds.getExpectedValues(zoom, NormalizationHandler.KR);
         HiCGlobals.guiIsCurrentlyActive = true;
@@ -85,71 +69,6 @@ class UnitTests {
         return vals;
     }
 
-    private static void testingMergerOfHiCCUPSPostprocessing() {
-        HiCGlobals.printVerboseComments = true;
-
-        // example with hard-coded links
-        String folder = "/Users/muhammadsaadshamim/Desktop/T0_48/0/exp1/";
-        String baseLink = folder + "postprocessed_pixels_";
-        String link1 = baseLink + "5000";
-        String link2 = baseLink + "10000";
-        String link3 = baseLink + "25000";
-        String outputPath = folder + "new_merged_loops";
-
-        Map<Integer, Feature2DList> map = new HashMap<>();
-        map.put(5000, Feature2DParser.loadFeatures(link1, "hg19", true, null, false));
-        map.put(10000, Feature2DParser.loadFeatures(link2, "hg19", true, null, false));
-        map.put(25000, Feature2DParser.loadFeatures(link3, "hg19", true, null, false));
-
-        Feature2DList newMerger = HiCCUPSUtils.mergeAllResolutions(map);
-        newMerger.exportFeatureList(new File(outputPath), false, Feature2DList.ListFormat.FINAL);
-
-        folder = "/Users/muhammad/Desktop/local_hiccups_gm12878/results3/";
-        baseLink = folder + "enriched_pixels_";
-        link1 = baseLink + "5000.bedpe";
-        link2 = baseLink + "10000.bedpe";
-        link3 = baseLink + "25000.bedpe";
-
-        map = new HashMap<>();
-        map.put(5000, Feature2DParser.loadFeatures(link1, "hg19", true, null, false));
-        map.put(10000, Feature2DParser.loadFeatures(link2, "hg19", true, null, false));
-        map.put(25000, Feature2DParser.loadFeatures(link3, "hg19", true, null, false));
-
-        Dataset ds1 = HiCFileTools.extractDatasetForCLT(Arrays.asList("/Users/muhammad/Desktop/local_hic_files/gm12878_intra_nofrag_30.hic"), true);
-
-        File outputDirectory = new File("/Users/muhammad/Desktop/local_hiccups_gm12878/results5");
-        File outputMergedGivenFile = new File(outputDirectory, HiCCUPSUtils.getMergedRequestedLoopsFileName());
-
-        HiCCUPSUtils.postProcess(map, ds1, ds1.getChromosomeHandler(),
-                HiCCUPSConfiguration.getDefaultSetOfConfigsForUsers(),
-                NormalizationHandler.KR, outputDirectory,
-                false, outputMergedGivenFile);
-    }
-
-    public static void testingHiCCUPSPostprocessing() {
-        // example with hard-coded links
-        String folder = "/Users/muhammadsaadshamim/Desktop/test_adam/";
-        File outputDirectory = new File(folder);
-        Dataset ds = HiCFileTools.extractDatasetForCLT(Collections.singletonList(folder + "inter_30.hic"), true);
-        File outputMergedFile = new File(outputDirectory, "merged_loops");
-        ChromosomeHandler chromosomeHandler = ds.getChromosomeHandler();
-        NormalizationType norm = NormalizationHandler.KR;
-
-        List<HiCCUPSConfiguration> filteredConfigurations = new ArrayList<>();
-        filteredConfigurations.add(new HiCCUPSConfiguration(10000, 10, 2, 5, 20000));
-        filteredConfigurations.add(new HiCCUPSConfiguration(5000, 10, 4, 7, 20000));
-
-        String baseLink = folder + "enriched_pixels_";
-        String link1 = baseLink + "5000";
-        String link2 = baseLink + "10000";
-
-        Map<Integer, Feature2DList> loopLists = new HashMap<>();
-        loopLists.put(5000, Feature2DParser.loadFeatures(link1, chromosomeHandler, true, null, false));
-        loopLists.put(10000, Feature2DParser.loadFeatures(link2, chromosomeHandler, true, null, false));
-
-        HiCCUPSUtils.postProcess(loopLists, ds, chromosomeHandler,
-                filteredConfigurations, norm, outputDirectory, false, outputMergedFile);
-    }
 
     /*
     public static void testCustomFastScaling() {

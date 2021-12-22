@@ -24,11 +24,10 @@
 
 package juicebox.tools.utils.original;
 
-import juicebox.HiC;
-import juicebox.data.ChromosomeHandler;
-import juicebox.data.ContactRecord;
-import juicebox.data.basics.Chromosome;
-import juicebox.windowui.HiCZoom;
+import javastraw.reader.basics.Chromosome;
+import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.block.ContactRecord;
+import javastraw.reader.type.HiCZoom;
 
 import java.io.File;
 import java.io.IOException;
@@ -152,9 +151,9 @@ public class MatrixPP {
 
     public void incrementCount(ContactRecord cr, Map<String, ExpectedValueCalculation> expectedValueCalculations, File tmpDir, HiCZoom zoom) throws IOException {
         for (MatrixZoomDataPP aZoomData : zoomData) {
-            if (aZoomData.isFrag && zoom.getUnit().equals(HiC.Unit.FRAG)) {
+            if (aZoomData.isFrag && zoom.getUnit().equals(HiCZoom.HiCUnit.FRAG)) {
                 aZoomData.incrementCount(cr, expectedValueCalculations, tmpDir, zoom);
-            } else if (!aZoomData.isFrag && zoom.getUnit().equals(HiC.Unit.BP)) {
+            } else if (!aZoomData.isFrag && zoom.getUnit().equals(HiCZoom.HiCUnit.BP)) {
                 aZoomData.incrementCount(cr, expectedValueCalculations, tmpDir, zoom);
             }
         }

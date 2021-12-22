@@ -24,12 +24,10 @@
 
 package juicebox.tools.clt;
 
-import juicebox.data.Dataset;
-import juicebox.data.HiCFileTools;
-import juicebox.data.iterator.IteratorContainer;
-import juicebox.windowui.NormalizationType;
-
-import java.util.Arrays;
+import javastraw.reader.Dataset;
+import javastraw.reader.iterators.IteratorContainer;
+import javastraw.reader.type.NormalizationType;
+import javastraw.tools.HiCFileTools;
 
 /**
  * All command line tools should extend from this class
@@ -69,9 +67,8 @@ public abstract class JuiceboxCLT {
         System.exit(exitcode);
     }
 
-    protected void setDatasetAndNorm(String files, String normType, boolean allowPrinting) {
-        dataset = HiCFileTools.extractDatasetForCLT(Arrays.asList(files.split("\\+")), allowPrinting);
-
+    protected void setDatasetAndNorm(String file, String normType, boolean allowPrinting) {
+        dataset = HiCFileTools.extractDatasetForCLT(file, allowPrinting, false);
         norm = dataset.getNormalizationHandler().getNormTypeFromString(normType);
         if (norm == null) {
             System.err.println("Normalization type " + norm + " unrecognized.  Normalization type must be one of \n" +

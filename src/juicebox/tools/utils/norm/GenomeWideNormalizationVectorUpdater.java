@@ -24,16 +24,21 @@
 
 package juicebox.tools.utils.norm;
 
+import javastraw.reader.Dataset;
+import javastraw.reader.basics.Chromosome;
+import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.block.ContactRecord;
+import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.iterators.IteratorContainer;
+import javastraw.reader.iterators.ListOfListGenerator;
+import javastraw.reader.mzd.MatrixZoomData;
+import javastraw.reader.norm.NormalizationVector;
+import javastraw.reader.type.HiCZoom;
+import javastraw.reader.type.NormalizationHandler;
+import javastraw.reader.type.NormalizationType;
+import javastraw.tools.HiCFileTools;
 import juicebox.HiCGlobals;
-import juicebox.data.*;
-import juicebox.data.basics.Chromosome;
-import juicebox.data.basics.ListOfFloatArrays;
-import juicebox.data.iterator.IteratorContainer;
-import juicebox.data.iterator.ListOfListGenerator;
 import juicebox.tools.utils.original.ExpectedValueCalculation;
-import juicebox.windowui.HiCZoom;
-import juicebox.windowui.NormalizationHandler;
-import juicebox.windowui.NormalizationType;
 import org.broad.igv.tdf.BufferedByteWriter;
 import org.broad.igv.util.Pair;
 
@@ -68,7 +73,7 @@ public class GenomeWideNormalizationVectorUpdater extends NormVectorUpdater {
 
             // compute genome-wide normalization
             // TODO make this dependent on memory, do as much as possible
-            if (genomeWideResolution >= 10000 && zoom.getUnit() == HiC.Unit.BP && zoom.getBinSize() >= genomeWideResolution) {
+            if (genomeWideResolution >= 10000 && zoom.getUnit() == HiCZoom.HiCUnit.BP && zoom.getBinSize() >= genomeWideResolution) {
                 for (NormalizationType normType : NormalizationHandler.getAllGWNormTypes(false)) {
 
                     Pair<Map<Chromosome, NormalizationVector>, ExpectedValueCalculation> wgVectors = getWGVectors(ds, zoom, normType);
@@ -88,8 +93,8 @@ public class GenomeWideNormalizationVectorUpdater extends NormVectorUpdater {
             System.out.print("Calculating norms for zoom " + zoom);
 
             // Integer is either limit on genome wide resolution or limit on what fragment resolution to calculate
-            // if (genomeWideResolution == 0 && zoom.getUnit() == HiC.Unit.FRAG) continue;
-            // if (genomeWideResolution < 10000 && zoom.getUnit() == HiC.Unit.FRAG && zoom.getBinSize() <= genomeWideResolution) continue;
+            // if (genomeWideResolution == 0 && zoom.getUnit() == HiCZoom.HiCUnit.FRAG) continue;
+            // if (genomeWideResolution < 10000 && zoom.getUnit() == HiCZoom.HiCUnit.FRAG && zoom.getBinSize() <= genomeWideResolution) continue;
 
 
             // Loop through chromosomes
@@ -137,7 +142,7 @@ public class GenomeWideNormalizationVectorUpdater extends NormVectorUpdater {
                     if (wgVectors != null) {
                         Map<Chromosome, NormalizationVector> nvMap = wgVectors.getFirst();
                         List<Chromosome> chromosomes = new ArrayList<>(nvMap.keySet());
-                        Collections.sort(chromosomes, Comparator.comparingInt(Chromosome::getIndex));
+                        chromosomes.sort(Comparator.comparingInt(Chromosome::getIndex));
                         for (Chromosome chromosome : chromosomes) {
                             updateNormVectorIndexWithVector(normVectorIndices, normVectorBuffers,
                                     nvMap.get(chromosome).getData().convertToFloats(), chromosome.getIndex(),
@@ -162,7 +167,7 @@ public class GenomeWideNormalizationVectorUpdater extends NormVectorUpdater {
         final ChromosomeHandler chromosomeHandler = dataset.getChromosomeHandler();
         final int resolution = zoom.getBinSize();
         final IteratorContainer ic = ListOfListGenerator.createForWholeGenome(dataset, chromosomeHandler, zoom,
-                includeIntraData);
+                includeIntraData, HiCGlobals.USE_ITERATOR_NOT_ALL_IN_RAM, HiCGlobals.CHECK_RAM_USAGE);
 
         NormalizationCalculations calculations = new NormalizationCalculations(ic);
         ListOfFloatArrays vector = calculations.getNorm(norm);

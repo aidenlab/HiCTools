@@ -24,14 +24,13 @@
 
 package juicebox.tools.clt.old;
 
+import javastraw.reader.iterators.IteratorContainer;
+import javastraw.reader.type.NormalizationType;
 import juicebox.HiCGlobals;
-import juicebox.data.iterator.IteratorContainer;
 import juicebox.tools.clt.CommandLineParser;
 import juicebox.tools.clt.JuiceboxCLT;
 import juicebox.tools.utils.norm.CustomNormVectorFileHandler;
 import juicebox.tools.utils.norm.NormalizationVectorUpdater;
-import juicebox.windowui.NormalizationHandler;
-import juicebox.windowui.NormalizationType;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -70,7 +69,7 @@ public class AddNorm extends JuiceboxCLT {
     public static Map<NormalizationType, Integer> defaultHashMapForResToBuildTo(List<NormalizationType> normalizationTypes) {
         HashMap<NormalizationType, Integer> map = new HashMap<>();
         for (NormalizationType norm : normalizationTypes) {
-            map.put(norm, NormalizationHandler.getIdealResolutionLimit(norm));
+            map.put(norm, NormalizationBuilder.getIdealResolutionLimit(norm));
         }
         return map;
     }
@@ -97,6 +96,8 @@ public class AddNorm extends JuiceboxCLT {
         noFragNorm = parser.getNoFragNormOption();
         HiCGlobals.USE_ITERATOR_NOT_ALL_IN_RAM = parser.getDontPutAllContactsIntoRAM();
         HiCGlobals.CHECK_RAM_USAGE = parser.shouldCheckRAMUsage();
+        HiCGlobals.setMatrixZoomDataRAMUsage();
+
         updateNumberOfCPUThreads(parser, 10);
         IteratorContainer.numCPUMatrixThreads = numCPUThreads;
 
@@ -119,7 +120,7 @@ public class AddNorm extends JuiceboxCLT {
                     int resVal = Integer.parseInt(resolutions.get(k));
                     resolutionsToBuildTo.put(normType, resVal);
                 } catch (Exception e) {
-                    resolutionsToBuildTo.put(normType, NormalizationHandler.getIdealResolutionLimit(normType));
+                    resolutionsToBuildTo.put(normType, NormalizationBuilder.getIdealResolutionLimit(normType));
                 }
             }
         }

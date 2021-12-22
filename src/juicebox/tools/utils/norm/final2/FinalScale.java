@@ -24,11 +24,11 @@
 
 package juicebox.tools.utils.norm.final2;
 
+import javastraw.reader.block.ContactRecord;
+import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.datastructures.ListOfIntArrays;
+import javastraw.reader.iterators.IteratorContainer;
 import juicebox.HiCGlobals;
-import juicebox.data.ContactRecord;
-import juicebox.data.basics.ListOfFloatArrays;
-import juicebox.data.basics.ListOfIntArrays;
-import juicebox.data.iterator.IteratorContainer;
 
 import java.util.Arrays;
 import java.util.Iterator;

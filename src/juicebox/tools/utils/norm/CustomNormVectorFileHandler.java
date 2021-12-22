@@ -24,16 +24,21 @@
 
 package juicebox.tools.utils.norm;
 
-import juicebox.HiC;
+import javastraw.reader.Dataset;
+import javastraw.reader.DatasetReaderV2;
+import javastraw.reader.basics.Chromosome;
+import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.datastructures.ListOfDoubleArrays;
+import javastraw.reader.expected.ExpectedValueFunction;
+import javastraw.reader.expected.ExpectedValueFunctionImpl;
+import javastraw.reader.mzd.MatrixZoomData;
+import javastraw.reader.norm.NormalizationVector;
+import javastraw.reader.type.HiCZoom;
+import javastraw.reader.type.NormalizationHandler;
+import javastraw.reader.type.NormalizationType;
+import javastraw.tools.HiCFileTools;
 import juicebox.HiCGlobals;
-import juicebox.data.*;
-import juicebox.data.basics.Chromosome;
-import juicebox.data.basics.ListOfDoubleArrays;
-import juicebox.gui.SuperAdapter;
 import juicebox.tools.utils.original.ExpectedValueCalculation;
-import juicebox.windowui.HiCZoom;
-import juicebox.windowui.NormalizationHandler;
-import juicebox.windowui.NormalizationType;
 import org.broad.igv.tdf.BufferedByteWriter;
 
 import java.io.*;
@@ -45,7 +50,7 @@ import java.util.zip.GZIPInputStream;
 public class CustomNormVectorFileHandler extends NormVectorUpdater {
 
     public static void updateHicFile(String path, String vectorPath) throws IOException {
-        DatasetReaderV2 reader = new DatasetReaderV2(path);
+        DatasetReaderV2 reader = new DatasetReaderV2(path, false);
         Dataset ds = reader.read();
         HiCGlobals.verifySupportedHiCFileVersion(reader.getVersion());
 
@@ -55,37 +60,6 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
                 normVectorInfo.getNormVectorIndices(), normVectorInfo.getNormVectorBuffers(), "Finished adding another normalization.");
 
         System.out.println("all custom norms added");
-    }
-
-    public static void unsafeHandleUpdatingOfNormalizations(SuperAdapter superAdapter, File[] files, boolean isControl) {
-
-        Dataset ds = superAdapter.getHiC().getDataset();
-        if (isControl) {
-            ds = superAdapter.getHiC().getControlDataset();
-        }
-
-        String[] filePaths = new String[files.length];
-        for (int i = 0; i < filePaths.length; i++) {
-            filePaths[i] = files[i].getAbsolutePath();
-        }
-
-        try {
-            NormVectorInfo normVectorInfo = completeCalculationsNecessaryForUpdatingCustomNormalizations(ds, filePaths, false);
-
-            for (NormalizationType customNormType : normVectorInfo.getNormalizationVectorsMap().keySet()) {
-                ds.addNormalizationType(customNormType);
-                for (NormalizationVector normalizationVector : normVectorInfo.getNormalizationVectorsMap().get(customNormType).values()) {
-                    if (normalizationVector == null) {
-                        System.out.println("error encountered");
-                    }
-                    ds.addNormalizationVectorDirectlyToRAM(normalizationVector);
-                }
-            }
-            System.out.println("all custom norms added v2");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     private static NormVectorInfo completeCalculationsNecessaryForUpdatingCustomNormalizations(
@@ -148,26 +122,29 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
                     normVectorsByChrAndZoom.remove(key);
                     continue;
                 }
-                if (nv.doesItNeedToBeScaledTo()) {
-                    Runnable worker = new Runnable() {
-                        @Override
-                        public void run() {
-                            NormalizationVector newScaledVector = nv.mmbaScaleToVector(ds);
-                            synchronized (normVectorsByChrAndZoom) {
-                                if (newScaledVector != null) {
-                                    normVectorsByChrAndZoom.put(key, newScaledVector);
-                                } else {
-                                    normVectorsByChrAndZoom.remove(key);
-                                    int currResolution = nv.getResolution();
-                                    int chrIndx = nv.getChrIdx();
-                                    if (currResolution < chrAndResolutionWhichFailed.get(chrIndx)) {
-                                        chrAndResolutionWhichFailed.put(chrIndx, currResolution);
+                if (nv instanceof CustomNormalizationVector) {
+                    CustomNormalizationVector cnv = (CustomNormalizationVector) nv;
+                    if (cnv.doesItNeedToBeScaledTo()) {
+                        Runnable worker = new Runnable() {
+                            @Override
+                            public void run() {
+                                NormalizationVector newScaledVector = cnv.mmbaScaleToVector(ds);
+                                synchronized (normVectorsByChrAndZoom) {
+                                    if (newScaledVector != null) {
+                                        normVectorsByChrAndZoom.put(key, newScaledVector);
+                                    } else {
+                                        normVectorsByChrAndZoom.remove(key);
+                                        int currResolution = nv.getResolution();
+                                        int chrIndx = nv.getChrIdx();
+                                        if (currResolution < chrAndResolutionWhichFailed.get(chrIndx)) {
+                                            chrAndResolutionWhichFailed.put(chrIndx, currResolution);
+                                        }
                                     }
                                 }
                             }
-                        }
-                    };
-                    executor.execute(worker);
+                        };
+                        executor.execute(worker);
+                    }
                 }
             }
         }
@@ -178,7 +155,7 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
         }
 
         for (HiCZoom zoom : resolutions) {
-            Map<String, Integer> fcm = zoom.getUnit() == HiC.Unit.FRAG ? fragCountMap : null;
+            Map<String, Integer> fcm = zoom.getUnit() == HiCZoom.HiCUnit.FRAG ? fragCountMap : null;
 
             for (NormalizationType customNormType : normalizationVectorMap.keySet()) {
 
@@ -248,7 +225,7 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
 
             Chromosome chr = null;
             int resolution = -1;
-            HiC.Unit unit = null;
+            HiCZoom.HiCUnit unit = null;
             NormalizationType customNormType = null;
             boolean needsToBeScaledTo = false;
 
@@ -266,7 +243,7 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
 
                     customNormType = normalizationHandler.getNormTypeFromString(tokens[1]);
                     resolution = Integer.parseInt(tokens[3]);
-                    unit = HiC.Unit.valueOf(tokens[4]);
+                    unit = HiCZoom.HiCUnit.valueOf(tokens[4]);
                     needsToBeScaledTo = tokens[0].toLowerCase().contains("scale");
                 }
                 if (chr != null && customNormType != null) {
@@ -298,7 +275,8 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
                     if (!normVectors.containsKey(customNormType)) {
                         normVectors.put(customNormType, new HashMap<>());
                     }
-                    NormalizationVector vector = new NormalizationVector(customNormType, chr.getIndex(), unit, resolution, data, needsToBeScaledTo);
+                    CustomNormalizationVector vector = new CustomNormalizationVector(customNormType, chr.getIndex(), unit,
+                            resolution, data, needsToBeScaledTo);
                     normVectors.get(customNormType).put(vector.getKey(), vector);
 
                 } else {

@@ -24,12 +24,13 @@
 
 package juicebox.tools.utils.norm;
 
-import juicebox.data.ContactRecord;
-import juicebox.data.basics.ListOfDoubleArrays;
-import juicebox.data.basics.ListOfFloatArrays;
-import juicebox.data.basics.ListOfIntArrays;
-import juicebox.data.iterator.IteratorContainer;
-import juicebox.windowui.NormalizationType;
+import javastraw.reader.block.ContactRecord;
+import javastraw.reader.datastructures.ListOfDoubleArrays;
+import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.datastructures.ListOfIntArrays;
+import javastraw.reader.iterators.IteratorContainer;
+import javastraw.reader.type.NormalizationType;
+import juicebox.tools.clt.old.NormalizationBuilder;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import java.util.Arrays;
@@ -260,13 +261,13 @@ public class NormalizationCalculations {
 
     public ListOfFloatArrays getNorm(NormalizationType normOption) {
         ListOfFloatArrays norm;
-        if (normOption.usesKR()) {
+        if (NormalizationBuilder.usesKR(normOption)) {
             norm = computeKR();
-        } else if (normOption.usesVC()) {
+        } else if (NormalizationBuilder.usesVC(normOption)) {
             norm = computeVC();
-        } else if (normOption.usesSCALE()) {
+        } else if (NormalizationBuilder.usesSCALE(normOption)) {
             norm = computeMMBA();
-        } else if (normOption.isNONE()) {
+        } else if (NormalizationBuilder.isNONE(normOption)) {
             return new ListOfFloatArrays(matrixSize, 1);
         } else {
             System.err.println("Not supported for normalization " + normOption);

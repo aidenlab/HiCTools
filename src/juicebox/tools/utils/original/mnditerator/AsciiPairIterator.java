@@ -25,8 +25,8 @@
 package juicebox.tools.utils.original.mnditerator;
 
 
+import javastraw.reader.basics.ChromosomeHandler;
 import juicebox.HiCGlobals;
-import juicebox.data.ChromosomeHandler;
 import juicebox.tools.utils.original.Chunk;
 import org.broad.igv.util.ParsingUtils;
 

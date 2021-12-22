@@ -27,15 +27,16 @@ package juicebox.tools.utils.original;
 //import juicebox.MainWindow;
 
 import htsjdk.tribble.util.LittleEndianOutputStream;
-import juicebox.HiC;
+import javastraw.reader.Dataset;
+import javastraw.reader.basics.Chromosome;
+import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.datastructures.ListOfDoubleArrays;
+import javastraw.reader.type.HiCZoom;
+import javastraw.reader.type.NormalizationHandler;
 import juicebox.HiCGlobals;
-import juicebox.data.ChromosomeHandler;
-import juicebox.data.basics.Chromosome;
-import juicebox.data.basics.ListOfDoubleArrays;
 import juicebox.tools.clt.CommandLineParser.Alignment;
 import juicebox.tools.utils.original.mnditerator.AlignmentPair;
 import juicebox.tools.utils.original.mnditerator.PairIterator;
-import juicebox.windowui.NormalizationHandler;
 import org.broad.igv.tdf.BufferedByteWriter;
 import org.broad.igv.util.Pair;
 
@@ -50,19 +51,9 @@ import java.util.zip.Deflater;
  * @since Aug 16, 2010
  */
 public class Preprocessor {
-    
-    
     protected static final int VERSION = 9;
     protected static final int BLOCK_SIZE = 1000;
-    public static final String V9_DEPTH_BASE = "v9-depth-base";
     protected int v9DepthBase = 2;
-    public static final String HIC_FILE_SCALING = "hicFileScalingFactor";
-    public static final String STATISTICS = "statistics";
-    public static final String GRAPHS = "graphs";
-    public static final String SOFTWARE = "software";
-    protected static final String NVI_INDEX = "nviIndex";
-    protected static final String NVI_LENGTH = "nviLength";
-
     protected final ChromosomeHandler chromosomeHandler;
     protected Map<String, Integer> chromosomeIndexes;
     protected final File outputFile;
@@ -489,24 +480,24 @@ public class Preprocessor {
         if (graphs != null) nAttributes += 1;
         if (hicFileScaling != null) nAttributes += 1;
         if (v9DepthBase != 2) nAttributes += 1;
-    
+
         los.writeInt(nAttributes);
-        los.writeString(SOFTWARE);
+        los.writeString(Dataset.SOFTWARE);
         los.writeString("Juicer Tools Version " + HiCGlobals.versionNum);
         if (stats != null) {
-            los.writeString(STATISTICS);
+            los.writeString(Dataset.STATISTICS);
             los.writeString(stats.toString());
         }
         if (graphs != null) {
-            los.writeString(GRAPHS);
+            los.writeString(Dataset.GRAPHS);
             los.writeString(graphs.toString());
         }
         if (hicFileScaling != null) {
-            los.writeString(HIC_FILE_SCALING);
+            los.writeString(Dataset.HIC_FILE_SCALING);
             los.writeString(hicFileScaling.toString());
         }
         if (v9DepthBase != 2) {
-            los.writeString(V9_DEPTH_BASE);
+            los.writeString(Dataset.V9_DEPTH_BASE);
             los.writeString("" + v9DepthBase);
         }
 
@@ -895,9 +886,9 @@ public class Preprocessor {
                 ExpectedValueCalculation ev = entry.getValue();
     
                 ev.computeDensity();
-    
+
                 int binSize = ev.getGridSize();
-                HiC.Unit unit = ev.isFrag ? HiC.Unit.FRAG : HiC.Unit.BP;
+                HiCZoom.HiCUnit unit = ev.isFrag ? HiCZoom.HiCUnit.FRAG : HiCZoom.HiCUnit.BP;
 
                 bufferList.get(bufferList.size()-1).putNullTerminatedString(unit.toString());
                 bufferList.get(bufferList.size()-1).putInt(binSize);

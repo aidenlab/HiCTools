@@ -25,16 +25,16 @@
 
 package juicebox.tools.utils.original;
 
-import juicebox.HiC;
-import juicebox.data.ChromosomeHandler;
-import juicebox.data.ContactRecord;
-import juicebox.data.ExpectedValueFunctionImpl;
-import juicebox.data.basics.Chromosome;
-import juicebox.data.basics.ListOfDoubleArrays;
-import juicebox.data.basics.ListOfFloatArrays;
-import juicebox.data.iterator.IteratorContainer;
+import javastraw.reader.basics.Chromosome;
+import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.block.ContactRecord;
+import javastraw.reader.datastructures.ListOfDoubleArrays;
+import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.expected.ExpectedValueFunctionImpl;
+import javastraw.reader.iterators.IteratorContainer;
+import javastraw.reader.type.HiCZoom;
+import javastraw.reader.type.NormalizationType;
 import juicebox.tools.utils.norm.NormVectorUpdater;
-import juicebox.windowui.NormalizationType;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -333,7 +333,7 @@ public class ExpectedValueCalculation {
 
     public ExpectedValueFunctionImpl getExpectedValueFunction() {
         computeDensity();
-        return new ExpectedValueFunctionImpl(type, isFrag ? HiC.Unit.FRAG : HiC.Unit.BP, gridSize, densityAvg, chrScaleFactors);
+        return new ExpectedValueFunctionImpl(type, isFrag ? HiCZoom.HiCUnit.FRAG : HiCZoom.HiCUnit.BP, gridSize, densityAvg, chrScaleFactors);
     }
 
     // TODO: this is often inefficient, we have all of the contact records when we leave norm calculations, should do this there if possible

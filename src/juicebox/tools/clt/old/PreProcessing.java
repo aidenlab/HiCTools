@@ -24,16 +24,16 @@
 
 package juicebox.tools.clt.old;
 
+import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.basics.ChromosomeTools;
+import javastraw.reader.iterators.IteratorContainer;
+import javastraw.reader.type.NormalizationType;
 import juicebox.HiCGlobals;
-import juicebox.data.ChromosomeHandler;
-import juicebox.data.HiCFileTools;
-import juicebox.data.iterator.IteratorContainer;
 import juicebox.tools.clt.CommandLineParser;
 import juicebox.tools.clt.JuiceboxCLT;
-import juicebox.tools.utils.common.ShellCommandRunner;
+import juicebox.tools.utils.ShellCommandRunner;
 import juicebox.tools.utils.original.MultithreadedPreprocessor;
 import juicebox.tools.utils.original.Preprocessor;
-import juicebox.windowui.NormalizationType;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -94,7 +94,7 @@ public class PreProcessing extends JuiceboxCLT {
             printUsageAndExit();
         }
 
-        ChromosomeHandler chromHandler = HiCFileTools.loadChromosomes(genomeId);
+        ChromosomeHandler chromHandler = ChromosomeTools.loadChromosomes(genomeId);
 
         inputFile = args[1];
         outputFile = args[2];
@@ -152,6 +152,7 @@ public class PreProcessing extends JuiceboxCLT {
         normalizationTypes.addAll(parser.getAllNormalizationTypesOption());
         HiCGlobals.USE_ITERATOR_NOT_ALL_IN_RAM = parser.getDontPutAllContactsIntoRAM();
         HiCGlobals.CHECK_RAM_USAGE = parser.shouldCheckRAMUsage();
+        HiCGlobals.setMatrixZoomDataRAMUsage();
     }
 
     @Override

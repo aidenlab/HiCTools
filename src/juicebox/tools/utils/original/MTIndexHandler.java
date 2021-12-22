@@ -24,8 +24,8 @@
 
 package juicebox.tools.utils.original;
 
+import javastraw.reader.basics.ChromosomeHandler;
 import juicebox.HiCGlobals;
-import juicebox.data.ChromosomeHandler;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;

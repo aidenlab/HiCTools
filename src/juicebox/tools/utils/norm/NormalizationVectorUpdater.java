@@ -24,15 +24,18 @@
 
 package juicebox.tools.utils.norm;
 
-import juicebox.HiC;
+import javastraw.reader.Dataset;
+import javastraw.reader.DatasetReaderV2;
+import javastraw.reader.basics.Chromosome;
+import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.mzd.MatrixZoomData;
+import javastraw.reader.type.HiCZoom;
+import javastraw.reader.type.NormalizationHandler;
+import javastraw.reader.type.NormalizationType;
+import javastraw.tools.HiCFileTools;
 import juicebox.HiCGlobals;
-import juicebox.data.*;
-import juicebox.data.basics.Chromosome;
-import juicebox.data.basics.ListOfFloatArrays;
 import juicebox.tools.utils.original.ExpectedValueCalculation;
-import juicebox.windowui.HiCZoom;
-import juicebox.windowui.NormalizationHandler;
-import juicebox.windowui.NormalizationType;
 import org.broad.igv.tdf.BufferedByteWriter;
 
 import java.io.IOException;
@@ -106,7 +109,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
     }
 
     protected void buildKR(Chromosome chr, NormalizationCalculations nc, HiCZoom zoom, MatrixZoomData zd, ExpectedValueCalculation evKR) throws IOException {
-        Set<Chromosome> failureSetKR = zoom.getUnit() == HiC.Unit.FRAG ? krFragFailedChromosomes : krBPFailedChromosomes;
+        Set<Chromosome> failureSetKR = zoom.getUnit() == HiCZoom.HiCUnit.FRAG ? krFragFailedChromosomes : krBPFailedChromosomes;
         final int chrIdx = chr.getIndex();
 
         long currentTime = System.currentTimeMillis();
@@ -133,7 +136,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
             }
         }
 
-        DatasetReaderV2 reader = new DatasetReaderV2(path);
+        DatasetReaderV2 reader = new DatasetReaderV2(path, false);
         Dataset ds = reader.read();
         HiCGlobals.verifySupportedHiCFileWritingVersion(reader.getVersion());
 
@@ -149,22 +152,22 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                 System.out.println("skipping zoom" + zoom);
                 continue;
             }
-            if (noFrag && zoom.getUnit() == HiC.Unit.FRAG) continue;
+            if (noFrag && zoom.getUnit() == HiCZoom.HiCUnit.FRAG) continue;
 
             System.out.println();
             System.out.print("Calculating norms for zoom " + zoom);
 
             // compute genome-wide normalizations
-            if (zoom.getUnit() == HiC.Unit.BP && zoom.getBinSize() >= genomeWideLowestResolutionAllowed) {
+            if (zoom.getUnit() == HiCZoom.HiCUnit.BP && zoom.getBinSize() >= genomeWideLowestResolutionAllowed) {
                 GenomeWideNormalizationVectorUpdater.updateHicFileForGWfromPreAddNormOnly(ds, zoom, normalizationsToBuild, resolutionsToBuildTo,
                         normVectorIndices, normVectorBuffers, expectedValueCalculations);
             }
 
-            ds.clearCache(true, zoom);
+            ds.clearCache();
 
             //System.out.println("genomewide normalization: " + Duration.between(A,B).toMillis());
 
-            Map<String, Integer> fcm = zoom.getUnit() == HiC.Unit.FRAG ? fragCountMap : null;
+            Map<String, Integer> fcm = zoom.getUnit() == HiCZoom.HiCUnit.FRAG ? fragCountMap : null;
 
             ExpectedValueCalculation evVC = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, NormalizationHandler.VC);
             ExpectedValueCalculation evVCSqrt = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, NormalizationHandler.VC_SQRT);
@@ -203,7 +206,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                     buildScale(chr, nc, zoom, zd, evSCALE);
                 }
 
-                zd.clearCache(false);
+                zd.clearCache();
             }
 
             if (weShouldBuildVC && evVC.hasData() && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC)) {
@@ -219,14 +222,14 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                 expectedValueCalculations.add(evSCALE);
             }
 
-            ds.clearCache(false, zoom);
+            ds.clearCache();
         }
         writeNormsToUpdateFile(reader, path, true, expectedValueCalculations, null, normVectorIndices,
                 normVectorBuffers, "Finished writing norms");
     }
     
     protected void buildScale(Chromosome chr, NormalizationCalculations nc, HiCZoom zoom, MatrixZoomData zd, ExpectedValueCalculation evSCALE) throws IOException {
-        Set<Chromosome> failureSetMMBA = zoom.getUnit() == HiC.Unit.FRAG ? mmbaFragFailedChromosomes : mmbaBPFailedChromosomes;
+        Set<Chromosome> failureSetMMBA = zoom.getUnit() == HiCZoom.HiCUnit.FRAG ? mmbaFragFailedChromosomes : mmbaBPFailedChromosomes;
         final int chrIdx = chr.getIndex();
         long currentTime = System.currentTimeMillis();
         

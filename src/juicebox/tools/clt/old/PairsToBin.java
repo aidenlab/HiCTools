@@ -24,8 +24,8 @@
 
 package juicebox.tools.clt.old;
 
-import juicebox.data.ChromosomeHandler;
-import juicebox.data.HiCFileTools;
+import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.basics.ChromosomeTools;
 import juicebox.tools.clt.CommandLineParser;
 import juicebox.tools.clt.JuiceboxCLT;
 import juicebox.tools.utils.original.mnditerator.AsciiToBinConverter;
@@ -50,7 +50,7 @@ public class PairsToBin extends JuiceboxCLT {
 
     @Override
     public void run() {
-        ChromosomeHandler chromosomeHandler = HiCFileTools.loadChromosomes(genomeId);
+        ChromosomeHandler chromosomeHandler = ChromosomeTools.loadChromosomes(genomeId);
         try {
             AsciiToBinConverter.convert(ifile, ofile, chromosomeHandler);
         } catch (Exception e) {

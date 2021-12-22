@@ -24,15 +24,15 @@
 
 package juicebox.tools.utils.norm;
 
-import juicebox.data.ChromosomeHandler;
-import juicebox.data.NormalizationVector;
-import juicebox.data.basics.Chromosome;
-import juicebox.data.basics.ListOfDoubleArrays;
-import juicebox.data.basics.ListOfFloatArrays;
-import juicebox.data.iterator.IteratorContainer;
-import juicebox.tools.dev.ParallelizedJuicerTools;
-import juicebox.windowui.HiCZoom;
-import juicebox.windowui.NormalizationType;
+import javastraw.reader.basics.Chromosome;
+import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.datastructures.ListOfDoubleArrays;
+import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.iterators.IteratorContainer;
+import javastraw.reader.norm.NormalizationVector;
+import javastraw.reader.type.HiCZoom;
+import javastraw.reader.type.NormalizationType;
+import javastraw.tools.ParallelizationTools;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -47,7 +47,7 @@ public class NormalizationTools {
         final AtomicInteger index = new AtomicInteger(0);
         Chromosome[] chromosomes = chromosomeHandler.getChromosomeArrayWithoutAllByAll();
         long[] offsets = createOffsets(chromosomes, resolution);
-        ParallelizedJuicerTools.launchParallelizedCode(IteratorContainer.numCPUMatrixThreads, () -> {
+        ParallelizationTools.launchParallelizedCode(IteratorContainer.numCPUMatrixThreads, () -> {
             int i = index.getAndIncrement();
             while (i < (chromosomes).length) {
                 Chromosome c1 = chromosomes[i];

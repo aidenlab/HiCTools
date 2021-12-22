@@ -25,6 +25,7 @@
 package juicebox.data;
 
 import htsjdk.tribble.util.LittleEndianInputStream;
+import javastraw.reader.block.ContactRecord;
 
 import java.io.IOException;
 import java.util.List;

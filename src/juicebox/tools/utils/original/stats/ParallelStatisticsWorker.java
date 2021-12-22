@@ -24,7 +24,7 @@
 
 package juicebox.tools.utils.original.stats;
 
-import juicebox.data.ChromosomeHandler;
+import javastraw.reader.basics.ChromosomeHandler;
 import juicebox.tools.utils.original.Chunk;
 import juicebox.tools.utils.original.FragmentCalculation;
 import juicebox.tools.utils.original.mnditerator.AlignmentPairLong;

@@ -24,16 +24,15 @@
 
 package juicebox.tools.clt.old;
 
-import juicebox.HiC;
+import javastraw.reader.basics.Chromosome;
+import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.expected.ExpectedValueFunction;
+import javastraw.reader.mzd.MatrixZoomData;
+import javastraw.reader.type.HiCZoom;
+import javastraw.tools.HiCFileTools;
 import juicebox.HiCGlobals;
-import juicebox.data.ChromosomeHandler;
-import juicebox.data.ExpectedValueFunction;
-import juicebox.data.HiCFileTools;
-import juicebox.data.MatrixZoomData;
-import juicebox.data.basics.Chromosome;
 import juicebox.tools.clt.CommandLineParser;
 import juicebox.tools.clt.JuiceboxCLT;
-import juicebox.windowui.HiCZoom;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -45,7 +44,7 @@ import java.io.PrintWriter;
  */
 public class Eigenvector extends JuiceboxCLT {
 
-    private HiC.Unit unit = null;
+    private HiCZoom.HiCUnit unit = null;
     private int binSize = 0;
     private Chromosome chromosome1;
     private PrintWriter pw;
@@ -75,7 +74,7 @@ public class Eigenvector extends JuiceboxCLT {
         chromosome1 = chromosomeHandler.getChromosomeFromName(args[3]);
 
         try {
-            unit = HiC.valueOfUnit(args[4]);
+            unit = HiCZoom.valueOfUnit(args[4]);
         } catch (IllegalArgumentException error) {
             System.err.println("Unit must be in BP or FRAG.");
             System.exit(20);
@@ -90,8 +89,8 @@ public class Eigenvector extends JuiceboxCLT {
             System.exit(21);
         }
 
-        if ((unit == HiC.Unit.BP && binSize < HiCGlobals.MAX_EIGENVECTOR_ZOOM) ||
-                (unit == HiC.Unit.FRAG && binSize < HiCGlobals.MAX_EIGENVECTOR_ZOOM / 1000)) {
+        if ((unit == HiCZoom.HiCUnit.BP && binSize < HiCGlobals.MAX_EIGENVECTOR_ZOOM) ||
+                (unit == HiCZoom.HiCUnit.FRAG && binSize < HiCGlobals.MAX_EIGENVECTOR_ZOOM / 1000)) {
             System.out.println("WARNING: Eigenvector calculation at high resolution can take a long time");
         }
 
@@ -117,17 +116,17 @@ public class Eigenvector extends JuiceboxCLT {
             System.err.println("No reads in " + chromosome1);
             System.err.println("Unknown resolution: " + zoom);
             System.err.println("This data set has the following bin sizes (in bp): ");
-            for (int zoomIdx = 0; zoomIdx < dataset.getNumberZooms(HiC.Unit.BP); zoomIdx++) {
-                System.err.print(dataset.getZoom(HiC.Unit.BP, zoomIdx).getBinSize() + " ");
+            for (int zoomIdx = 0; zoomIdx < dataset.getNumberZooms(HiCZoom.HiCUnit.BP); zoomIdx++) {
+                System.err.print(dataset.getZoom(HiCZoom.HiCUnit.BP, zoomIdx).getBinSize() + " ");
             }
             System.err.println("\nand the following bin sizes (in frag): ");
-            for (int zoomIdx = 0; zoomIdx < dataset.getNumberZooms(HiC.Unit.FRAG); zoomIdx++) {
-                System.err.print(dataset.getZoom(HiC.Unit.FRAG, zoomIdx).getBinSize() + " ");
+            for (int zoomIdx = 0; zoomIdx < dataset.getNumberZooms(HiCZoom.HiCUnit.FRAG); zoomIdx++) {
+                System.err.print(dataset.getZoom(HiCZoom.HiCUnit.FRAG, zoomIdx).getBinSize() + " ");
             }
             System.exit(13);
         }
-        ExpectedValueFunction df = dataset.getExpectedValuesOrExit(zd.getZoom(), norm, chromosome1, true);
-        double[] vector = dataset.getEigenvector(chromosome1, zoom, 0, norm);
+        ExpectedValueFunction df = dataset.getExpectedValuesOrExit(zd.getZoom(), norm, chromosome1, true, true);
+        double[] vector = zd.getEigenvector(df, 0);
 
         // mean center and print
         int count = 0;

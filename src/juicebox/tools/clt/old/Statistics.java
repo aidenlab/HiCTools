@@ -24,8 +24,8 @@
 
 package juicebox.tools.clt.old;
 
-import juicebox.data.ChromosomeHandler;
-import juicebox.data.HiCFileTools;
+import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.basics.ChromosomeTools;
 import juicebox.tools.clt.CommandLineParser;
 import juicebox.tools.clt.JuiceboxCLT;
 import juicebox.tools.utils.original.Chunk;
@@ -143,7 +143,7 @@ public class Statistics extends JuiceboxCLT {
                 || genomeID.equalsIgnoreCase("none")) {
             localHandler = null;
         } else {
-            localHandler = HiCFileTools.loadChromosomes(genomeID); //genomeID
+            localHandler = ChromosomeTools.loadChromosomes(genomeID); //genomeID
         }
     }
 
