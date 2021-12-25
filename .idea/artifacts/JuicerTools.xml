@@ -15,7 +15,7 @@
       <element id="extracted-dir" path="$PROJECT_DIR$/lib/general/jahmm-0.6.1.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$PROJECT_DIR$/lib/general/jfreechart-1.0.19.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$PROJECT_DIR$/lib/general/VectorGraphics2D-0.11.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/lib/general/java-straw.2.0.3.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/general/java-straw.2.1.6.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$PROJECT_DIR$/lib/general/npy.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$PROJECT_DIR$/lib/general/commons-math3-3.6.1.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$PROJECT_DIR$/lib/kotlin/kotlin-stdlib.jar" path-in-jar="/" />
