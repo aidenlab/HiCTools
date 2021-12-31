@@ -47,6 +47,7 @@ public class AddNorm extends JuiceboxCLT {
     private String file;
     private final List<NormalizationType> normalizationTypes = new ArrayList<>();
     private Map<NormalizationType, Integer> resolutionsToBuildTo;
+    private int nearDiagonalCutoff = 0;
 
     public AddNorm() {
         super(getBasicUsage() + "\n"
@@ -102,6 +103,7 @@ public class AddNorm extends JuiceboxCLT {
         IteratorContainer.numCPUMatrixThreads = numCPUThreads;
 
         usingMultiThreadedVersion = numCPUThreads > 1;
+        nearDiagonalCutoff = parser.getNearDiagonalOption();
 
         genomeWideResolution = parser.getGenomeWideOption();
         normalizationTypes.addAll(parser.getAllNormalizationTypesOption());

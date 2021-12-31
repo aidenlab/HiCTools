@@ -34,6 +34,7 @@ import javastraw.reader.norm.NormalizationVector;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationType;
 import javastraw.tools.HiCFileTools;
+import juicebox.tools.utils.norm.scale.ScaleHandler;
 
 public class CustomNormalizationVector extends NormalizationVector {
     private final boolean needsToBeScaledTo;
@@ -57,9 +58,9 @@ public class CustomNormalizationVector extends NormalizationVector {
 
     public NormalizationVector mmbaScaleToVector(IteratorContainer ic) {
 
-        ListOfFloatArrays newNormVector = ZeroScale.scale(ic, data.convertToFloats(), getKey());
+        ListOfFloatArrays newNormVector = ScaleHandler.scale(ic, data.convertToFloats(), getKey());
         if (newNormVector != null) {
-            newNormVector = ZeroScale.normalizeVectorByScaleFactor(newNormVector, ic);
+            newNormVector = ScaleHandler.normalizeVectorByScaleFactor(newNormVector, ic);
         }
         ListOfDoubleArrays newDoubleNormVector = newNormVector.convertToDoubles();
         return new NormalizationVector(type, chrIdx, unit, resolution, newDoubleNormVector);

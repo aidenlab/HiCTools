@@ -22,17 +22,16 @@
  *  THE SOFTWARE.
  */
 
-package juicebox.tools.utils.norm;
+package juicebox.tools.utils.norm.scale;
 
 import javastraw.reader.block.ContactRecord;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.iterators.IteratorContainer;
 import juicebox.HiCGlobals;
-import juicebox.tools.utils.norm.final2.FinalScale;
 
 import java.util.Iterator;
 
-public class ZeroScale {
+public class ScaleHandler {
     public static ListOfFloatArrays scale(IteratorContainer ic, ListOfFloatArrays targetVectorInitial, String key) {
         ListOfFloatArrays newVector = FinalScale.scaleToTargetVector(ic, targetVectorInitial);
         if (newVector == null && HiCGlobals.printVerboseComments) {

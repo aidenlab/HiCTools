@@ -31,6 +31,7 @@ import javastraw.reader.datastructures.ListOfIntArrays;
 import javastraw.reader.iterators.IteratorContainer;
 import javastraw.reader.type.NormalizationType;
 import juicebox.tools.clt.old.NormalizationBuilder;
+import juicebox.tools.utils.norm.scale.ScaleHandler;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import java.util.Arrays;
@@ -494,7 +495,7 @@ public class NormalizationCalculations {
         
         ListOfFloatArrays tempTargetVector = new ListOfFloatArrays(matrixSize, 1);
 
-        return ZeroScale.mmbaScaleToVector(ic, tempTargetVector);
+        return ScaleHandler.mmbaScaleToVector(ic, tempTargetVector);
     }
 
     /*public BigContactRecordList booleanBalancing() {
