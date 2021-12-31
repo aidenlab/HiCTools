@@ -93,7 +93,7 @@ public class GenomeWideNormalizationVectorUpdater extends NormVectorUpdater {
         final IteratorContainer ic = ListOfListGenerator.createForWholeGenome(dataset, chromosomeHandler, zoom,
                 includeIntraData, HiCGlobals.USE_ITERATOR_NOT_ALL_IN_RAM, HiCGlobals.CHECK_RAM_USAGE);
 
-        NormalizationCalculations calculations = new NormalizationCalculations(ic);
+        NormalizationCalculations calculations = new NormalizationCalculations(ic, resolution);
         ListOfFloatArrays vector = calculations.getNorm(norm);
         if (vector == null) {
             return null;

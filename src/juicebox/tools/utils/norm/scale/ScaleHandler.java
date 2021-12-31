@@ -27,17 +27,18 @@ package juicebox.tools.utils.norm.scale;
 import javastraw.reader.block.ContactRecord;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.iterators.IteratorContainer;
-import juicebox.HiCGlobals;
+import juicebox.tools.utils.norm.DistanceFilteredIteratorContainer;
 
 import java.util.Iterator;
 
 public class ScaleHandler {
-    public static ListOfFloatArrays scale(IteratorContainer ic, ListOfFloatArrays targetVectorInitial, String key) {
-        ListOfFloatArrays newVector = FinalScale.scaleToTargetVector(ic, targetVectorInitial);
-        if (newVector == null && HiCGlobals.printVerboseComments) {
-            System.err.println("Scaling result still null for " + key + "; vector did not converge");
+    public static ListOfFloatArrays scale(IteratorContainer ic, ListOfFloatArrays targetVectorInitial,
+                                          int resolution) {
+        IteratorContainer ic2 = ic;
+        if (DistanceFilteredIteratorContainer.getUseFilterDistance()) {
+            ic2 = new DistanceFilteredIteratorContainer(ic, resolution);
         }
-        return newVector;
+        return FinalScale.scaleToTargetVector(ic2, targetVectorInitial);
     }
 
 
@@ -82,14 +83,10 @@ public class ScaleHandler {
         return newNormVector;
     }
 
-    public static ListOfFloatArrays mmbaScaleToVector(IteratorContainer ic, ListOfFloatArrays tempTargetVector) {
-
-        ListOfFloatArrays newNormVector = scale(ic, tempTargetVector, "mmsa_scale");
-        if (newNormVector != null) {
-            newNormVector = normalizeVectorByScaleFactor(newNormVector, ic);
-        }
-
-        return newNormVector;
+    public static ListOfFloatArrays mmbaScaleToVector(IteratorContainer ic, ListOfFloatArrays tempTargetVector,
+                                                      int resolution) {
+        ListOfFloatArrays newNormVector = scale(ic, tempTargetVector, resolution);
+        return normalizeVectorByScaleFactor(newNormVector, ic);
     }
 
 }

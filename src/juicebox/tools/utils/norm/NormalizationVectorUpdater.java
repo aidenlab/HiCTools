@@ -184,7 +184,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                     System.out.println("Now Doing " + chr.getName());
                 }
 
-                NormalizationCalculations nc = new NormalizationCalculations(zd.getIteratorContainer());
+                NormalizationCalculations nc = new NormalizationCalculations(zd.getIteratorContainer(), zd.getBinSize());
                 if (!nc.isEnoughMemory()) {
                     System.err.println("Not enough memory, skipping " + chr);
                     continue;
@@ -235,7 +235,6 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
         
         if (!failureSetMMBA.contains(chr)) {
             ListOfFloatArrays mmba = nc.computeMMBA();
-            
             if (mmba == null) {
                 failureSetMMBA.add(chr);
                 printNormTiming("FAILED SCALE", chr, zoom, currentTime);

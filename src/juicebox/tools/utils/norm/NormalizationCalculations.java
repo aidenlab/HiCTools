@@ -54,11 +54,13 @@ public class NormalizationCalculations {
     private final long matrixSize; // x and y symmetric
     private boolean isEnoughMemory = false;
     private final IteratorContainer ic;
+    private final int resolution;
 
-    public NormalizationCalculations(IteratorContainer ic) {
+    public NormalizationCalculations(IteratorContainer ic, int resolution) {
         this.ic = ic;
         this.matrixSize = ic.getMatrixSize();
         isEnoughMemory = ic.getIsThereEnoughMemoryForNormCalculation();
+        this.resolution = resolution;
     }
 
     private static ListOfDoubleArrays sparseMultiplyFromContactRecords(ListOfIntArrays offset,
@@ -85,26 +87,6 @@ public class NormalizationCalculations {
         return result;
     }
 
-    /*
-    function [x,res] = bnewt(A,tol,x0,delta,fl)
-          % BNEWT A balancing algorithm for symmetric matrices
-    %
-    % X = BNEWT(A) attempts to find a vector X such that
-    % diag(X)*A*diag(X) is close to doubly stochastic. A must
-    % be symmetric and nonnegative.
-    %
-    % X0: initial guess. TOL: error tolerance.
-    % DEL: how close balancing vectors can get to the edge of the
-          % positive cone. We use a relative measure on the size of elements.
-    % FL: intermediate convergence statistics on/off.
-          % RES: residual error, measured by norm(diag(x)*A*x - e).
-          % Initialise
-          [n,n]=size(A); e = ones(n,1); res=[];
-           if nargin < 5, fl = 0; end
-        if nargin < 4, delta = 0.1; end
-        if nargin < 3, x0 = e; end
-        if nargin < 2, tol = 1e-6; end
-    */
     private ListOfDoubleArrays computeKRNormVector(ListOfIntArrays offset, double tol, ListOfDoubleArrays x0, double delta) {
 
         long n = x0.getLength();
@@ -492,10 +474,8 @@ public class NormalizationCalculations {
     }
     
     public ListOfFloatArrays computeMMBA() {
-        
         ListOfFloatArrays tempTargetVector = new ListOfFloatArrays(matrixSize, 1);
-
-        return ScaleHandler.mmbaScaleToVector(ic, tempTargetVector);
+        return ScaleHandler.mmbaScaleToVector(ic, tempTargetVector, resolution);
     }
 
     /*public BigContactRecordList booleanBalancing() {

@@ -57,11 +57,8 @@ public class CustomNormalizationVector extends NormalizationVector {
     }
 
     public NormalizationVector mmbaScaleToVector(IteratorContainer ic) {
-
-        ListOfFloatArrays newNormVector = ScaleHandler.scale(ic, data.convertToFloats(), getKey());
-        if (newNormVector != null) {
-            newNormVector = ScaleHandler.normalizeVectorByScaleFactor(newNormVector, ic);
-        }
+        ListOfFloatArrays newNormVector = ScaleHandler.scale(ic, data.convertToFloats(), resolution);
+        ScaleHandler.normalizeVectorByScaleFactor(newNormVector, ic);
         ListOfDoubleArrays newDoubleNormVector = newNormVector.convertToDoubles();
         return new NormalizationVector(type, chrIdx, unit, resolution, newDoubleNormVector);
     }
