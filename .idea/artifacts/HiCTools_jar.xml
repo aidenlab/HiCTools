@@ -1,9 +1,9 @@
 <component name="ArtifactManager">
-  <artifact type="jar" build-on-make="true" name="HiCTools">
+  <artifact type="jar" build-on-make="true" name="HiCTools:jar">
     <output-path>$PROJECT_DIR$/out/artifacts/HiCTools</output-path>
     <root id="archive" name="hic_tools.jar">
       <element id="directory" name="META-INF">
-        <element id="file-copy" path="$PROJECT_DIR$/src/resources/manifests/MANIFEST.MF" />
+        <element id="file-copy" path="$PROJECT_DIR$/src/resources/manifests/META-INF/MANIFEST.MF" />
       </element>
       <element id="module-output" name="Juicebox" />
       <element id="extracted-dir" path="$PROJECT_DIR$/lib/general/jargs.jar" path-in-jar="/" />
