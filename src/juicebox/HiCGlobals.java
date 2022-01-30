@@ -35,7 +35,7 @@ import java.util.concurrent.Executors;
  */
 public class HiCGlobals {
 
-    public static final String versionNum = "2.13.07";
+    public static final String versionNum = "3.02.01";
     public static final int minVersion = 6;
     public static final int writingVersion = 9;
     public static final int bufferSize = 2097152;
@@ -46,6 +46,7 @@ public class HiCGlobals {
     public static boolean printVerboseComments = false;
     public static boolean USE_ITERATOR_NOT_ALL_IN_RAM = false;
     public static boolean CHECK_RAM_USAGE = false;
+
 
     public static void verifySupportedHiCFileVersion(int version) throws RuntimeException {
         if (version < minVersion) {

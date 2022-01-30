@@ -73,6 +73,7 @@ public class CommandLineParser extends CmdLineParser {
     private final Option countThresholdOption = addIntegerOption('m', "min-count");
     private final Option mapqOption = addIntegerOption('q', "mapq");
     private final Option genomeWideOption = addIntegerOption('w', "genomewide");
+    private final Option nearDiagonalOption = addIntegerOption("diagonal-cutoff");
     private final Option alignmentFilterOption = addIntegerOption('a', "alignment");
     private final Option threadNumOption = addIntegerOption('j', "threads");
     private final Option matrixThreadNumOption = addIntegerOption("mthreads");
@@ -228,6 +229,10 @@ public class CommandLineParser extends CmdLineParser {
 
     public int getMapqThresholdOption() {
         return optionToInt(mapqOption);
+    }
+
+    public int getNearDiagonalOption() {
+        return optionToInt(nearDiagonalOption);
     }
 
     public int getGenomeWideOption() {

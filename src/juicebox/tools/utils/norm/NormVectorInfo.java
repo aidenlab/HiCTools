@@ -45,7 +45,6 @@ class NormVectorInfo {
         this.normVectorBuffers = normVectorBuffers;
         this.normVectorIndices = normVectorIndices;
         this.expectedValueFunctionMap = expectedValueFunctionMap;
-
     }
 
     public List<BufferedByteWriter> getNormVectorBuffers() {

@@ -30,7 +30,6 @@ import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.expected.ExpectedValueFunction;
-import javastraw.reader.expected.ExpectedValueFunctionImpl;
 import javastraw.reader.mzd.MatrixZoomData;
 import javastraw.reader.norm.NormalizationVector;
 import javastraw.reader.type.HiCZoom;
@@ -160,7 +159,7 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
             for (NormalizationType customNormType : normalizationVectorMap.keySet()) {
 
                 ExpectedValueCalculation evLoaded = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, customNormType);
-                String key = ExpectedValueFunctionImpl.getKey(zoom, customNormType);
+                String key = ExpectedValueFunction.getKey(zoom, customNormType, false, 0);
 
                 // Loop through chromosomes
                 for (Chromosome chr : chromosomeHandler.getChromosomeArrayWithoutAllByAll()) {

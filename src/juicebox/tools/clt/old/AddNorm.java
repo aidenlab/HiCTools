@@ -30,6 +30,7 @@ import juicebox.HiCGlobals;
 import juicebox.tools.clt.CommandLineParser;
 import juicebox.tools.clt.JuiceboxCLT;
 import juicebox.tools.utils.norm.CustomNormVectorFileHandler;
+import juicebox.tools.utils.norm.DistanceFilteredIteratorContainer;
 import juicebox.tools.utils.norm.NormalizationVectorUpdater;
 
 import java.io.IOException;
@@ -102,6 +103,7 @@ public class AddNorm extends JuiceboxCLT {
         IteratorContainer.numCPUMatrixThreads = numCPUThreads;
 
         usingMultiThreadedVersion = numCPUThreads > 1;
+        DistanceFilteredIteratorContainer.setFilterDistance(parser.getNearDiagonalOption());
 
         genomeWideResolution = parser.getGenomeWideOption();
         normalizationTypes.addAll(parser.getAllNormalizationTypesOption());
