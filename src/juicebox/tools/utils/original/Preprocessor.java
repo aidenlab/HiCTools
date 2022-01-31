@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -595,21 +595,6 @@ public class Preprocessor {
         } finally {
             if (iter != null) iter.close();
         }
-
-        /*
-            Intra-fragment Reads: 2,321 (0.19% / 0.79%)
-            Below MAPQ Threshold: 44,134 (3.57% / 15.01%)
-            Hi-C Contacts: 247,589 (20.02% / 84.20%)
-             Ligation Motif Present: 99,245  (8.03% / 33.75%)
-             3' Bias (Long Range): 73% - 27%
-             Pair Type %(L-I-O-R): 25% - 25% - 25% - 25%
-            Inter-chromosomal: 58,845  (4.76% / 20.01%)
-            Intra-chromosomal: 188,744  (15.27% / 64.19%)
-            Short Range (<20Kb): 48,394  (3.91% / 16.46%)
-            Long Range (>20Kb): 140,350  (11.35% / 47.73%)
-
-        System.err.println("contig: " + contig + " total: " + totalRead + " below mapq: " + belowMapq + " intra frag: " + intraFrag); */
-
         matrix.parsingComplete();
         return matrix;
     }
