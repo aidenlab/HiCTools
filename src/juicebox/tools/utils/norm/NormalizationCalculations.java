@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,9 +32,7 @@ import javastraw.reader.iterators.IteratorContainer;
 import javastraw.reader.type.NormalizationType;
 import juicebox.tools.clt.old.NormalizationBuilder;
 import juicebox.tools.utils.norm.scale.ScaleHandler;
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -244,9 +242,7 @@ public class NormalizationCalculations {
 
     public ListOfFloatArrays getNorm(NormalizationType normOption) {
         ListOfFloatArrays norm;
-        if (NormalizationBuilder.usesKR(normOption)) {
-            norm = computeKR();
-        } else if (NormalizationBuilder.usesVC(normOption)) {
+        if (NormalizationBuilder.usesVC(normOption)) {
             norm = computeVC();
         } else if (NormalizationBuilder.usesSCALE(normOption)) {
             norm = computeMMBA();
@@ -334,143 +330,6 @@ public class NormalizationCalculations {
             }
         }
         return counter;
-    }
-    
-    
-    ListOfFloatArrays computeKR() {
-        
-        boolean recalculate = true;
-        ListOfIntArrays offset = getOffset(0);
-        ListOfFloatArrays kr = null;
-        int iteration = 1;
-        
-        while (recalculate && iteration <= 6) {
-            // create new matrix indices upon every iteration, because we've thrown out rows
-            // newSize is size of new sparse matrix (non-sparse rows)
-            long newSize = 0;
-            for (int[] array : offset.getValues()) {
-                for (int offset1 : array) {
-                    if (offset1 != -1) newSize++;
-                }
-            }
-            
-            // initialize x0 for call the compute KR norm
-            ListOfDoubleArrays x0 = new ListOfDoubleArrays(newSize, 1);
-            
-            x0 = computeKRNormVector(offset, 0.000001, x0, 0.1);
-
-            // assume all went well and we don't need to recalculate
-            recalculate = false;
-            int rowsTossed = 0;
-
-            if (x0 == null || iteration == 5) {
-                // if x0 is no good, throw out some percentage of rows and reset the offset array that gives those rows
-                recalculate = true;
-                if (iteration < 5) {
-                    offset = getOffset(iteration);
-                } else {
-                    offset = getOffset(10);
-                }
-                //   System.out.print(" " + iteration + "%");
-            } else {
-                // otherwise, check to be sure there are no tiny KR values
-                // create true KR vector
-                kr = new ListOfFloatArrays(matrixSize);
-                int krIndex = 0;
-                for (int[] offsetArray : offset.getValues()) {
-                    for (int offset1 : offsetArray) {
-                        if (offset1 == -1) {
-                            kr.set(krIndex++, Float.NaN);
-                        } else {
-                            kr.set(krIndex++, (float) (1.0f / x0.get(offset1)));
-                        }
-                    }
-                }
-                // find scaling factor
-                double mySum = getSumFactor(kr);
-    
-                // if any values are too small, recalculate.  set those rows to be thrown out and reset the offset
-                // note that if no rows are thrown out, the offset should not change
-                int index = 0;
-                for (long i = 0; i < kr.getLength(); i++) {
-                    if (kr.get(i) * mySum < 0.01) {
-                        offset.set(i, -1);
-                        rowsTossed++;
-                        recalculate = true;
-                    } else {
-                        if (offset.get(i) != -1) {
-                            offset.set(i, index++);
-                        }
-                    }
-                }
-                // if (recalculate) System.out.print(" " + rowsTossed);
-            }
-            iteration++;
-            System.gc();
-        }
-        if (iteration > 6 && recalculate) {
-            kr = new ListOfFloatArrays(matrixSize, Float.NaN);
-        }
-
-        return kr;
-    }
-    
-    private ListOfIntArrays getOffset(double percent) {
-        ListOfDoubleArrays rowSums = new ListOfDoubleArrays(matrixSize, 0);
-
-        Iterator<ContactRecord> iterator = getIterator();
-        while (iterator.hasNext()) {
-            ContactRecord cr = iterator.next();
-            int x = cr.getBinX();
-            int y = cr.getBinY();
-            float value = cr.getCounts();
-            rowSums.addTo(x, value);
-            if (x != y) {
-                rowSums.addTo(y, value);
-            }
-        }
-
-        double thresh = 0;
-        if (percent > 0) {
-            // Get percent threshold from positive row sums (nonzero)
-            DescriptiveStatistics stats = new DescriptiveStatistics();
-            rowSums.getValues().forEach(sum -> Arrays.stream(sum).filter(i-> i != 0).forEach(stats::addValue));
-            thresh = stats.getPercentile( percent);
-            /*
-            int j = 0;
-            for (double[] array : rowSums.getValues()) {
-                for (double sum : array) {
-                    if (sum != 0) {
-                        j++;
-                    }
-                }
-            }
-            double[] posRowSums = new double[j];
-
-            j = 0;
-            for (double[] array : rowSums.getValues()) {
-                for (double sum : array) {
-                    if (sum != 0) {
-                        posRowSums[j++] = sum;
-                    }
-                }
-            }
-            thresh = StatUtils.percentile(posRowSums, percent);
-             */
-        }
-        
-        ListOfIntArrays offset = new ListOfIntArrays(rowSums.getLength());
-        int index = 0;
-        for (long i = 0; i < rowSums.getLength(); i++) {
-            if (rowSums.get(i) <= thresh) {
-                offset.set(i, -1);
-            } else {
-                offset.set(i, index++);
-            }
-        }
-        
-        return offset;
-        
     }
     
     public ListOfFloatArrays computeMMBA() {

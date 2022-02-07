@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -54,15 +54,12 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
     protected List<ExpectedValueCalculation> expectedValueCalculations = new ArrayList<>();
 
     // Keep track of chromosomes that fail to converge, so we don't try them at higher resolutions.
-    protected Set<Chromosome> krBPFailedChromosomes = new HashSet<>();
-    protected Set<Chromosome> krFragFailedChromosomes = new HashSet<>();
     protected Set<Chromosome> mmbaBPFailedChromosomes = new HashSet<>();
     protected Set<Chromosome> mmbaFragFailedChromosomes = new HashSet<>();
 
     // norms to build; gets overwritten
     protected boolean weShouldBuildVC = true;
     protected boolean weShouldBuildVCSqrt = true;
-    protected boolean weShouldBuildKR = true;
     protected boolean weShouldBuildScale = true;
 
     protected static void printNormTiming(String norm, Chromosome chr, HiCZoom zoom, long currentTime) {
@@ -84,7 +81,6 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
     protected void reEvaluateWhichIntraNormsToBuild(List<NormalizationType> normalizationsToBuild) {
         weShouldBuildVC = normalizationsToBuild.contains(NormalizationHandler.VC);
         weShouldBuildVCSqrt = normalizationsToBuild.contains(NormalizationHandler.VC_SQRT);
-        weShouldBuildKR = normalizationsToBuild.contains(NormalizationHandler.KR);
         weShouldBuildScale = normalizationsToBuild.contains(NormalizationHandler.SCALE);
     }
 
@@ -105,23 +101,6 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
         }
         if (weShouldBuildVCSqrt) {
             updateExpectedValueCalculationForChr(chrIdx, nc, vcSqrt, NormalizationHandler.VC_SQRT, zoom, zd, evVCSqrt, normVectorBuffers, normVectorIndices);
-        }
-    }
-
-    protected void buildKR(Chromosome chr, NormalizationCalculations nc, HiCZoom zoom, MatrixZoomData zd, ExpectedValueCalculation evKR) throws IOException {
-        Set<Chromosome> failureSetKR = zoom.getUnit() == HiCZoom.HiCUnit.FRAG ? krFragFailedChromosomes : krBPFailedChromosomes;
-        final int chrIdx = chr.getIndex();
-
-        long currentTime = System.currentTimeMillis();
-        if (!failureSetKR.contains(chr)) {
-            ListOfFloatArrays kr = nc.computeKR();
-            if (kr == null) {
-                failureSetKR.add(chr);
-                printNormTiming("FAILED KR", chr, zoom, currentTime);
-            } else {
-                updateExpectedValueCalculationForChr(chrIdx, nc, kr, NormalizationHandler.KR, zoom, zd, evKR, normVectorBuffers, normVectorIndices);
-                printNormTiming("KR", chr, zoom, currentTime);
-            }
         }
     }
 
@@ -171,7 +150,6 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
             ExpectedValueCalculation evVC = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, NormalizationHandler.VC);
             ExpectedValueCalculation evVCSqrt = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, NormalizationHandler.VC_SQRT);
-            ExpectedValueCalculation evKR = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, NormalizationHandler.KR);
             ExpectedValueCalculation evSCALE = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, NormalizationHandler.SCALE);
 
             // Loop through chromosomes
@@ -196,11 +174,6 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                             chr, nc, zoom, zd, evVC, evVCSqrt);
                 }
 
-                // KR normalization
-                if (weShouldBuildKR && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.KR)) {
-                    buildKR(chr, nc, zoom, zd, evKR);
-                }
-
                 // Fast scaling normalization
                 if (weShouldBuildScale && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.SCALE)) {
                     buildScale(chr, nc, zoom, zd, evSCALE);
@@ -214,9 +187,6 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
             }
             if (weShouldBuildVCSqrt && evVCSqrt.hasData() && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC_SQRT)) {
                 expectedValueCalculations.add(evVCSqrt);
-            }
-            if (weShouldBuildKR && evKR.hasData() && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.KR)) {
-                expectedValueCalculations.add(evKR);
             }
             if (weShouldBuildScale && evSCALE.hasData() && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.SCALE)) {
                 expectedValueCalculations.add(evSCALE);
