@@ -160,47 +160,27 @@ public class MultithreadedPreprocessor extends Preprocessor {
                 iter = new AsciiPairIterator(inputFile, chromosomeIndexes, chunkPositions.get(chrChunk),
                         chromosomeHandler);
             }
+            ContactCleaner cleaner = ContactCleaner.create(chromosomeHandler, allowPositionsRandomization,
+                    fragmentCalculation, fragmentCalculationsForRandomization, random);
+
             while (iter.hasNext()) {
                 AlignmentPair pair = iter.next();
                 // skip pairs that mapped to contigs
                 if (!pair.isContigPair()) {
                     if (shouldSkipContact(pair)) continue;
                     // Flip pair if needed so chr1 < chr2
-                    int chr1, chr2, bp1, bp2, frag1, frag2;
-                    if (pair.getChr1() < pair.getChr2()) {
-                        bp1 = pair.getPos1();
-                        bp2 = pair.getPos2();
-                        frag1 = pair.getFrag1();
-                        frag2 = pair.getFrag2();
-                        chr1 = pair.getChr1();
-                        chr2 = pair.getChr2();
-                    } else {
-                        bp1 = pair.getPos2();
-                        bp2 = pair.getPos1();
-                        frag1 = pair.getFrag2();
-                        frag2 = pair.getFrag1();
-                        chr1 = pair.getChr2();
-                        chr2 = pair.getChr1();
-                    }
+                    cleaner.updateLatestContact(pair);
 
-                    bp1 = ensureFitInChromosomeBounds(bp1, chr1);
-                    bp2 = ensureFitInChromosomeBounds(bp2, chr2);
-
-                    // Randomize position within fragment site
-                    if (allowPositionsRandomization && fragmentCalculation != null) {
-                        Pair<Integer, Integer> newBPos12 = getRandomizedPositions(chr1, chr2, frag1, frag2, bp1, bp2);
-                        bp1 = newBPos12.getFirst();
-                        bp2 = newBPos12.getSecond();
-                    }
                     // only increment if not intraFragment and passes the mapq threshold
-                    if (!(currentChr1 == chr1 && currentChr2 == chr2)) {
+                    if (cleaner.doesntMatchCurrentBlock(currentChr1, currentChr2)) {
 
                         // Start the next matrix
-                        currentChr1 = chr1;
-                        currentChr2 = chr2;
+                        currentChr1 = cleaner.getChr1();
+                        currentChr2 = cleaner.getChr2();
                         currentMatrixKey = currentChr1 + "_" + currentChr2;
 
-                        currentMatrixName = chromosomeHandler.getChromosomeFromIndex(chr1).getName() + "-" + chromosomeHandler.getChromosomeFromIndex(chr2).getName();
+                        currentMatrixName = cleaner.getCurrentMatrixName();
+
                         currentPairIndex = chromosomePairIndexesReverse.get(currentMatrixName);
 
                         if (currentPairIndex != currentChrPair) {
@@ -214,14 +194,9 @@ public class MultithreadedPreprocessor extends Preprocessor {
                         }
                         currentMatrix = new MatrixPP(currentChr1, currentChr2, chromosomeHandler, bpBinSizes, fragmentCalculation, fragBinSizes, countThreshold, v9DepthBase, chrPairBlockCapacities.get(currentChrPair));
                     }
-                    if (currentMatrix != null) {
-                        currentMatrix.incrementCount(bp1, bp2, frag1, frag2, pair.getScore(), localExpectedValueCalculations, tmpDir);
-                    }
+                    cleaner.incrementCount(currentMatrix, localExpectedValueCalculations, tmpDir);
 
-                    int pos1 = getWholeGenomePosition(chr1, bp1, chromosomeHandler);
-                    int pos2 = getWholeGenomePosition(chr2, bp2, chromosomeHandler);
-                    wholeGenomeMatrix.incrementCount(pos1, pos2, pos1, pos2, pair.getScore(), localExpectedValueCalculations, tmpDir);
-
+                    cleaner.incrementGWCount(wholeGenomeMatrix, localExpectedValueCalculations, tmpDir);
                 }
             }
 

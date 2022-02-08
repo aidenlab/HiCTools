@@ -234,21 +234,7 @@ public class Preprocessor {
         this.randomizeFragMapFiles = fragMaps;
     }
 
-    protected static int randomizePos(FragmentCalculation fragmentCalculation, String chr, int frag) {
 
-        int low = 1;
-        int high = 1;
-        if (frag == 0) {
-            high = fragmentCalculation.getSites(chr)[frag];
-        } else if (frag >= fragmentCalculation.getNumberFragments(chr)) {
-            high = fragmentCalculation.getSites(chr)[frag - 1];
-            low = fragmentCalculation.getSites(chr)[frag - 2];
-        } else {
-            high = fragmentCalculation.getSites(chr)[frag];
-            low = fragmentCalculation.getSites(chr)[frag - 1];
-        }
-        return random.nextInt(high - low + 1) + low;
-    }
 
     public void setRandomizePosition(boolean allowPositionsRandomization) {
         Preprocessor.allowPositionsRandomization = allowPositionsRandomization;
@@ -258,44 +244,7 @@ public class Preprocessor {
         Preprocessor.throwOutIntraFrag = throwOutIntraFrag;
     }
 
-    protected static FragmentCalculation findFragMap(List<FragmentCalculation> maps, String chr, int bp, int frag) {
-        //potential maps that this strand could come from
-        ArrayList<FragmentCalculation> mapsFound = new ArrayList<>();
-        for (FragmentCalculation fragmentCalculation : maps) {
-            int low = 1;
-            int high = 1;
 
-            if (frag > fragmentCalculation.getNumberFragments(chr)) {
-                // definitely not this restriction site file for certain
-                continue;
-            }
-            
-            try {
-                if (frag == 0) {
-                    high = fragmentCalculation.getSites(chr)[frag];
-                } else if (frag == fragmentCalculation.getNumberFragments(chr)) {
-                    high = fragmentCalculation.getSites(chr)[frag - 1];
-                    low = fragmentCalculation.getSites(chr)[frag - 2];
-                } else {
-                    high = fragmentCalculation.getSites(chr)[frag];
-                    low = fragmentCalculation.getSites(chr)[frag - 1];
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.printf("fragment: %d, number of frags: %d%n", frag, fragmentCalculation.getNumberFragments(chr));
-
-            }
-
-            // does bp fit in this range?
-            if (bp >= low && bp <= high) {
-                mapsFound.add(fragmentCalculation);
-            }
-        }
-        if (mapsFound.size() == 1) {
-            return mapsFound.get(0);
-        }
-        return null;
-    }
 
 
     /**
@@ -545,17 +494,6 @@ public class Preprocessor {
         return new MatrixPP(0, 0, binSize, nBlockColumns, chromosomeHandler, fragmentCalculation, countThreshold, v9DepthBase);
     }
 
-    protected static int getWholeGenomePosition(int chr, int pos, ChromosomeHandler handler) {
-        long len = 0;
-        for (int i = 1; i < chr; i++) {
-            len += handler.getChromosomeFromIndex(i).getLength();
-        }
-        len += pos;
-
-        return (int) (len / 1000);
-
-    }
-
     protected boolean alignmentsAreEqual(Alignment alignment, Alignment alignmentStandard) {
         if (alignment == alignmentStandard) {
             return true;
@@ -602,8 +540,8 @@ public class Preprocessor {
 
                     int pos1, pos2;
                     if (shouldSkipContact(pair)) continue;
-                    pos1 = getWholeGenomePosition(chr1, bp1, chromosomeHandler);
-                    pos2 = getWholeGenomePosition(chr2, bp2, chromosomeHandler);
+                    pos1 = ContactCleaner.getWholeGenomePosition(chr1, bp1, chromosomeHandler);
+                    pos2 = ContactCleaner.getWholeGenomePosition(chr2, bp2, chromosomeHandler);
                     matrix.incrementCount(pos1, pos2, pos1, pos2, pair.getScore(), expectedValueCalculations, tmpDir);
                     hicContact++;
                 }
@@ -651,6 +589,8 @@ public class Preprocessor {
         int currentChr2 = -1;
         MatrixPP currentMatrix = null;
         String currentMatrixKey = null;
+        ContactCleaner cleaner = ContactCleaner.create(chromosomeHandler, allowPositionsRandomization,
+                fragmentCalculation, fragmentCalculationsForRandomization, random);
 
         while (iter.hasNext()) {
             AlignmentPair pair = iter.next();
@@ -658,34 +598,12 @@ public class Preprocessor {
             if (!pair.isContigPair()) {
                 if (shouldSkipContact(pair)) continue;
                 // Flip pair if needed so chr1 < chr2
-                int chr1, chr2, bp1, bp2, frag1, frag2;
-                if (pair.getChr1() < pair.getChr2()) {
-                    bp1 = pair.getPos1();
-                    bp2 = pair.getPos2();
-                    frag1 = pair.getFrag1();
-                    frag2 = pair.getFrag2();
-                    chr1 = pair.getChr1();
-                    chr2 = pair.getChr2();
-                } else {
-                    bp1 = pair.getPos2();
-                    bp2 = pair.getPos1();
-                    frag1 = pair.getFrag2();
-                    frag2 = pair.getFrag1();
-                    chr1 = pair.getChr2();
-                    chr2 = pair.getChr1();
-                }
-
-                bp1 = ensureFitInChromosomeBounds(bp1, chr1);
-                bp2 = ensureFitInChromosomeBounds(bp2, chr2);
+                cleaner.updateLatestContact(pair);
 
                 // Randomize position within fragment site
-                if (allowPositionsRandomization && fragmentCalculation != null) {
-                    Pair<Integer, Integer> newBPos12 = getRandomizedPositions(chr1, chr2, frag1, frag2, bp1, bp2);
-                    bp1 = newBPos12.getFirst();
-                    bp2 = newBPos12.getSecond();
-                }
+
                 // only increment if not intraFragment and passes the mapq threshold
-                if (!(currentChr1 == chr1 && currentChr2 == chr2)) {
+                if (cleaner.doesntMatchCurrentBlock(currentChr1, currentChr2)) {
                     // Starting a new matrix
                     if (currentMatrix != null) {
                         currentMatrix.parsingComplete();
@@ -697,8 +615,8 @@ public class Preprocessor {
                     }
 
                     // Start the next matrix
-                    currentChr1 = chr1;
-                    currentChr2 = chr2;
+                    currentChr1 = cleaner.getChr1();
+                    currentChr2 = cleaner.getChr2();
                     currentMatrixKey = currentChr1 + "_" + currentChr2;
 
                     if (writtenMatrices.contains(currentMatrixKey)) {
@@ -709,9 +627,7 @@ public class Preprocessor {
                     currentMatrix = new MatrixPP(currentChr1, currentChr2, chromosomeHandler, bpBinSizes,
                             fragmentCalculation, fragBinSizes, countThreshold, v9DepthBase, BLOCK_CAPACITY);
                 }
-                if (currentMatrix != null) {
-                    currentMatrix.incrementCount(bp1, bp2, frag1, frag2, pair.getScore(), expectedValueCalculations, tmpDir);
-                }
+                cleaner.incrementCount(currentMatrix, expectedValueCalculations, tmpDir);
             }
         }
 
@@ -730,48 +646,6 @@ public class Preprocessor {
         iter.close();
 
         masterIndexPosition = losArray[0].getWrittenCount();
-    }
-
-    protected int ensureFitInChromosomeBounds(int bp, int chrom) {
-        if (bp < 0) {
-            return 0;
-        }
-        long maxLength = chromosomeHandler.getChromosomeFromIndex(chrom).getLength();
-        if (bp > maxLength) {
-            return (int) maxLength;
-        }
-        return bp;
-    }
-
-    protected Pair<Integer, Integer> getRandomizedPositions(int chr1, int chr2, int frag1, int frag2, int bp1, int bp2) {
-        FragmentCalculation fragMapToUse;
-        if (fragmentCalculationsForRandomization != null) {
-            FragmentCalculation fragMap1 = findFragMap(fragmentCalculationsForRandomization, chromosomeHandler.getChromosomeFromIndex(chr1).getName(), bp1, frag1);
-            FragmentCalculation fragMap2 = findFragMap(fragmentCalculationsForRandomization, chromosomeHandler.getChromosomeFromIndex(chr2).getName(), bp2, frag2);
-
-            if (fragMap1 == null && fragMap2 == null) {
-                //noMapFoundCount += 1;
-                return null;
-            } else if (fragMap1 != null && fragMap2 != null && fragMap1 != fragMap2) {
-                //mapDifferentCount += 1;
-                return null;
-            }
-
-            if (fragMap1 != null) {
-                fragMapToUse = fragMap1;
-            } else {
-                fragMapToUse = fragMap2;
-            }
-
-        } else {
-            // use default map
-            fragMapToUse = fragmentCalculation;
-        }
-
-        int newBP1 = randomizePos(fragMapToUse, chromosomeHandler.getChromosomeFromIndex(chr1).getName(), frag1);
-        int newBP2 = randomizePos(fragMapToUse, chromosomeHandler.getChromosomeFromIndex(chr2).getName(), frag2);
-
-        return new Pair<>(newBP1, newBP2);
     }
 
     protected boolean shouldSkipContact(AlignmentPair pair) { // static

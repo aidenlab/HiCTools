@@ -149,16 +149,13 @@ public class MatrixZoomDataPP {
         return percent5;
     }
 
-
     int getBinSize() {
         return binSize;
     }
 
-
     Chromosome getChr1() {
         return chr1;
     }
-
 
     Chromosome getChr2() {
         return chr2;
