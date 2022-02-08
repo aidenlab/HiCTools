@@ -587,6 +587,7 @@ public class Preprocessor {
         // Create an index the first time through
         try {
             iter = PairIterator.getIterator(file, chromosomeIndexes, chromosomeHandler);
+            //ContactFilter filter = getContactFilter();
 
             while (iter.hasNext()) {
                 totalRead++;
@@ -773,7 +774,7 @@ public class Preprocessor {
         return new Pair<>(newBP1, newBP2);
     }
 
-    protected boolean shouldSkipContact(AlignmentPair pair) {
+    protected boolean shouldSkipContact(AlignmentPair pair) { // static
         int chr1 = pair.getChr1();
         int chr2 = pair.getChr2();
         if (diagonalsOnly && chr1 != chr2) return true;
