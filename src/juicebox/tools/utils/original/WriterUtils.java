@@ -24,6 +24,9 @@
 
 package juicebox.tools.utils.original;
 
+import htsjdk.tribble.util.LittleEndianOutputStream;
+
+import java.io.IOException;
 import java.util.zip.Deflater;
 
 public class WriterUtils {
@@ -31,5 +34,26 @@ public class WriterUtils {
         Deflater compressor = new Deflater();
         compressor.setLevel(Deflater.DEFAULT_COMPRESSION);
         return compressor;
+    }
+
+    public static void writeZoomHeader(MatrixZoomDataPP zd, LittleEndianOutputStream los) throws IOException {
+        int numberOfBlocks = zd.blockNumbers.size();
+        los.writeString(zd.getUnit().toString());  // Unit
+        los.writeInt(zd.getZoom());     // zoom index,  lowest res is zero
+        los.writeFloat((float) zd.getSum());      // sum
+        los.writeFloat((float) zd.getOccupiedCellCount());
+        los.writeFloat((float) zd.getPercent5());
+        los.writeFloat((float) zd.getPercent95());
+        los.writeInt(zd.getBinSize());
+        los.writeInt(zd.getBlockBinCount());
+        los.writeInt(zd.getBlockColumnCount());
+        los.writeInt(numberOfBlocks);
+        zd.blockIndexPosition = los.getWrittenCount();
+        // Placeholder for block index
+        for (int i = 0; i < numberOfBlocks; i++) {
+            los.writeInt(0);
+            los.writeLong(0L);
+            los.writeInt(0);
+        }
     }
 }

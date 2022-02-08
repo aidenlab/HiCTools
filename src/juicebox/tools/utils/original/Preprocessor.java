@@ -797,19 +797,13 @@ public class Preprocessor {
     }
 
     protected void updateMasterIndex(String headerFile) throws IOException {
-        RandomAccessFile raf = null;
-        try {
-            raf = new RandomAccessFile(headerFile, "rw");
-
+        try (RandomAccessFile raf = new RandomAccessFile(headerFile, "rw")) {
             // Master index
             raf.getChannel().position(masterIndexPositionPosition);
             BufferedByteWriter buffer = new BufferedByteWriter();
             buffer.putLong(masterIndexPosition);
             raf.write(buffer.getBytes());
             System.out.println("masterIndexPosition: " + masterIndexPosition);
-
-        } finally {
-            if (raf != null) raf.close();
         }
     }
 
@@ -940,8 +934,9 @@ public class Preprocessor {
         //fos.writeInt(matrix.getZoomData().length);
         for ( int i = 0; i < matrix.getZoomData().length; i++) {
             MatrixZoomDataPP zd = matrix.getZoomData()[i];
-            if (zd != null)
-                writeZoomHeader(zd, los);
+            if (zd != null) {
+                WriterUtils.writeZoomHeader(zd, los);
+            }
         }
 
         long size = los.getWrittenCount() - position;
@@ -1013,36 +1008,9 @@ public class Preprocessor {
         }
     }
 
-    private void writeZoomHeader(MatrixZoomDataPP zd, LittleEndianOutputStream los) throws IOException {
-
-        int numberOfBlocks = zd.blockNumbers.size();
-        los.writeString(zd.getUnit().toString());  // Unit
-        los.writeInt(zd.getZoom());     // zoom index,  lowest res is zero
-        los.writeFloat((float) zd.getSum());      // sum
-        los.writeFloat((float) zd.getOccupiedCellCount());
-        los.writeFloat((float) zd.getPercent5());
-        los.writeFloat((float) zd.getPercent95());
-        los.writeInt(zd.getBinSize());
-        los.writeInt(zd.getBlockBinCount());
-        los.writeInt(zd.getBlockColumnCount());
-        los.writeInt(numberOfBlocks);
-
-        zd.blockIndexPosition = los.getWrittenCount();
-
-        // Placeholder for block index
-        for (int i = 0; i < numberOfBlocks; i++) {
-            los.writeInt(0);
-            los.writeLong(0L);
-            los.writeInt(0);
-        }
-
-    }
-
     public void setTmpdir(String tmpDirName) {
-
         if (tmpDirName != null) {
             this.tmpDir = new File(tmpDirName);
-
             if (!tmpDir.exists()) {
                 System.err.println("Tmp directory does not exist: " + tmpDirName);
                 if (outputFile != null) outputFile.deleteOnExit();

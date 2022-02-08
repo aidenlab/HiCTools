@@ -433,16 +433,12 @@ public class MultithreadedPreprocessor extends Preprocessor {
                 localMatrixPositions, chromosomePairIndex, true);
 
         chromosomePairBlockIndexes.put(chromosomePairIndex, localBlockIndexes.getFirst());
-        long size = 0 - localBlockIndexes.getSecond();
-        for (int i = 0; i < localLos.length; i++) {
-            size += localLos[i].getWrittenCount();
-            localLos[i].close();
+        long size = -localBlockIndexes.getSecond();
+        for (LittleEndianOutputStream localLo : localLos) {
+            size += localLo.getWrittenCount();
+            localLo.close();
         }
         matrixSizes.put(chromosomePairIndex, size);
-
-
-        //System.out.print(".");
-
         return localBlockIndexes;
     }
 }
