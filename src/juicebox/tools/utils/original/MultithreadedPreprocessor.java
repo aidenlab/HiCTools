@@ -368,7 +368,7 @@ public class MultithreadedPreprocessor extends Preprocessor {
         FileOutputStream tempFOS = new FileOutputStream(outputFile + "_" + chromosomePairIndexes.get(0));
         LittleEndianOutputStream tempLOS = new LittleEndianOutputStream(new BufferedOutputStream(tempFOS, HiCGlobals.bufferSize));
         LittleEndianOutputStream[] localLos = {tempLOS};
-        writeMatrix(wholeGenomeMatrix, localLos, getDefaultCompressor(), localMatrixPositions, 0, true);
+        writeMatrix(wholeGenomeMatrix, localLos, WriterUtils.getDefaultCompressor(), localMatrixPositions, 0, true);
         nonemptyChromosomePairs.put(0, 1);
 
         long currentPosition = losArray[0].getWrittenCount();
@@ -419,7 +419,7 @@ public class MultithreadedPreprocessor extends Preprocessor {
             }
         }
 
-        writeMatrix(finalChrMatrices.get(chromosomePair), localLos, getDefaultCompressor(), localMatrixPositions, chromosomePair, true);
+        writeMatrix(finalChrMatrices.get(chromosomePair), localLos, WriterUtils.getDefaultCompressor(), localMatrixPositions, chromosomePair, true);
 
     }
 

@@ -113,7 +113,7 @@ public class Preprocessor {
             chromosomeIndexes.put(chromosomeHandler.getChromosomeFromIndex(i).getName(), i);
         }
 
-        compressor = getDefaultCompressor();
+        compressor = WriterUtils.getDefaultCompressor();
 
         this.tmpDir = null;  // TODO -- specify this
 
@@ -918,12 +918,6 @@ public class Preprocessor {
         for (int i = 0; i<bufferList.size(); i++) {
             los[0].write(bufferList.get(i).getBytes());
         }
-    }
-
-    protected Deflater getDefaultCompressor() {
-        Deflater compressor = new Deflater();
-        compressor.setLevel(Deflater.DEFAULT_COMPRESSION);
-        return compressor;
     }
 
     protected Pair<Map<Long, List<IndexEntry>>, Long> writeMatrix(MatrixPP matrix, LittleEndianOutputStream[] losArray,
