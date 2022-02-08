@@ -130,22 +130,9 @@ public class MultithreadedPreprocessor extends Preprocessor {
         }
     }
 
-    private int getGenomicPosition(int chr, int pos, ChromosomeHandler localChromosomeHandler) {
-        long len = 0;
-        for (int i = 1; i < chr; i++) {
-            len += localChromosomeHandler.getChromosomeFromIndex(i).getLength();
-        }
-        len += pos;
-
-        return (int) (len / 1000);
-
-    }
-
     private Pair<Pair<Integer,Integer>, MatrixPP> processIndividualMatrixChunk(String inputFile, int chunkNumber,
                                                                                int currentChrPair, Set<String> syncWrittenMatrices, Map<String, ExpectedValueCalculation>
                                                                                        localExpectedValueCalculations, int threadNum) throws IOException {
-
-
         MatrixPP wholeGenomeMatrix = getInitialGenomeWideMatrixPP(chromosomeHandler);
         int i = chunkNumber;
         int chunksProcessed = 0;
@@ -231,8 +218,8 @@ public class MultithreadedPreprocessor extends Preprocessor {
                         currentMatrix.incrementCount(bp1, bp2, frag1, frag2, pair.getScore(), localExpectedValueCalculations, tmpDir);
                     }
 
-                    int pos1 = getGenomicPosition(chr1, bp1, chromosomeHandler);
-                    int pos2 = getGenomicPosition(chr2, bp2, chromosomeHandler);
+                    int pos1 = getWholeGenomePosition(chr1, bp1, chromosomeHandler);
+                    int pos2 = getWholeGenomePosition(chr2, bp2, chromosomeHandler);
                     wholeGenomeMatrix.incrementCount(pos1, pos2, pos1, pos2, pair.getScore(), localExpectedValueCalculations, tmpDir);
 
                 }

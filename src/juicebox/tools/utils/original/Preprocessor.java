@@ -545,6 +545,28 @@ public class Preprocessor {
         return new MatrixPP(0, 0, binSize, nBlockColumns, chromosomeHandler, fragmentCalculation, countThreshold, v9DepthBase);
     }
 
+    protected static int getWholeGenomePosition(int chr, int pos, ChromosomeHandler handler) {
+        long len = 0;
+        for (int i = 1; i < chr; i++) {
+            len += handler.getChromosomeFromIndex(i).getLength();
+        }
+        len += pos;
+
+        return (int) (len / 1000);
+
+    }
+
+    protected boolean alignmentsAreEqual(Alignment alignment, Alignment alignmentStandard) {
+        if (alignment == alignmentStandard) {
+            return true;
+        }
+        if (alignmentStandard == Alignment.TANDEM) {
+            return alignment == Alignment.LL || alignment == Alignment.RR;
+        }
+
+        return false;
+    }
+
     /**
      * @param file List of files to read
      * @return Matrix with counts in each bin
@@ -579,8 +601,8 @@ public class Preprocessor {
 
                     int pos1, pos2;
                     if (shouldSkipContact(pair)) continue;
-                    pos1 = getGenomicPosition(chr1, bp1);
-                    pos2 = getGenomicPosition(chr2, bp2);
+                    pos1 = getWholeGenomePosition(chr1, bp1, chromosomeHandler);
+                    pos2 = getWholeGenomePosition(chr2, bp2, chromosomeHandler);
                     matrix.incrementCount(pos1, pos2, pos1, pos2, pair.getScore(), expectedValueCalculations, tmpDir);
                     hicContact++;
                 }
@@ -590,29 +612,6 @@ public class Preprocessor {
         }
         matrix.parsingComplete();
         return matrix;
-    }
-
-    protected boolean alignmentsAreEqual(Alignment alignment, Alignment alignmentStandard) {
-        if (alignment == alignmentStandard) {
-            return true;
-        }
-        if (alignmentStandard == Alignment.TANDEM) {
-            return alignment == Alignment.LL || alignment == Alignment.RR;
-        }
-
-        return false;
-    }
-
-
-    protected int getGenomicPosition(int chr, int pos) {
-        long len = 0;
-        for (int i = 1; i < chr; i++) {
-            len += chromosomeHandler.getChromosomeFromIndex(i).getLength();
-        }
-        len += pos;
-
-        return (int) (len / 1000);
-
     }
 
     protected static Alignment calculateAlignment(AlignmentPair pair) {
