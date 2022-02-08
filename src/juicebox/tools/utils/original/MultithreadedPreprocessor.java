@@ -101,8 +101,8 @@ public class MultithreadedPreprocessor extends Preprocessor {
             PrintWriter finalOutput = new PrintWriter(outputFile + CAT_SCRIPT);
             StringBuilder catOutputLine = new StringBuilder();
             StringBuilder removeLine = new StringBuilder();
-            catOutputLine.append("cat ").append(outputFile + "_header");
-            removeLine.append("rm ").append(outputFile + "_header");
+            catOutputLine.append("cat ").append(outputFile).append("_header");
+            removeLine.append("rm ").append(outputFile).append("_header");
             for (int i = 0; i < chromosomePairCounter; i++) {
                 if ((nonemptyChromosomePairs.containsKey(i) && chromosomePairBlockIndexes.containsKey(i) && mndIndex.containsKey(i)) || i == 0) {
                     catOutputLine.append(" ").append(outputFile).append("_").append(chromosomePairIndexes.get(i));
@@ -118,8 +118,8 @@ public class MultithreadedPreprocessor extends Preprocessor {
                     }
                 }
             }
-            catOutputLine.append(" ").append(outputFile + "_footer").append(" > ").append(outputFile).append("\n");
-            removeLine.append(" ").append(outputFile + "_footer\n");
+            catOutputLine.append(" ").append(outputFile).append("_footer").append(" > ").append(outputFile).append("\n");
+            removeLine.append(" ").append(outputFile).append("_footer\n");
             finalOutput.println(catOutputLine);
             finalOutput.println(removeLine);
             finalOutput.close();
@@ -227,7 +227,9 @@ public class MultithreadedPreprocessor extends Preprocessor {
                         }
                         currentMatrix = new MatrixPP(currentChr1, currentChr2, chromosomeHandler, bpBinSizes, fragmentCalculation, fragBinSizes, countThreshold, v9DepthBase, chrPairBlockCapacities.get(currentChrPair));
                     }
-                    currentMatrix.incrementCount(bp1, bp2, frag1, frag2, pair.getScore(), localExpectedValueCalculations, tmpDir);
+                    if (currentMatrix != null) {
+                        currentMatrix.incrementCount(bp1, bp2, frag1, frag2, pair.getScore(), localExpectedValueCalculations, tmpDir);
+                    }
 
                     int pos1 = getGenomicPosition(chr1, bp1, chromosomeHandler);
                     int pos2 = getGenomicPosition(chr2, bp2, chromosomeHandler);
@@ -236,7 +238,7 @@ public class MultithreadedPreprocessor extends Preprocessor {
                 }
             }
 
-            if (iter != null) iter.close();
+            iter.close();
             chunksProcessed++;
             i = chunkCounter.getAndIncrement();
         }
@@ -254,8 +256,6 @@ public class MultithreadedPreprocessor extends Preprocessor {
     protected void writeBody(String inputFile, Map<Integer, List<Chunk>> mndIndex) throws IOException {
 
         Set<String> syncWrittenMatrices = Collections.synchronizedSet(new HashSet<>());
-        final AtomicInteger freeThreads = new AtomicInteger(numCPUThreads);
-
         for (int chrPair = 1; chrPair < chromosomePairCounter; chrPair++) {
             if (mndIndex.containsKey(chrPair)) {
                 int numOfChunks = mndIndex.get(chrPair).size();
@@ -279,69 +279,66 @@ public class MultithreadedPreprocessor extends Preprocessor {
         ExecutorService executor = Executors.newFixedThreadPool(numCPUThreads);
         for (int i = 1; i < numCPUThreads; i++) {
             int threadNum = i;
-            Runnable worker = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        int currentChunk = chunkCounter.getAndIncrement();
-                        Map<String, ExpectedValueCalculation> localExpectedValueCalculations = null;
-                        if (expectedVectorFile == null) {
-                            localExpectedValueCalculations = new LinkedHashMap<>();
-                            for (int bBinSize : bpBinSizes) {
-                                ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, bBinSize, null, NormalizationHandler.NONE);
-                                String key = "BP_" + bBinSize;
+            Runnable worker = () -> {
+                try {
+                    int currentChunk = chunkCounter.getAndIncrement();
+                    Map<String, ExpectedValueCalculation> localExpectedValueCalculations = null;
+                    if (expectedVectorFile == null) {
+                        localExpectedValueCalculations = new LinkedHashMap<>();
+                        for (int bBinSize : bpBinSizes) {
+                            ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, bBinSize, null, NormalizationHandler.NONE);
+                            String key = "BP_" + bBinSize;
+                            localExpectedValueCalculations.put(key, calc);
+                        }
+                        if (fragmentCalculation != null) {
+                            Map<String, Integer> fragmentCountMap = Preprocessor.generateFragmentCountMap(fragmentCalculation);
+                            for (int fBinSize : fragBinSizes) {
+                                ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, fBinSize, fragmentCountMap, NormalizationHandler.NONE);
+                                String key = "FRAG_" + fBinSize;
                                 localExpectedValueCalculations.put(key, calc);
                             }
-                            if (fragmentCalculation != null) {
-                                Map<String, Integer> fragmentCountMap = Preprocessor.generateFragmentCountMap(fragmentCalculation);
-                                for (int fBinSize : fragBinSizes) {
-                                    ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, fBinSize, fragmentCountMap, NormalizationHandler.NONE);
-                                    String key = "FRAG_" + fBinSize;
-                                    localExpectedValueCalculations.put(key, calc);
-                                }
-
-                            }
-                        }
-                        while (currentChunk < totalChunks) {
-                            int currentChrPair = chunkCounterToChrPairMap.get(currentChunk);
-                            threadSpecificChrPairMatrices.get(currentChrPair).put(threadNum, processIndividualMatrixChunk(inputFile, currentChunk, currentChrPair, syncWrittenMatrices, localExpectedValueCalculations, threadNum));
-                            synchronized(finalChrMatrices) {
-                                if (!finalChrMatrices.containsKey(currentChrPair)) {
-                                    int currentChr1 = chromosomePairIndex1.get(currentChrPair);
-                                    int currentChr2 = chromosomePairIndex2.get(currentChrPair);
-                                    finalChrMatrices.put(currentChrPair, new MatrixPP(currentChr1, currentChr2, chromosomeHandler, bpBinSizes, fragmentCalculation, fragBinSizes, countThreshold, v9DepthBase, chrPairBlockCapacities.get(currentChrPair)));
-                                }
-                                synchronized(finalChrMatrices.get(currentChrPair)) {
-                                    finalChrMatrices.get(currentChrPair).mergeMatrices(threadSpecificChrPairMatrices.get(currentChrPair).get(threadNum).getSecond());
-                                }
-                            }
-
-                            for (int completedChunks = 0; completedChunks < threadSpecificChrPairMatrices.get(currentChrPair).get(threadNum).getFirst().getSecond(); completedChunks++) {
-                                completedChunksPerChrPair.get(currentChrPair).getAndIncrement();
-                            }
-                            //System.err.println(currentChrPair + " " + threadSpecificChrPairMatrices.get(currentChrPair).get(threadNum).getFirst().getSecond() + " " + Duration.between(A,B).toMillis() + " " + Duration.between(B,C).toMillis() + " " + completedChunksPerChrPair.get(currentChrPair).get());
-                            currentChunk = threadSpecificChrPairMatrices.get(currentChrPair).get(threadNum).getFirst().getFirst();
-                            int currentAvailableThreads = chrPairAvailableThreads.get(currentChrPair).incrementAndGet();
-                            if (completedChunksPerChrPair.get(currentChrPair).get() == numChunksPerChrPair.get(currentChrPair)) {
-                                WriteIndividualMatrix(currentChrPair, currentAvailableThreads);
-                                finalChrMatrices.remove(currentChrPair);
-                                threadSpecificChrPairMatrices.remove(currentChrPair);
-                                chrPairCompleted.get(currentChrPair).getAndIncrement();
-                                //System.err.println(currentChrPair + " " + Duration.between(D,E).toMillis());
-                            }
-                            while (chrPairCompleted.get(currentChrPair).get() == 0) {
-                                try {
-                                    Thread.sleep(1000);
-                                } catch (InterruptedException e) {
-                                    System.err.println(e.getLocalizedMessage());
-                                }
-                            }
 
                         }
-                        allLocalExpectedValueCalculations.put(threadNum, localExpectedValueCalculations);
-                    } catch (Exception e) {
-                        e.printStackTrace();
                     }
+                    while (currentChunk < totalChunks) {
+                        int currentChrPair = chunkCounterToChrPairMap.get(currentChunk);
+                        threadSpecificChrPairMatrices.get(currentChrPair).put(threadNum, processIndividualMatrixChunk(inputFile, currentChunk, currentChrPair, syncWrittenMatrices, localExpectedValueCalculations, threadNum));
+                        synchronized (finalChrMatrices) {
+                            if (!finalChrMatrices.containsKey(currentChrPair)) {
+                                int currentChr1 = chromosomePairIndex1.get(currentChrPair);
+                                int currentChr2 = chromosomePairIndex2.get(currentChrPair);
+                                finalChrMatrices.put(currentChrPair, new MatrixPP(currentChr1, currentChr2, chromosomeHandler, bpBinSizes, fragmentCalculation, fragBinSizes, countThreshold, v9DepthBase, chrPairBlockCapacities.get(currentChrPair)));
+                            }
+                            synchronized (finalChrMatrices.get(currentChrPair)) {
+                                finalChrMatrices.get(currentChrPair).mergeMatrices(threadSpecificChrPairMatrices.get(currentChrPair).get(threadNum).getSecond());
+                            }
+                        }
+
+                        for (int completedChunks = 0; completedChunks < threadSpecificChrPairMatrices.get(currentChrPair).get(threadNum).getFirst().getSecond(); completedChunks++) {
+                            completedChunksPerChrPair.get(currentChrPair).getAndIncrement();
+                        }
+                        //System.err.println(currentChrPair + " " + threadSpecificChrPairMatrices.get(currentChrPair).get(threadNum).getFirst().getSecond() + " " + Duration.between(A,B).toMillis() + " " + Duration.between(B,C).toMillis() + " " + completedChunksPerChrPair.get(currentChrPair).get());
+                        currentChunk = threadSpecificChrPairMatrices.get(currentChrPair).get(threadNum).getFirst().getFirst();
+                        int currentAvailableThreads = chrPairAvailableThreads.get(currentChrPair).incrementAndGet();
+                        if (completedChunksPerChrPair.get(currentChrPair).get() == numChunksPerChrPair.get(currentChrPair)) {
+                            WriteIndividualMatrix(currentChrPair, currentAvailableThreads);
+                            finalChrMatrices.remove(currentChrPair);
+                            threadSpecificChrPairMatrices.remove(currentChrPair);
+                            chrPairCompleted.get(currentChrPair).getAndIncrement();
+                            //System.err.println(currentChrPair + " " + Duration.between(D,E).toMillis());
+                        }
+                        while (chrPairCompleted.get(currentChrPair).get() == 0) {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                System.err.println(e.getLocalizedMessage());
+                            }
+                        }
+
+                    }
+                    allLocalExpectedValueCalculations.put(threadNum, localExpectedValueCalculations);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             };
             executor.execute(worker);

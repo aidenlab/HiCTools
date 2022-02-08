@@ -282,7 +282,7 @@ public class Preprocessor {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                System.out.println(String.format("fragment: %d, number of frags: %d", frag, fragmentCalculation.getNumberFragments(chr)));
+                System.out.printf("fragment: %d, number of frags: %d%n", frag, fragmentCalculation.getNumberFragments(chr));
 
             }
 
@@ -337,9 +337,9 @@ public class Preprocessor {
                         try {
                             FragmentCalculation fragmentCalculation = FragmentCalculation.readFragments(fragmentFileName, chromosomeHandler, "PreWithRand");
                             fragmentCalculationsForRandomization.add(fragmentCalculation);
-                            System.out.println(String.format("added %s", fragmentFileName));
+                            System.out.printf("added %s%n", fragmentFileName);
                         } catch (Exception e) {
-                            System.err.println(String.format("Warning: Unable to process fragment file %s. Randomization will continue without fragment file %s.", fragmentFileName, fragmentFileName));
+                            System.err.printf("Warning: Unable to process fragment file %s. Randomization will continue without fragment file %s.%n", fragmentFileName, fragmentFileName);
                         }
                     }
                 } else {
@@ -351,9 +351,7 @@ public class Preprocessor {
             }
 
             if (statsFileName != null) {
-                FileInputStream is = null;
-                try {
-                    is = new FileInputStream(statsFileName);
+                try (FileInputStream is = new FileInputStream(statsFileName)) {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(is), HiCGlobals.bufferSize);
                     stats = new StringBuilder();
                     String nextLine;
@@ -363,17 +361,11 @@ public class Preprocessor {
                 } catch (IOException e) {
                     System.err.println("Error while reading stats file: " + e);
                     stats = null;
-                } finally {
-                    if (is != null) {
-                        is.close();
-                    }
                 }
 
             }
             if (graphFileName != null) {
-                FileInputStream is = null;
-                try {
-                    is = new FileInputStream(graphFileName);
+                try (FileInputStream is = new FileInputStream(graphFileName)) {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(is), HiCGlobals.bufferSize);
                     graphs = new StringBuilder();
                     String nextLine;
@@ -383,10 +375,6 @@ public class Preprocessor {
                 } catch (IOException e) {
                     System.err.println("Error while reading graphs file: " + e);
                     graphs = null;
-                } finally {
-                    if (is != null) {
-                        is.close();
-                    }
                 }
             }
 
@@ -721,8 +709,9 @@ public class Preprocessor {
                     currentMatrix = new MatrixPP(currentChr1, currentChr2, chromosomeHandler, bpBinSizes,
                             fragmentCalculation, fragBinSizes, countThreshold, v9DepthBase, BLOCK_CAPACITY);
                 }
-                currentMatrix.incrementCount(bp1, bp2, frag1, frag2, pair.getScore(), expectedValueCalculations, tmpDir);
-
+                if (currentMatrix != null) {
+                    currentMatrix.incrementCount(bp1, bp2, frag1, frag2, pair.getScore(), expectedValueCalculations, tmpDir);
+                }
             }
         }
 
@@ -738,8 +727,7 @@ public class Preprocessor {
             writeMatrix(currentMatrix, losArray, compressor, matrixPositions, -1, false);
         }
 
-        if (iter != null) iter.close();
-
+        iter.close();
 
         masterIndexPosition = losArray[0].getWrittenCount();
     }
@@ -826,36 +814,12 @@ public class Preprocessor {
         }
     }
 
-    private void updateNormVectorIndexInfo() throws IOException {
-        RandomAccessFile raf = null;
-        try {
-            raf = new RandomAccessFile(outputFile, "rw");
-    
-            // NVI index
-            raf.getChannel().position(normVectorIndexPosition);
-            BufferedByteWriter buffer = new BufferedByteWriter();
-    
-            buffer.putLong(normVectorIndex); // todo
-            raf.write(buffer.getBytes());
-    
-            // NVI length
-            raf.getChannel().position(normVectorLengthPosition);
-            buffer = new BufferedByteWriter();
-            buffer.putLong(normVectorLength); // todo
-            raf.write(buffer.getBytes());
-    
-        } finally {
-            if (raf != null) raf.close();
-        }
-    }
-
-
     protected void writeFooter(LittleEndianOutputStream[] los) throws IOException {
 
         // Index
         List<BufferedByteWriter> bufferList = new ArrayList<>();
         bufferList.add(new BufferedByteWriter());
-        bufferList.get(bufferList.size()-1).putInt(matrixPositions.size());
+        bufferList.get(0).putInt(matrixPositions.size());
         for (Map.Entry<String, IndexEntry> entry : matrixPositions.entrySet()) {
             if (Integer.MAX_VALUE - bufferList.get(bufferList.size()-1).bytesWritten() < 1000) {
                 bufferList.add(new BufferedByteWriter());
