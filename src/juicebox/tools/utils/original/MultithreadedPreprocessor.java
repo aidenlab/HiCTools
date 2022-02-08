@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -293,15 +293,7 @@ public class MultithreadedPreprocessor extends Preprocessor {
                                 localExpectedValueCalculations.put(key, calc);
                             }
                             if (fragmentCalculation != null) {
-                                // Create map of chr name -> # of fragments
-                                Map<String, int[]> sitesMap = fragmentCalculation.getSitesMap();
-                                Map<String, Integer> fragmentCountMap = new HashMap<>();
-                                for (Map.Entry<String, int[]> entry : sitesMap.entrySet()) {
-                                    int fragCount = entry.getValue().length + 1;
-                                    String chr = entry.getKey();
-                                    fragmentCountMap.put(chr, fragCount);
-                                }
-
+                                Map<String, Integer> fragmentCountMap = Preprocessor.generateFragmentCountMap(fragmentCalculation);
                                 for (int fBinSize : fragBinSizes) {
                                     ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, fBinSize, fragmentCountMap, NormalizationHandler.NONE);
                                     String key = "FRAG_" + fBinSize;

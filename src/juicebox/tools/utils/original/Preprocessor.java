@@ -298,6 +298,20 @@ public class Preprocessor {
     }
 
 
+    /**
+     * Create map of chr name -> # of fragments
+     */
+    protected static Map<String, Integer> generateFragmentCountMap(FragmentCalculation fragmentCalculation) {
+        Map<String, int[]> sitesMap = fragmentCalculation.getSitesMap();
+        Map<String, Integer> fragmentCountMap = new HashMap<>();
+        for (Map.Entry<String, int[]> entry : sitesMap.entrySet()) {
+            int fragCount = entry.getValue().length + 1;
+            String chr = entry.getKey();
+            fragmentCountMap.put(chr, fragCount);
+        }
+        return fragmentCountMap;
+    }
+
     public void preprocess(final String inputFile, final String headerFile, final String footerFile,
                            Map<Integer, List<Chunk>> mndIndex) throws IOException {
         File file = new File(inputFile);
@@ -385,16 +399,7 @@ public class Preprocessor {
                 }
             }
             if (fragmentCalculation != null) {
-
-                // Create map of chr name -> # of fragments
-                Map<String, int[]> sitesMap = fragmentCalculation.getSitesMap();
-                Map<String, Integer> fragmentCountMap = new HashMap<>();
-                for (Map.Entry<String, int[]> entry : sitesMap.entrySet()) {
-                    int fragCount = entry.getValue().length + 1;
-                    String chr = entry.getKey();
-                    fragmentCountMap.put(chr, fragCount);
-                }
-
+                Map<String, Integer> fragmentCountMap = generateFragmentCountMap(fragmentCalculation);
                 if (expectedVectorFile == null) {
                     for (int fBinSize : fragBinSizes) {
                         ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, fBinSize, fragmentCountMap, NormalizationHandler.NONE);
