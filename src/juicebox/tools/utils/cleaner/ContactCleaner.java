@@ -22,10 +22,13 @@
  *  THE SOFTWARE.
  */
 
-package juicebox.tools.utils.original;
+package juicebox.tools.utils.cleaner;
 
 import javastraw.reader.basics.ChromosomeHandler;
-import juicebox.tools.utils.original.mnditerator.AlignmentPair;
+import juicebox.tools.utils.mnditerator.AlignmentPair;
+import juicebox.tools.utils.original.ExpectedValueCalculation;
+import juicebox.tools.utils.original.FragmentCalculation;
+import juicebox.tools.utils.original.MatrixPP;
 
 import java.io.File;
 import java.io.IOException;

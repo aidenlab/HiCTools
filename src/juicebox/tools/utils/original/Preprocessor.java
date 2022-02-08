@@ -35,8 +35,9 @@ import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationHandler;
 import juicebox.HiCGlobals;
 import juicebox.tools.clt.CommandLineParser.Alignment;
-import juicebox.tools.utils.original.mnditerator.AlignmentPair;
-import juicebox.tools.utils.original.mnditerator.PairIterator;
+import juicebox.tools.utils.cleaner.ContactCleaner;
+import juicebox.tools.utils.mnditerator.AlignmentPair;
+import juicebox.tools.utils.mnditerator.PairIterator;
 import org.broad.igv.tdf.BufferedByteWriter;
 import org.broad.igv.util.Pair;
 

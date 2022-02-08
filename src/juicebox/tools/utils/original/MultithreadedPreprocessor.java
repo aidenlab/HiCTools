@@ -28,9 +28,10 @@ import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.type.NormalizationHandler;
 import juicebox.HiCGlobals;
-import juicebox.tools.utils.original.mnditerator.AlignmentPair;
-import juicebox.tools.utils.original.mnditerator.AsciiPairIterator;
-import juicebox.tools.utils.original.mnditerator.PairIterator;
+import juicebox.tools.utils.cleaner.ContactCleaner;
+import juicebox.tools.utils.mnditerator.AlignmentPair;
+import juicebox.tools.utils.mnditerator.AsciiPairIterator;
+import juicebox.tools.utils.mnditerator.PairIterator;
 import org.broad.igv.util.Pair;
 
 import java.io.*;

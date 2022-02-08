@@ -137,7 +137,7 @@ public class MatrixPP {
     }
 
 
-    void incrementCount(int pos1, int pos2, int frag1, int frag2, float score, Map<String, ExpectedValueCalculation> expectedValueCalculations, File tmpDir) throws IOException {
+    public void incrementCount(int pos1, int pos2, int frag1, int frag2, float score, Map<String, ExpectedValueCalculation> expectedValueCalculations, File tmpDir) throws IOException {
         for (MatrixZoomDataPP aZoomData : zoomData) {
             if (aZoomData.isFrag) {
                 aZoomData.incrementCount(frag1, frag2, score, expectedValueCalculations, tmpDir);

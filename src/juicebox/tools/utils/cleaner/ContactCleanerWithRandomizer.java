@@ -22,10 +22,11 @@
  *  THE SOFTWARE.
  */
 
-package juicebox.tools.utils.original;
+package juicebox.tools.utils.cleaner;
 
 import javastraw.reader.basics.ChromosomeHandler;
-import juicebox.tools.utils.original.mnditerator.AlignmentPair;
+import juicebox.tools.utils.mnditerator.AlignmentPair;
+import juicebox.tools.utils.original.FragmentCalculation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +43,7 @@ public class ContactCleanerWithRandomizer extends ContactCleaner {
         this.random = random;
     }
 
-    protected static FragmentCalculation findFragMap(List<FragmentCalculation> maps, String chr, int bp, int frag) {
+    public static FragmentCalculation findFragMap(List<FragmentCalculation> maps, String chr, int bp, int frag) {
         //potential maps that this strand could come from
         ArrayList<FragmentCalculation> mapsFound = new ArrayList<>();
         for (FragmentCalculation fragmentCalculation : maps) {

@@ -22,9 +22,10 @@
  *  THE SOFTWARE.
  */
 
-package juicebox.tools.utils.original;
+package juicebox.tools.utils.cleaner;
 
 import javastraw.reader.basics.ChromosomeHandler;
+import juicebox.tools.utils.original.FragmentCalculation;
 
 import java.util.List;
 import java.util.Random;
