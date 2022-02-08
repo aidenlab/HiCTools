@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,33 +22,35 @@
  *  THE SOFTWARE.
  */
 
-package juicebox.tools.utils.original.mnditerator;
+package juicebox.tools.utils.stats;
 
-import java.io.EOFException;
+import juicebox.tools.utils.mnditerator.SimpleAsciiPairIterator;
+import juicebox.tools.utils.original.FragmentCalculation;
+
 import java.io.IOException;
+import java.util.List;
 
-public class ShortBinPairIterator extends BinPairIterator {
+public class LoneStatisticsWorker extends StatisticsWorker {
 
-    public ShortBinPairIterator(String path) throws IOException {
-        super(path);
+    private SimpleAsciiPairIterator fileIterator;
+
+    public LoneStatisticsWorker(String siteFile, List<String> statsFiles, List<Integer> mapqThresholds, String ligationJunction,
+                                String inFile, FragmentCalculation fragmentCalculation) {
+        super(siteFile, statsFiles, mapqThresholds, ligationJunction, inFile, fragmentCalculation);
     }
 
-    @Override
-    protected void advance() {
+    public void infileStatistics() {
         try {
-            int chr1 = is.readInt();
-            int pos1 = is.readInt();
-            int chr2 = is.readInt();
-            int pos2 = is.readInt();
-            next = new AlignmentPair(chr1, pos1, chr2, pos2);
-
-            float score = is.readFloat();
-            next.setScore(score);
-        } catch (IOException e) {
-            next = null;
-            if (!(e instanceof EOFException)) {
-                e.printStackTrace();
+            fileIterator = new SimpleAsciiPairIterator(inFile);
+            while (fileIterator.hasNext()) {
+                processSingleEntry(fileIterator.next(), "", false);
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+    }
+
+    protected String getChromosomeNameFromIndex(int chr) {
+        return fileIterator.getChromosomeNameFromIndex(chr);
     }
 }

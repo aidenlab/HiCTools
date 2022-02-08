@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,6 @@ package juicebox.tools.utils.original;
 
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
-import javastraw.reader.block.ContactRecord;
-import javastraw.reader.type.HiCZoom;
 
 import java.io.File;
 import java.io.IOException;
@@ -139,22 +137,12 @@ public class MatrixPP {
     }
 
 
-    void incrementCount(int pos1, int pos2, int frag1, int frag2, float score, Map<String, ExpectedValueCalculation> expectedValueCalculations, File tmpDir) throws IOException {
+    public void incrementCount(int pos1, int pos2, int frag1, int frag2, float score, Map<String, ExpectedValueCalculation> expectedValueCalculations, File tmpDir) throws IOException {
         for (MatrixZoomDataPP aZoomData : zoomData) {
             if (aZoomData.isFrag) {
                 aZoomData.incrementCount(frag1, frag2, score, expectedValueCalculations, tmpDir);
             } else {
                 aZoomData.incrementCount(pos1, pos2, score, expectedValueCalculations, tmpDir);
-            }
-        }
-    }
-
-    public void incrementCount(ContactRecord cr, Map<String, ExpectedValueCalculation> expectedValueCalculations, File tmpDir, HiCZoom zoom) throws IOException {
-        for (MatrixZoomDataPP aZoomData : zoomData) {
-            if (aZoomData.isFrag && zoom.getUnit().equals(HiCZoom.HiCUnit.FRAG)) {
-                aZoomData.incrementCount(cr, expectedValueCalculations, tmpDir, zoom);
-            } else if (!aZoomData.isFrag && zoom.getUnit().equals(HiCZoom.HiCUnit.BP)) {
-                aZoomData.incrementCount(cr, expectedValueCalculations, tmpDir, zoom);
             }
         }
     }

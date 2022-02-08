@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,30 +22,36 @@
  *  THE SOFTWARE.
  */
 
-package juicebox.tools.utils.original.mnditerator;
 
-import juicebox.HiCGlobals;
-import org.broad.igv.util.ParsingUtils;
+package juicebox.tools.utils.mnditerator;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.util.zip.GZIPInputStream;
+import javastraw.reader.basics.ChromosomeHandler;
 
-public class SimpleAsciiPairIterator extends GenericPairIterator implements PairIterator {
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map;
 
-    public SimpleAsciiPairIterator(String path) throws IOException {
-        super(new MNDFileParser(new SimpleLineParser()));
-        if (path.endsWith(".gz")) {
-            InputStream gzipStream = new GZIPInputStream(new FileInputStream(path));
-            Reader decoder = new InputStreamReader(gzipStream, StandardCharsets.UTF_8);
-            this.reader = new BufferedReader(decoder, 4194304);
+/**
+ * @author Jim Robinson
+ * @since 9/24/11
+ */
+public interface PairIterator extends Iterator<AlignmentPair> {
+
+    boolean hasNext();
+
+    AlignmentPair next();
+
+    void remove();
+
+    void close();
+
+    static PairIterator getIterator(String file, Map<String, Integer> chromosomeIndexes, ChromosomeHandler chromosomeHandler) throws IOException {
+        if (file.endsWith(".bin")) {
+            return new BinPairIterator(file);
+        } else if (file.endsWith(".bn")) {
+            return new ShortBinPairIterator(file);
         } else {
-            this.reader = new BufferedReader(new InputStreamReader(ParsingUtils.openInputStream(path)), HiCGlobals.bufferSize);
+            return new AsciiPairIterator(file, chromosomeIndexes, chromosomeHandler, false);
         }
-        advance();
-    }
-
-    public String getChromosomeNameFromIndex(int chrIndex) {
-        return mndFileParser.getChromosomeNameFromIndex(chrIndex);
     }
 }

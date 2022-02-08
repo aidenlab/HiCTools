@@ -35,8 +35,9 @@ import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationHandler;
 import juicebox.HiCGlobals;
 import juicebox.tools.clt.CommandLineParser.Alignment;
-import juicebox.tools.utils.original.mnditerator.AlignmentPair;
-import juicebox.tools.utils.original.mnditerator.PairIterator;
+import juicebox.tools.utils.cleaner.ContactCleaner;
+import juicebox.tools.utils.mnditerator.AlignmentPair;
+import juicebox.tools.utils.mnditerator.PairIterator;
 import org.broad.igv.tdf.BufferedByteWriter;
 import org.broad.igv.util.Pair;
 
@@ -113,7 +114,7 @@ public class Preprocessor {
             chromosomeIndexes.put(chromosomeHandler.getChromosomeFromIndex(i).getName(), i);
         }
 
-        compressor = getDefaultCompressor();
+        compressor = WriterUtils.getDefaultCompressor();
 
         this.tmpDir = null;  // TODO -- specify this
 
@@ -234,21 +235,7 @@ public class Preprocessor {
         this.randomizeFragMapFiles = fragMaps;
     }
 
-    protected static int randomizePos(FragmentCalculation fragmentCalculation, String chr, int frag) {
 
-        int low = 1;
-        int high = 1;
-        if (frag == 0) {
-            high = fragmentCalculation.getSites(chr)[frag];
-        } else if (frag >= fragmentCalculation.getNumberFragments(chr)) {
-            high = fragmentCalculation.getSites(chr)[frag - 1];
-            low = fragmentCalculation.getSites(chr)[frag - 2];
-        } else {
-            high = fragmentCalculation.getSites(chr)[frag];
-            low = fragmentCalculation.getSites(chr)[frag - 1];
-        }
-        return random.nextInt(high - low + 1) + low;
-    }
 
     public void setRandomizePosition(boolean allowPositionsRandomization) {
         Preprocessor.allowPositionsRandomization = allowPositionsRandomization;
@@ -258,45 +245,22 @@ public class Preprocessor {
         Preprocessor.throwOutIntraFrag = throwOutIntraFrag;
     }
 
-    protected static FragmentCalculation findFragMap(List<FragmentCalculation> maps, String chr, int bp, int frag) {
-        //potential maps that this strand could come from
-        ArrayList<FragmentCalculation> mapsFound = new ArrayList<>();
-        for (FragmentCalculation fragmentCalculation : maps) {
-            int low = 1;
-            int high = 1;
 
-            if (frag > fragmentCalculation.getNumberFragments(chr)) {
-                // definitely not this restriction site file for certain
-                continue;
-            }
-            
-            try {
-                if (frag == 0) {
-                    high = fragmentCalculation.getSites(chr)[frag];
-                } else if (frag == fragmentCalculation.getNumberFragments(chr)) {
-                    high = fragmentCalculation.getSites(chr)[frag - 1];
-                    low = fragmentCalculation.getSites(chr)[frag - 2];
-                } else {
-                    high = fragmentCalculation.getSites(chr)[frag];
-                    low = fragmentCalculation.getSites(chr)[frag - 1];
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println(String.format("fragment: %d, number of frags: %d", frag, fragmentCalculation.getNumberFragments(chr)));
 
-            }
 
-            // does bp fit in this range?
-            if (bp >= low && bp <= high) {
-                mapsFound.add(fragmentCalculation);
-            }
+    /**
+     * Create map of chr name -> # of fragments
+     */
+    protected static Map<String, Integer> generateFragmentCountMap(FragmentCalculation fragmentCalculation) {
+        Map<String, int[]> sitesMap = fragmentCalculation.getSitesMap();
+        Map<String, Integer> fragmentCountMap = new HashMap<>();
+        for (Map.Entry<String, int[]> entry : sitesMap.entrySet()) {
+            int fragCount = entry.getValue().length + 1;
+            String chr = entry.getKey();
+            fragmentCountMap.put(chr, fragCount);
         }
-        if (mapsFound.size() == 1) {
-            return mapsFound.get(0);
-        }
-        return null;
+        return fragmentCountMap;
     }
-
 
     public void preprocess(final String inputFile, final String headerFile, final String footerFile,
                            Map<Integer, List<Chunk>> mndIndex) throws IOException {
@@ -323,9 +287,9 @@ public class Preprocessor {
                         try {
                             FragmentCalculation fragmentCalculation = FragmentCalculation.readFragments(fragmentFileName, chromosomeHandler, "PreWithRand");
                             fragmentCalculationsForRandomization.add(fragmentCalculation);
-                            System.out.println(String.format("added %s", fragmentFileName));
+                            System.out.printf("added %s%n", fragmentFileName);
                         } catch (Exception e) {
-                            System.err.println(String.format("Warning: Unable to process fragment file %s. Randomization will continue without fragment file %s.", fragmentFileName, fragmentFileName));
+                            System.err.printf("Warning: Unable to process fragment file %s. Randomization will continue without fragment file %s.%n", fragmentFileName, fragmentFileName);
                         }
                     }
                 } else {
@@ -337,9 +301,7 @@ public class Preprocessor {
             }
 
             if (statsFileName != null) {
-                FileInputStream is = null;
-                try {
-                    is = new FileInputStream(statsFileName);
+                try (FileInputStream is = new FileInputStream(statsFileName)) {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(is), HiCGlobals.bufferSize);
                     stats = new StringBuilder();
                     String nextLine;
@@ -349,17 +311,11 @@ public class Preprocessor {
                 } catch (IOException e) {
                     System.err.println("Error while reading stats file: " + e);
                     stats = null;
-                } finally {
-                    if (is != null) {
-                        is.close();
-                    }
                 }
 
             }
             if (graphFileName != null) {
-                FileInputStream is = null;
-                try {
-                    is = new FileInputStream(graphFileName);
+                try (FileInputStream is = new FileInputStream(graphFileName)) {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(is), HiCGlobals.bufferSize);
                     graphs = new StringBuilder();
                     String nextLine;
@@ -369,10 +325,6 @@ public class Preprocessor {
                 } catch (IOException e) {
                     System.err.println("Error while reading graphs file: " + e);
                     graphs = null;
-                } finally {
-                    if (is != null) {
-                        is.close();
-                    }
                 }
             }
 
@@ -385,16 +337,7 @@ public class Preprocessor {
                 }
             }
             if (fragmentCalculation != null) {
-
-                // Create map of chr name -> # of fragments
-                Map<String, int[]> sitesMap = fragmentCalculation.getSitesMap();
-                Map<String, Integer> fragmentCountMap = new HashMap<>();
-                for (Map.Entry<String, int[]> entry : sitesMap.entrySet()) {
-                    int fragCount = entry.getValue().length + 1;
-                    String chr = entry.getKey();
-                    fragmentCountMap.put(chr, fragCount);
-                }
-
+                Map<String, Integer> fragmentCountMap = generateFragmentCountMap(fragmentCalculation);
                 if (expectedVectorFile == null) {
                     for (int fBinSize : fragBinSizes) {
                         ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, fBinSize, fragmentCountMap, NormalizationHandler.NONE);
@@ -552,6 +495,17 @@ public class Preprocessor {
         return new MatrixPP(0, 0, binSize, nBlockColumns, chromosomeHandler, fragmentCalculation, countThreshold, v9DepthBase);
     }
 
+    protected boolean alignmentsAreEqual(Alignment alignment, Alignment alignmentStandard) {
+        if (alignment == alignmentStandard) {
+            return true;
+        }
+        if (alignmentStandard == Alignment.TANDEM) {
+            return alignment == Alignment.LL || alignment == Alignment.RR;
+        }
+
+        return false;
+    }
+
     /**
      * @param file List of files to read
      * @return Matrix with counts in each bin
@@ -572,6 +526,7 @@ public class Preprocessor {
         // Create an index the first time through
         try {
             iter = PairIterator.getIterator(file, chromosomeIndexes, chromosomeHandler);
+            //ContactFilter filter = getContactFilter();
 
             while (iter.hasNext()) {
                 totalRead++;
@@ -586,8 +541,8 @@ public class Preprocessor {
 
                     int pos1, pos2;
                     if (shouldSkipContact(pair)) continue;
-                    pos1 = getGenomicPosition(chr1, bp1);
-                    pos2 = getGenomicPosition(chr2, bp2);
+                    pos1 = ContactCleaner.getWholeGenomePosition(chr1, bp1, chromosomeHandler);
+                    pos2 = ContactCleaner.getWholeGenomePosition(chr2, bp2, chromosomeHandler);
                     matrix.incrementCount(pos1, pos2, pos1, pos2, pair.getScore(), expectedValueCalculations, tmpDir);
                     hicContact++;
                 }
@@ -597,29 +552,6 @@ public class Preprocessor {
         }
         matrix.parsingComplete();
         return matrix;
-    }
-
-    protected boolean alignmentsAreEqual(Alignment alignment, Alignment alignmentStandard) {
-        if (alignment == alignmentStandard) {
-            return true;
-        }
-        if (alignmentStandard == Alignment.TANDEM) {
-            return alignment == Alignment.LL || alignment == Alignment.RR;
-        }
-
-        return false;
-    }
-
-
-    protected int getGenomicPosition(int chr, int pos) {
-        long len = 0;
-        for (int i = 1; i < chr; i++) {
-            len += chromosomeHandler.getChromosomeFromIndex(i).getLength();
-        }
-        len += pos;
-
-        return (int) (len / 1000);
-
     }
 
     protected static Alignment calculateAlignment(AlignmentPair pair) {
@@ -658,6 +590,8 @@ public class Preprocessor {
         int currentChr2 = -1;
         MatrixPP currentMatrix = null;
         String currentMatrixKey = null;
+        ContactCleaner cleaner = ContactCleaner.create(chromosomeHandler, allowPositionsRandomization,
+                fragmentCalculation, fragmentCalculationsForRandomization, random);
 
         while (iter.hasNext()) {
             AlignmentPair pair = iter.next();
@@ -665,34 +599,12 @@ public class Preprocessor {
             if (!pair.isContigPair()) {
                 if (shouldSkipContact(pair)) continue;
                 // Flip pair if needed so chr1 < chr2
-                int chr1, chr2, bp1, bp2, frag1, frag2;
-                if (pair.getChr1() < pair.getChr2()) {
-                    bp1 = pair.getPos1();
-                    bp2 = pair.getPos2();
-                    frag1 = pair.getFrag1();
-                    frag2 = pair.getFrag2();
-                    chr1 = pair.getChr1();
-                    chr2 = pair.getChr2();
-                } else {
-                    bp1 = pair.getPos2();
-                    bp2 = pair.getPos1();
-                    frag1 = pair.getFrag2();
-                    frag2 = pair.getFrag1();
-                    chr1 = pair.getChr2();
-                    chr2 = pair.getChr1();
-                }
-
-                bp1 = ensureFitInChromosomeBounds(bp1, chr1);
-                bp2 = ensureFitInChromosomeBounds(bp2, chr2);
+                cleaner.updateLatestContact(pair);
 
                 // Randomize position within fragment site
-                if (allowPositionsRandomization && fragmentCalculation != null) {
-                    Pair<Integer, Integer> newBPos12 = getRandomizedPositions(chr1, chr2, frag1, frag2, bp1, bp2);
-                    bp1 = newBPos12.getFirst();
-                    bp2 = newBPos12.getSecond();
-                }
+
                 // only increment if not intraFragment and passes the mapq threshold
-                if (!(currentChr1 == chr1 && currentChr2 == chr2)) {
+                if (cleaner.doesntMatchCurrentBlock(currentChr1, currentChr2)) {
                     // Starting a new matrix
                     if (currentMatrix != null) {
                         currentMatrix.parsingComplete();
@@ -704,8 +616,8 @@ public class Preprocessor {
                     }
 
                     // Start the next matrix
-                    currentChr1 = chr1;
-                    currentChr2 = chr2;
+                    currentChr1 = cleaner.getChr1();
+                    currentChr2 = cleaner.getChr2();
                     currentMatrixKey = currentChr1 + "_" + currentChr2;
 
                     if (writtenMatrices.contains(currentMatrixKey)) {
@@ -716,8 +628,7 @@ public class Preprocessor {
                     currentMatrix = new MatrixPP(currentChr1, currentChr2, chromosomeHandler, bpBinSizes,
                             fragmentCalculation, fragBinSizes, countThreshold, v9DepthBase, BLOCK_CAPACITY);
                 }
-                currentMatrix.incrementCount(bp1, bp2, frag1, frag2, pair.getScore(), expectedValueCalculations, tmpDir);
-
+                cleaner.incrementCount(currentMatrix, expectedValueCalculations, tmpDir);
             }
         }
 
@@ -733,55 +644,12 @@ public class Preprocessor {
             writeMatrix(currentMatrix, losArray, compressor, matrixPositions, -1, false);
         }
 
-        if (iter != null) iter.close();
-
+        iter.close();
 
         masterIndexPosition = losArray[0].getWrittenCount();
     }
 
-    protected int ensureFitInChromosomeBounds(int bp, int chrom) {
-        if (bp < 0) {
-            return 0;
-        }
-        long maxLength = chromosomeHandler.getChromosomeFromIndex(chrom).getLength();
-        if (bp > maxLength) {
-            return (int) maxLength;
-        }
-        return bp;
-    }
-
-    protected Pair<Integer, Integer> getRandomizedPositions(int chr1, int chr2, int frag1, int frag2, int bp1, int bp2) {
-        FragmentCalculation fragMapToUse;
-        if (fragmentCalculationsForRandomization != null) {
-            FragmentCalculation fragMap1 = findFragMap(fragmentCalculationsForRandomization, chromosomeHandler.getChromosomeFromIndex(chr1).getName(), bp1, frag1);
-            FragmentCalculation fragMap2 = findFragMap(fragmentCalculationsForRandomization, chromosomeHandler.getChromosomeFromIndex(chr2).getName(), bp2, frag2);
-
-            if (fragMap1 == null && fragMap2 == null) {
-                //noMapFoundCount += 1;
-                return null;
-            } else if (fragMap1 != null && fragMap2 != null && fragMap1 != fragMap2) {
-                //mapDifferentCount += 1;
-                return null;
-            }
-
-            if (fragMap1 != null) {
-                fragMapToUse = fragMap1;
-            } else {
-                fragMapToUse = fragMap2;
-            }
-
-        } else {
-            // use default map
-            fragMapToUse = fragmentCalculation;
-        }
-
-        int newBP1 = randomizePos(fragMapToUse, chromosomeHandler.getChromosomeFromIndex(chr1).getName(), frag1);
-        int newBP2 = randomizePos(fragMapToUse, chromosomeHandler.getChromosomeFromIndex(chr2).getName(), frag2);
-
-        return new Pair<>(newBP1, newBP2);
-    }
-
-    protected boolean shouldSkipContact(AlignmentPair pair) {
+    protected boolean shouldSkipContact(AlignmentPair pair) { // static
         int chr1 = pair.getChr1();
         int chr2 = pair.getChr2();
         if (diagonalsOnly && chr1 != chr2) return true;
@@ -805,52 +673,22 @@ public class Preprocessor {
     }
 
     protected void updateMasterIndex(String headerFile) throws IOException {
-        RandomAccessFile raf = null;
-        try {
-            raf = new RandomAccessFile(headerFile, "rw");
-
+        try (RandomAccessFile raf = new RandomAccessFile(headerFile, "rw")) {
             // Master index
             raf.getChannel().position(masterIndexPositionPosition);
             BufferedByteWriter buffer = new BufferedByteWriter();
             buffer.putLong(masterIndexPosition);
             raf.write(buffer.getBytes());
             System.out.println("masterIndexPosition: " + masterIndexPosition);
-
-        } finally {
-            if (raf != null) raf.close();
         }
     }
-
-    private void updateNormVectorIndexInfo() throws IOException {
-        RandomAccessFile raf = null;
-        try {
-            raf = new RandomAccessFile(outputFile, "rw");
-    
-            // NVI index
-            raf.getChannel().position(normVectorIndexPosition);
-            BufferedByteWriter buffer = new BufferedByteWriter();
-    
-            buffer.putLong(normVectorIndex); // todo
-            raf.write(buffer.getBytes());
-    
-            // NVI length
-            raf.getChannel().position(normVectorLengthPosition);
-            buffer = new BufferedByteWriter();
-            buffer.putLong(normVectorLength); // todo
-            raf.write(buffer.getBytes());
-    
-        } finally {
-            if (raf != null) raf.close();
-        }
-    }
-
 
     protected void writeFooter(LittleEndianOutputStream[] los) throws IOException {
 
         // Index
         List<BufferedByteWriter> bufferList = new ArrayList<>();
         bufferList.add(new BufferedByteWriter());
-        bufferList.get(bufferList.size()-1).putInt(matrixPositions.size());
+        bufferList.get(0).putInt(matrixPositions.size());
         for (Map.Entry<String, IndexEntry> entry : matrixPositions.entrySet()) {
             if (Integer.MAX_VALUE - bufferList.get(bufferList.size()-1).bytesWritten() < 1000) {
                 bufferList.add(new BufferedByteWriter());
@@ -952,12 +790,6 @@ public class Preprocessor {
         }
     }
 
-    protected Deflater getDefaultCompressor() {
-        Deflater compressor = new Deflater();
-        compressor.setLevel(Deflater.DEFAULT_COMPRESSION);
-        return compressor;
-    }
-
     protected Pair<Map<Long, List<IndexEntry>>, Long> writeMatrix(MatrixPP matrix, LittleEndianOutputStream[] losArray,
                                                                   Deflater compressor, Map<String, IndexEntry> matrixPositions, int chromosomePairIndex, boolean doMultiThreadedBehavior) throws IOException {
 
@@ -978,8 +810,9 @@ public class Preprocessor {
         //fos.writeInt(matrix.getZoomData().length);
         for ( int i = 0; i < matrix.getZoomData().length; i++) {
             MatrixZoomDataPP zd = matrix.getZoomData()[i];
-            if (zd != null)
-                writeZoomHeader(zd, los);
+            if (zd != null) {
+                WriterUtils.writeZoomHeader(zd, los);
+            }
         }
 
         long size = los.getWrittenCount() - position;
@@ -1051,36 +884,9 @@ public class Preprocessor {
         }
     }
 
-    private void writeZoomHeader(MatrixZoomDataPP zd, LittleEndianOutputStream los) throws IOException {
-
-        int numberOfBlocks = zd.blockNumbers.size();
-        los.writeString(zd.getUnit().toString());  // Unit
-        los.writeInt(zd.getZoom());     // zoom index,  lowest res is zero
-        los.writeFloat((float) zd.getSum());      // sum
-        los.writeFloat((float) zd.getOccupiedCellCount());
-        los.writeFloat((float) zd.getPercent5());
-        los.writeFloat((float) zd.getPercent95());
-        los.writeInt(zd.getBinSize());
-        los.writeInt(zd.getBlockBinCount());
-        los.writeInt(zd.getBlockColumnCount());
-        los.writeInt(numberOfBlocks);
-
-        zd.blockIndexPosition = los.getWrittenCount();
-
-        // Placeholder for block index
-        for (int i = 0; i < numberOfBlocks; i++) {
-            los.writeInt(0);
-            los.writeLong(0L);
-            los.writeInt(0);
-        }
-
-    }
-
     public void setTmpdir(String tmpDirName) {
-
         if (tmpDirName != null) {
             this.tmpDir = new File(tmpDirName);
-
             if (!tmpDir.exists()) {
                 System.err.println("Tmp directory does not exist: " + tmpDirName);
                 if (outputFile != null) outputFile.deleteOnExit();

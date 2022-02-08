@@ -22,40 +22,30 @@
  *  THE SOFTWARE.
  */
 
-package juicebox.tools.clt.old;
+package juicebox.tools.utils.mnditerator;
 
-import javastraw.reader.basics.ChromosomeHandler;
-import javastraw.reader.basics.ChromosomeTools;
-import juicebox.tools.clt.CommandLineParser;
-import juicebox.tools.clt.JuiceboxCLT;
-import juicebox.tools.utils.mnditerator.AsciiToBinConverter;
+import juicebox.HiCGlobals;
+import org.broad.igv.util.ParsingUtils;
 
-public class PairsToBin extends JuiceboxCLT {
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.zip.GZIPInputStream;
 
-    private String ifile, ofile, genomeId;
+public class SimpleAsciiPairIterator extends GenericPairIterator implements PairIterator {
 
-    public PairsToBin() {
-        super("pairsToBin <input_mnd> <output_mnd_binary> <genomeID>");
+    public SimpleAsciiPairIterator(String path) throws IOException {
+        super(new MNDFileParser(new SimpleLineParser()));
+        if (path.endsWith(".gz")) {
+            InputStream gzipStream = new GZIPInputStream(new FileInputStream(path));
+            Reader decoder = new InputStreamReader(gzipStream, StandardCharsets.UTF_8);
+            this.reader = new BufferedReader(decoder, 4194304);
+        } else {
+            this.reader = new BufferedReader(new InputStreamReader(ParsingUtils.openInputStream(path)), HiCGlobals.bufferSize);
+        }
+        advance();
     }
 
-    @Override
-    public void readArguments(String[] args, CommandLineParser parser) {
-        if (args.length != 4) {
-            printUsageAndExit();
-        }
-        ifile = args[1];
-        ofile = args[2];
-        genomeId = args[3];
-    }
-
-    @Override
-    public void run() {
-        ChromosomeHandler chromosomeHandler = ChromosomeTools.loadChromosomes(genomeId);
-        try {
-            AsciiToBinConverter.convert(ifile, ofile, chromosomeHandler);
-        } catch (Exception e) {
-            System.err.println("Unable to convert from ascii to bin");
-            e.printStackTrace();
-        }
+    public String getChromosomeNameFromIndex(int chrIndex) {
+        return mndFileParser.getChromosomeNameFromIndex(chrIndex);
     }
 }

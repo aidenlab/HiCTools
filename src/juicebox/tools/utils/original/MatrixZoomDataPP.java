@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -149,16 +149,13 @@ public class MatrixZoomDataPP {
         return percent5;
     }
 
-
     int getBinSize() {
         return binSize;
     }
 
-
     Chromosome getChr1() {
         return chr1;
     }
-
 
     Chromosome getChr2() {
         return chr2;
@@ -185,122 +182,27 @@ public class MatrixZoomDataPP {
      */
     void incrementCount(int pos1, int pos2, float score, Map<String, ExpectedValueCalculation> expectedValueCalculations,
                         File tmpDir) throws IOException {
-
         sum += score;
         // Convert to proper units,  fragments or base-pairs
-
         if (pos1 < 0 || pos2 < 0) return;
-
         int xBin = pos1 / binSize;
         int yBin = pos2 / binSize;
-
-        int blockNumber;
-
-        // Intra chromosome -- we'll store lower diagonal only
-        if (chr1.equals(chr2)) {
-            int b1 = Math.min(xBin, yBin);
-            int b2 = Math.max(xBin, yBin);
-            xBin = b1;
-            yBin = b2;
-
-            if (b1 != b2) {
-                sum += score;  // <= count for mirror cell.
-            }
-
-            if (expectedValueCalculations != null) {
-                String evKey = (isFrag ? "FRAG_" : "BP_") + binSize;
-                ExpectedValueCalculation ev = expectedValueCalculations.get(evKey);
-                if (ev != null) {
-                    ev.addDistance(chr1.getIndex(), xBin, yBin, score);
-                }
-            }
-
-            //compute intra chromosomal block number (version 9 and up)
-            int depth = v9Depth.getDepth(xBin, yBin);
-            int positionAlongDiagonal = ((xBin + yBin) / 2 / blockBinCount);
-            blockNumber = depth * blockColumnCount + positionAlongDiagonal;
-        }
-        else {
-            // compute interchromosomal block number (version 9 and up, first block is zero)
-            int blockCol = xBin / blockBinCount;
-            int blockRow = yBin / blockBinCount;
-            blockNumber = blockColumnCount * blockRow + blockCol;
-        }
-
-
-        BlockPP block = blocks.get(blockNumber);
-        if (block == null) {
-
-            block = new BlockPP(blockNumber);
-            blocks.put(blockNumber, block);
-        }
-        block.incrementCount(xBin, yBin, score);
-
-        // If too many blocks write to tmp directory
-        if (blocks.size() > BLOCK_CAPACITY) {
-            File tmpfile = tmpDir == null ? File.createTempFile("blocks", "bin") : File.createTempFile("blocks", "bin", tmpDir);
-            //System.out.println(chr1.getName() + "-" + chr2.getName() + " Dumping blocks to " + tmpfile.getAbsolutePath());
-            dumpBlocks(tmpfile);
-            tmpFiles.add(tmpfile);
-            tmpfile.deleteOnExit();
-        }
+        commonIncrementCount(xBin, yBin, score, expectedValueCalculations, tmpDir);
     }
 
-    /**
-     * Increment the count for the bin represented by the CONTACT RECORD for a given ZOOM
-     */
-    public void  incrementCount(ContactRecord cr, Map<String, ExpectedValueCalculation> expectedValueCalculations,
-                        File tmpDir, HiCZoom recordZoom) throws IOException {
-
-        float score = cr.getCounts();
-        sum += score;
-        // Convert to proper units,  fragments or base-pairs
-
-        if (cr.getBinX() < 0 || cr.getBinY() < 0) return;
-        if (recordZoom.getBinSize() > binSize) return;
-        //if (binSize % recordZoom.getBinSize() > 0) return;
-        float rescale = (float) binSize / (float) recordZoom.getBinSize();
-        float thresholdX;
-        float thresholdY;
-        Random generator = new Random(0);
-        int xBin;
-        int yBin;
-
-        if ( binSize % recordZoom.getBinSize() == 0) {
-            xBin = (int) ((float) cr.getBinX() / rescale);
-            yBin = (int) ((float) cr.getBinY() / rescale);
-        } else {
-            if ((int) ((float) cr.getBinX() / rescale) == (int) ((float) cr.getBinX()+1 / rescale)) {
-                xBin = (int) ((float) cr.getBinX() / rescale);
-            } else {
-                thresholdX = ((int) ((float) cr.getBinX() / rescale) + 1) * rescale - cr.getBinX();
-                if (generator.nextFloat() < thresholdX) {
-                    xBin = (int) ((float) cr.getBinX() / rescale);
-                } else {
-                    xBin = (int) ((float) cr.getBinX() / rescale) + 1;
-                }
-            }
-            if ((int) ((float) cr.getBinY() / rescale) == (int) ((float) cr.getBinY()+1 / rescale)) {
-                yBin = (int) ((float) cr.getBinY() / rescale);
-            } else {
-                thresholdY = ((int) ((float) cr.getBinY() / rescale) + 1) * rescale - cr.getBinY();
-                if (generator.nextFloat() < thresholdY) {
-                    yBin = (int) ((float) cr.getBinY() / rescale);
-                } else {
-                    yBin = (int) ((float) cr.getBinY() / rescale) + 1;
-                }
-            }
-        }
+    private void commonIncrementCount(int xBin0, int yBin0, float score,
+                                      Map<String, ExpectedValueCalculation> expectedValueCalculations,
+                                      File tmpDir) throws IOException {
         int blockNumber;
+        int xBin = xBin0;
+        int yBin = yBin0;
 
         // Intra chromosome -- we'll store lower diagonal only
         if (chr1.equals(chr2)) {
-            int b1 = Math.min(xBin, yBin);
-            int b2 = Math.max(xBin, yBin);
-            xBin = b1;
-            yBin = b2;
+            xBin = Math.min(xBin0, yBin0);
+            yBin = Math.max(xBin0, yBin0);
 
-            if (b1 != b2) {
+            if (xBin != yBin) {
                 sum += score;  // <= count for mirror cell.
             }
 
@@ -316,11 +218,10 @@ public class MatrixZoomDataPP {
             int depth = v9Depth.getDepth(xBin, yBin);
             int positionAlongDiagonal = ((xBin + yBin) / 2 / blockBinCount);
             blockNumber = depth * blockColumnCount + positionAlongDiagonal;
-        }
-        else {
+        } else {
             // compute interchromosomal block number (version 9 and up, first block is zero)
-            int blockCol = xBin / blockBinCount;
-            int blockRow = yBin / blockBinCount;
+            int blockCol = xBin0 / blockBinCount;
+            int blockRow = yBin0 / blockBinCount;
             blockNumber = blockColumnCount * blockRow + blockCol;
         }
 
@@ -335,7 +236,12 @@ public class MatrixZoomDataPP {
 
         // If too many blocks write to tmp directory
         if (blocks.size() > BLOCK_CAPACITY) {
-            File tmpfile = tmpDir == null ? File.createTempFile("blocks", "bin") : File.createTempFile("blocks", "bin", tmpDir);
+            File tmpfile;
+            if (tmpDir == null) {
+                tmpfile = File.createTempFile("blocks", "bin");
+            } else {
+                tmpfile = File.createTempFile("blocks", "bin", tmpDir);
+            }
             //System.out.println(chr1.getName() + "-" + chr2.getName() + " Dumping blocks to " + tmpfile.getAbsolutePath());
             dumpBlocks(tmpfile);
             tmpFiles.add(tmpfile);

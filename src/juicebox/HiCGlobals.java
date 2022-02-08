@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@ import java.util.concurrent.Executors;
  */
 public class HiCGlobals {
 
-    public static final String versionNum = "3.02.01";
+    public static final String versionNum = "3.04.01";
     public static final int minVersion = 6;
     public static final int writingVersion = 9;
     public static final int bufferSize = 2097152;
