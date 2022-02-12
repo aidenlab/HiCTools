@@ -53,7 +53,6 @@ public class FinalScale {
         ListOfFloatArrays row, col;
         ListOfFloatArrays dr = new ListOfFloatArrays(matrixSize);
         ListOfIntArrays bad = new ListOfIntArrays(matrixSize);
-        ListOfIntArrays bad1 = new ListOfIntArrays(matrixSize);
         ListOfFloatArrays s = new ListOfFloatArrays(matrixSize);
         double[] r0 = new double[(int) Math.min(matrixSize, Integer.MAX_VALUE - 1)];
 
@@ -85,7 +84,7 @@ public class FinalScale {
         for (long p = 0; p < matrixSize; p++) {
             if (numNonZero.get(p) < low) {
                 bad.set(p, 1);
-                zTargetVector.set(p, 1.0f);
+                zTargetVector.set(p, 0f);
             }
         }
 
@@ -97,16 +96,6 @@ public class FinalScale {
         }
         ListOfFloatArrays dc = dr.deepClone();
         one = dr.deepClone();
-
-        // treat separately rows for which z[p] = 0
-        for (long p = 0; p < matrixSize; p++) {
-            if (zTargetVector.get(p) == 0) {
-                one.set(p, 0);
-            }
-        }
-        for (long p = 0; p < matrixSize; p++) {
-            bad1.set(p, (int) (1 - one.get(p)));
-        }
 
         ListOfFloatArrays current = dr.deepClone();
         //	start iterations
@@ -127,26 +116,11 @@ public class FinalScale {
             allItersI++;
             failed = true;
 
-            for (int p = 0; p < matrixSize; p++) {
-                if (bad1.get(p) == 1) row.set(p, 1.0f);
-            }
-            for (int p = 0; p < matrixSize; p++) {
-                s.set(p, zTargetVector.get(p) / row.get(p));
-            }
-            for (long p = 0; p < matrixSize; p++) {
-                dr.multiplyBy(p, s.get(p));
-            }
+            col = update(matrixSize, bad, row, zTargetVector, s, dr, ic);
+            multiply(col, dc, matrixSize);
 
-            // find column sums and update rows scaling vector
-            col = sparseMultiplyGetRowSums(ic, dr, matrixSize);
-            for (long p = 0; p < matrixSize; p++) col.multiplyBy(p, dc.get(p));
-            for (long p = 0; p < matrixSize; p++) if (bad1.get(p) == 1) col.set(p, 1.0f);
-            for (long p = 0; p < matrixSize; p++) s.set(p, zTargetVector.get(p) / col.get(p));
-            for (long p = 0; p < matrixSize; p++) dc.multiplyBy(p, s.get(p));
-
-            // find row sums and update columns scaling vector
-            row = sparseMultiplyGetRowSums(ic, dc, matrixSize);
-            for (long p = 0; p < matrixSize; p++) row.multiplyBy(p, dr.get(p));
+            row = update(matrixSize, bad, col, zTargetVector, s, dc, ic);
+            multiply(row, dr, matrixSize);
 
             // calculate current scaling vector
             for (long p = 0; p < matrixSize; p++) {
@@ -156,7 +130,7 @@ public class FinalScale {
             //	calculate the current error
             ber = 0;
             for (long p = 0; p < matrixSize; p++) {
-                if (bad1.get(p) == 1) continue;
+                if (bad.get(p) == 1) continue;
                 double tempErr = Math.abs(calculatedVectorB.get(p) - current.get(p));
                 if (tempErr > ber) {
                     ber = tempErr;
@@ -172,7 +146,7 @@ public class FinalScale {
                 col = sparseMultiplyGetRowSums(ic, calculatedVectorB, matrixSize);
                 err = 0;
                 for (long p = 0; p < matrixSize; p++) {
-                    if (bad1.get(p) == 1) continue;
+                    if (bad.get(p) == 1) continue;
                     double tempErr = Math.abs((col.get(p) * calculatedVectorB.get(p) - zTargetVector.get(p)));
                     if (err < tempErr) {
                         err = tempErr;
@@ -192,6 +166,7 @@ public class FinalScale {
                 for (int q = 1; q <= 5; q++) {
                     if (reportErrorForIteration[allItersI - q] * (1.0 + minErrorThreshold) < reportErrorForIteration[allItersI - q - 1]) {
                         failed = false;
+                        break;
                     }
                 }
     
@@ -211,7 +186,6 @@ public class FinalScale {
                     for (long p = 0; p < matrixSize; p++) {
                         if (numNonZero.get(p) < low && zTargetVector.get(p) > 0) {
                             bad.set(p, 1);
-                            bad1.set(p, 1);
                             one.set(p, 0);
                             zTargetVector.set(p, 0f);
                         }
@@ -248,7 +222,7 @@ public class FinalScale {
             col = sparseMultiplyGetRowSums(ic, calculatedVectorB, matrixSize);
             err = 0;
             for (int p = 0; p < matrixSize; p++) {
-                if (bad1.get(p) == 1) continue;
+                if (bad.get(p) == 1) continue;
                 double tempErr = Math.abs(col.get(p) * calculatedVectorB.get(p) - zTargetVector.get(p));
                 if (err < tempErr) {
                     err = tempErr;
@@ -272,6 +246,28 @@ public class FinalScale {
         }
 
         return calculatedVectorB;
+    }
+
+    private static ListOfFloatArrays update(long matrixSize, ListOfIntArrays bad,
+                                            ListOfFloatArrays vector, ListOfFloatArrays target,
+                                            ListOfFloatArrays s, ListOfFloatArrays dVector,
+                                            IteratorContainer ic) {
+        for (long p = 0; p < matrixSize; p++) {
+            if (bad.get(p) == 1) vector.set(p, 1.0f);
+        }
+        for (long p = 0; p < matrixSize; p++) {
+            s.set(p, target.get(p) / vector.get(p));
+        }
+        multiply(dVector, s, matrixSize);
+
+        // find sums and update scaling vector
+        return sparseMultiplyGetRowSums(ic, dVector, matrixSize);
+    }
+
+    private static void multiply(ListOfFloatArrays vec, ListOfFloatArrays dv, long matrixSize) {
+        for (long p = 0; p < matrixSize; p++) {
+            vec.multiplyBy(p, dv.get(p));
+        }
     }
 
     private static void setRowSums(ListOfIntArrays numNonZero, IteratorContainer ic) {
