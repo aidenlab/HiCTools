@@ -333,8 +333,7 @@ public class NormalizationCalculations {
     }
     
     public ListOfFloatArrays computeMMBA() {
-        ListOfFloatArrays tempTargetVector = new ListOfFloatArrays(matrixSize, 1);
-        return ScaleHandler.mmbaScaleToVector(ic, tempTargetVector, resolution);
+        return ScaleHandler.mmbaScaleToVector(ic, resolution, matrixSize);
     }
 
     /*public BigContactRecordList booleanBalancing() {

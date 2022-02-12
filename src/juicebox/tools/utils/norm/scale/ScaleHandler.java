@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,13 +32,12 @@ import juicebox.tools.utils.norm.DistanceFilteredIteratorContainer;
 import java.util.Iterator;
 
 public class ScaleHandler {
-    public static ListOfFloatArrays scale(IteratorContainer ic, ListOfFloatArrays targetVectorInitial,
-                                          int resolution) {
+    public static ListOfFloatArrays scale(IteratorContainer ic, int resolution, long matrixSize) {
         IteratorContainer ic2 = ic;
         if (DistanceFilteredIteratorContainer.getUseFilterDistance()) {
             ic2 = new DistanceFilteredIteratorContainer(ic, resolution);
         }
-        return FinalScale.scaleToTargetVector(ic2, targetVectorInitial);
+        return FinalScale.scaleToTargetVector(ic2, matrixSize);
     }
 
 
@@ -83,9 +82,8 @@ public class ScaleHandler {
         return newNormVector;
     }
 
-    public static ListOfFloatArrays mmbaScaleToVector(IteratorContainer ic, ListOfFloatArrays tempTargetVector,
-                                                      int resolution) {
-        ListOfFloatArrays newNormVector = scale(ic, tempTargetVector, resolution);
+    public static ListOfFloatArrays mmbaScaleToVector(IteratorContainer ic, int resolution, long matrixSize) {
+        ListOfFloatArrays newNormVector = scale(ic, resolution, matrixSize);
         return normalizeVectorByScaleFactor(newNormVector, ic);
     }
 
