@@ -62,7 +62,7 @@ public class BigArrayCreator {
             y[counter] = cr.getBinY();
             c[counter] = cr.getCounts();
             counter++;
-            if (counter > limit) {
+            if (counter >= limit) {
                 allRecords.addSubList(x, y, c);
                 x = new int[limit];
                 y = new int[limit];

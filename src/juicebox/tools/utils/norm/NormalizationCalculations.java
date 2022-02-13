@@ -150,13 +150,11 @@ public class NormalizationCalculations {
     }
     
     public ListOfFloatArrays computeMMBA() {
-        /*
         ListOfFloatArrays vcSqrt = computeVC();
         for (long i = 0; i < vcSqrt.getLength(); i++) {
             vcSqrt.set(i, (float) Math.sqrt(vcSqrt.get(i)));
         }
-        */
-        return ScaleHandler.mmbaScaleToVector(ba, resolution, matrixSize, null);
+        return ScaleHandler.mmbaScaleToVector(ba, resolution, matrixSize, vcSqrt);
     }
 
     /*public BigContactRecordList booleanBalancing() {

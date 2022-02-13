@@ -166,6 +166,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
                 BigArray ba = BigArrayCreator.createFromZD(zd);
                 NormalizationCalculations nc = new NormalizationCalculations(ba, zd.getBinSize());
+                zd.clearCache();
 
                 if (weShouldBuildVC || weShouldBuildVCSqrt) {
                     buildVCOrVCSQRT(weShouldBuildVC && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC),

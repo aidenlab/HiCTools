@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class BigArray {
 
-    private final int limit; // 10 million
+    private final int limit;
     private final List<int[]> binXs = new ArrayList<>();
     private final List<int[]> binYs = new ArrayList<>();
     private final List<float[]> binVals = new ArrayList<>();

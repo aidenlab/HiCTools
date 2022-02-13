@@ -98,6 +98,7 @@ public class GenomeWideNormalizationVectorUpdater extends NormVectorUpdater {
         if (vector == null) {
             return null;
         }
+        ba.clear();
 
         ExpectedValueCalculation expectedValueCalculation = new ExpectedValueCalculation(chromosomeHandler, resolution, null, norm);
         int addY = 0;
@@ -119,14 +120,13 @@ public class GenomeWideNormalizationVectorUpdater extends NormVectorUpdater {
                     expectedValueCalculation.addDistance(chrIdx, x, y, value);
                 }
             }
+            zd.clearCache();
             addY += chr.getLength() / resolution + 1;
         }
 
         // Split normalization vector by chromosome
         Map<Chromosome, NormalizationVector> normVectorMap =
                 NormalizationTools.parCreateNormVectorMap(chromosomeHandler, resolution, vector, norm, zoom);
-
-        ba.clear();
 
         return new Pair<>(normVectorMap, expectedValueCalculation);
     }
