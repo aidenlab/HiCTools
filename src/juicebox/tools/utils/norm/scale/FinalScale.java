@@ -44,14 +44,14 @@ public class FinalScale {
     private final static float minErrorThreshold = .02f;
     private static final float OFFSET = .5f;
 
-    public static ListOfFloatArrays scaleToTargetVector(IteratorContainer ic, long matrixSize) {
+    public static ListOfFloatArrays scaleToTargetVector(IteratorContainer ic, long matrixSize,
+                                                        ListOfFloatArrays initialGuess) {
 
         double low;
         int rlind;
         float localPercentLowRowSumExcluded = percentLowRowSumExcluded;
 
         ListOfFloatArrays row, col;
-        ListOfFloatArrays dr = new ListOfFloatArrays(matrixSize);
         ListOfIntArrays bad = new ListOfIntArrays(matrixSize);
         ListOfFloatArrays s = new ListOfFloatArrays(matrixSize);
         double[] r0 = new double[(int) Math.min(matrixSize, Integer.MAX_VALUE - 1)];
@@ -92,10 +92,17 @@ public class FinalScale {
         ListOfFloatArrays rowBackup = row.deepClone();
 
         for (long p = 0; p < matrixSize; p++) {
-            dr.set(p, 1 - bad.get(p));
+            one.set(p, 1 - bad.get(p));
+        }
+
+        ListOfFloatArrays dr;
+        if (initialGuess == null) {
+            dr = one.deepClone();
+        } else {
+            dr = initialGuess;
         }
         ListOfFloatArrays dc = dr.deepClone();
-        one = dr.deepClone();
+
 
         ListOfFloatArrays current = dr.deepClone();
         //	start iterations

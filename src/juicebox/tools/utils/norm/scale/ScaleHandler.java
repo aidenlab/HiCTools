@@ -32,12 +32,13 @@ import juicebox.tools.utils.norm.DistanceFilteredIteratorContainer;
 import java.util.Iterator;
 
 public class ScaleHandler {
-    public static ListOfFloatArrays scale(IteratorContainer ic, int resolution, long matrixSize) {
+    public static ListOfFloatArrays scale(IteratorContainer ic, int resolution, long matrixSize,
+                                          ListOfFloatArrays initialGuess) {
         IteratorContainer ic2 = ic;
         if (DistanceFilteredIteratorContainer.getUseFilterDistance()) {
             ic2 = new DistanceFilteredIteratorContainer(ic, resolution);
         }
-        return FinalScale.scaleToTargetVector(ic2, matrixSize);
+        return FinalScale.scaleToTargetVector(ic2, matrixSize, initialGuess);
     }
 
 
@@ -82,8 +83,9 @@ public class ScaleHandler {
         return newNormVector;
     }
 
-    public static ListOfFloatArrays mmbaScaleToVector(IteratorContainer ic, int resolution, long matrixSize) {
-        ListOfFloatArrays newNormVector = scale(ic, resolution, matrixSize);
+    public static ListOfFloatArrays mmbaScaleToVector(IteratorContainer ic, int resolution, long matrixSize,
+                                                      ListOfFloatArrays initialGuess) {
+        ListOfFloatArrays newNormVector = scale(ic, resolution, matrixSize, initialGuess);
         return normalizeVectorByScaleFactor(newNormVector, ic);
     }
 

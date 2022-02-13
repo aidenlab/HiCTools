@@ -85,153 +85,6 @@ public class NormalizationCalculations {
         return result;
     }
 
-    private ListOfDoubleArrays computeKRNormVector(ListOfIntArrays offset, double tol, ListOfDoubleArrays x0, double delta) {
-
-        long n = x0.getLength();
-        ListOfDoubleArrays e = new ListOfDoubleArrays(n, 1);
-
-        double g = 0.9;
-        double etamax = 0.1;
-        double eta = etamax;
-
-        double rt = Math.pow(tol, 2);
-
-        ListOfDoubleArrays v = sparseMultiplyFromContactRecords(offset, getIterator(), x0);
-        ListOfDoubleArrays rk = new ListOfDoubleArrays(v.getLength());
-        for (long i = 0; i < v.getLength(); i++) {
-            v.multiplyBy(i, x0.get(i));
-            rk.set(i, 1 - v.get(i));
-        }
-        double rho_km1 = 0;
-        for (double[] aRkArray : rk.getValues()) {
-            for (double aRk : aRkArray) {
-                rho_km1 += aRk * aRk;
-            }
-        }
-        double rout = rho_km1;
-        double rold = rout;
-        int MVP = 0;  // We'll count matrix vector products.
-
-        int not_changing = 0;
-        while (rout > rt && not_changing < 100) {    // Outer iteration
-            int k = 0;
-            ListOfDoubleArrays y = e.deepClone();
-            ListOfDoubleArrays ynew = new ListOfDoubleArrays(e.getLength());
-            ListOfDoubleArrays Z = new ListOfDoubleArrays(e.getLength());
-            ListOfDoubleArrays p = new ListOfDoubleArrays(e.getLength());
-            ListOfDoubleArrays w = new ListOfDoubleArrays(e.getLength());
-            double alpha;
-            double beta;
-            double gamma;
-            double rho_km2 = rho_km1;
-
-
-            double innertol = Math.max(Math.pow(eta, 2) * rout, rt);
-            while (rho_km1 > innertol) {   // Inner iteration by CG
-                k++;
-
-                if (k == 1) {
-                    rho_km1 = 0;
-                    for (long i = 0; i < Z.getLength(); i++) {
-                        double rkVal = rk.get(i);
-                        double zVal = rkVal / v.get(i);
-                        Z.set(i, zVal);
-                        rho_km1 += rkVal * zVal;
-                    }
-                    p = Z.deepClone();
-
-                } else {
-                    beta = rho_km1 / rho_km2;
-                    p.multiplyEverythingBy(beta);
-                    for (long i = 0; i < p.getLength(); i++) {
-                        p.addTo(i, Z.get(i));
-                    }
-                }
-                ListOfDoubleArrays tmp = new ListOfDoubleArrays(e.getLength());
-                for (long i = 0; i < tmp.getLength(); i++) {
-                    tmp.set(i, x0.get(i) * p.get(i));
-                }
-                tmp = sparseMultiplyFromContactRecords(offset, getIterator(), tmp);
-                alpha = 0;
-                // Update search direction efficiently.
-                for (long i = 0; i < tmp.getLength(); i++) {
-                    double pVal = p.get(i);
-                    double wVal = (x0.get(i) * tmp.get(i) + v.get(i) * pVal);
-                    w.set(i, wVal);
-                    alpha += pVal * wVal;
-                }
-                alpha = rho_km1 / alpha;
-                double minynew = Double.MAX_VALUE;
-                // Test distance to boundary of cone.
-                for (long i = 0; i < p.getLength(); i++) {
-                    double yVal = y.get(i) + alpha * p.get(i);
-                    ynew.set(i, yVal);
-                    if (yVal < minynew) {
-                        minynew = yVal;
-                    }
-                }
-                if (minynew <= delta) {
-                    if (delta == 0) break;     // break out of inner loop?
-                    gamma = Double.MAX_VALUE;
-                    for (long i = 0; i < ynew.getLength(); i++) {
-                        double pVal = p.get(i);
-                        if (alpha * pVal < 0) {
-                            double yVal = y.get(i);
-                            if ((delta - yVal) / (alpha * pVal) < gamma) {
-                                gamma = ((delta - yVal) / (alpha * pVal));
-                            }
-                        }
-                    }
-                    for (long i = 0; i < y.getLength(); i++) {
-                        y.addTo(i, gamma * alpha * p.get(i));
-                    }
-                    break;   // break out of inner loop?
-                }
-                rho_km2 = rho_km1;
-                rho_km1 = 0;
-                y = ynew.deepClone();
-                for (long i = 0; i < y.getLength(); i++) {
-                    rk.addTo(i, -alpha * w.get(i));
-                    double rkVal = rk.get(i);
-                    Z.set(i, rkVal / v.get(i));
-                    rho_km1 += rkVal * Z.get(i);
-                }
-
-            } // end inner loop
-            for (long i = 0; i < x0.getLength(); i++) {
-                x0.multiplyBy(i, y.get(i));
-            }
-            v = sparseMultiplyFromContactRecords(offset, getIterator(), x0);
-            rho_km1 = 0;
-            for (long i = 0; i < v.getLength(); i++) {
-                v.multiplyBy(i, x0.get(i));
-                double rkVal = 1 - v.get(i);
-                rk.set(i, rkVal);
-
-                rho_km1 += rkVal * rkVal;
-            }
-            if (Math.abs(rho_km1 - rout) < 0.000001 || Double.isInfinite(rho_km1)) {
-                not_changing++;
-            }
-            rout = rho_km1;
-            MVP = MVP + k + 1;
-            //  Update inner iteration stopping criterion.
-            double rat = rout / rold;
-            rold = rout;
-            double r_norm = Math.sqrt(rout);
-            double eta_o = eta;
-            eta = g * rat;
-            if (g * Math.pow(eta_o, 2) > 0.1) {
-                eta = Math.max(eta, g * Math.pow(eta_o, 2));
-            }
-            eta = Math.max(Math.min(eta, etamax), 0.5 * tol / r_norm);
-        }
-        if (not_changing >= 100) {
-            return null;
-        }
-        return x0;
-    }
-
     private Iterator<ContactRecord> getIterator() {
         return ic.getNewContactRecordIterator();
     }
@@ -333,7 +186,13 @@ public class NormalizationCalculations {
     }
     
     public ListOfFloatArrays computeMMBA() {
-        return ScaleHandler.mmbaScaleToVector(ic, resolution, matrixSize);
+        /*
+        ListOfFloatArrays vcSqrt = computeVC();
+        for (long i = 0; i < vcSqrt.getLength(); i++) {
+            vcSqrt.set(i, (float) Math.sqrt(vcSqrt.get(i)));
+        }
+        */
+        return ScaleHandler.mmbaScaleToVector(ic, resolution, matrixSize, null);
     }
 
     /*public BigContactRecordList booleanBalancing() {
