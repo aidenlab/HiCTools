@@ -24,14 +24,12 @@
 
 package juicebox.tools.utils.norm.scale;
 
-import javastraw.reader.block.ContactRecord;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
-import javastraw.reader.iterators.IteratorContainer;
 import juicebox.HiCGlobals;
+import juicebox.tools.utils.bigarray.BigArray;
 
 import java.util.Arrays;
-import java.util.Iterator;
 
 public class FinalScale {
 
@@ -44,7 +42,7 @@ public class FinalScale {
     private final static float minErrorThreshold = .02f;
     private static final float OFFSET = .5f;
 
-    public static ListOfFloatArrays scaleToTargetVector(IteratorContainer ic, long matrixSize,
+    public static ListOfFloatArrays scaleToTargetVector(BigArray ba, long matrixSize,
                                                         ListOfFloatArrays initialGuess) {
 
         double low;
@@ -59,13 +57,12 @@ public class FinalScale {
         ListOfFloatArrays zTargetVector = new ListOfFloatArrays(matrixSize, 1);
         ListOfFloatArrays calculatedVectorB = new ListOfFloatArrays(matrixSize);
         ListOfFloatArrays one = new ListOfFloatArrays(matrixSize, 1);
-        ListOfIntArrays numNonZero = new ListOfIntArrays(matrixSize, 0);
 
         double[] reportErrorForIteration = new double[totalIterations + 3];
         int[] numItersForAllIterations = new int[totalIterations + 3];
 
         //	find rows sums
-        setRowSums(numNonZero, ic);
+        ListOfIntArrays numNonZero = ba.getNumNonZeroInRows();
 
         //	find relevant percentiles
         int n0 = 0;
@@ -88,7 +85,7 @@ public class FinalScale {
             }
         }
 
-        row = sparseMultiplyGetRowSums(ic, one, matrixSize);
+        row = sparseMultiplyGetRowSums(ba, one, matrixSize);
         ListOfFloatArrays rowBackup = row.deepClone();
 
         for (long p = 0; p < matrixSize; p++) {
@@ -123,10 +120,10 @@ public class FinalScale {
             allItersI++;
             failed = true;
 
-            col = update(matrixSize, bad, row, zTargetVector, s, dr, ic);
+            col = update(matrixSize, bad, row, zTargetVector, s, dr, ba);
             multiply(col, dc, matrixSize);
 
-            row = update(matrixSize, bad, col, zTargetVector, s, dc, ic);
+            row = update(matrixSize, bad, col, zTargetVector, s, dc, ba);
             multiply(row, dr, matrixSize);
 
             // calculate current scaling vector
@@ -150,7 +147,7 @@ public class FinalScale {
             //	since calculating the error in row sums requires matrix-vector multiplication we are are doing this every 10
             //	iterations
             if (iter % 10 == 0) {
-                col = sparseMultiplyGetRowSums(ic, calculatedVectorB, matrixSize);
+                col = sparseMultiplyGetRowSums(ba, calculatedVectorB, matrixSize);
                 err = 0;
                 for (long p = 0; p < matrixSize; p++) {
                     if (bad.get(p) == 1) continue;
@@ -226,7 +223,7 @@ public class FinalScale {
 
         //	find the final error in row sums
         if (iter % 10 == 0) {
-            col = sparseMultiplyGetRowSums(ic, calculatedVectorB, matrixSize);
+            col = sparseMultiplyGetRowSums(ba, calculatedVectorB, matrixSize);
             err = 0;
             for (int p = 0; p < matrixSize; p++) {
                 if (bad.get(p) == 1) continue;
@@ -258,7 +255,7 @@ public class FinalScale {
     private static ListOfFloatArrays update(long matrixSize, ListOfIntArrays bad,
                                             ListOfFloatArrays vector, ListOfFloatArrays target,
                                             ListOfFloatArrays s, ListOfFloatArrays dVector,
-                                            IteratorContainer ic) {
+                                            BigArray ic) {
         for (long p = 0; p < matrixSize; p++) {
             if (bad.get(p) == 1) vector.set(p, 1.0f);
         }
@@ -277,19 +274,6 @@ public class FinalScale {
         }
     }
 
-    private static void setRowSums(ListOfIntArrays numNonZero, IteratorContainer ic) {
-        Iterator<ContactRecord> iterator = ic.getNewContactRecordIterator();
-        while (iterator.hasNext()) {
-            ContactRecord cr = iterator.next();
-            int x = cr.getBinX();
-            int y = cr.getBinY();
-            numNonZero.addTo(x, 1);
-            if (x != y) {
-                numNonZero.addTo(y, 1);
-            }
-        }
-    }
-
     private static double[] dealWithSorting(double[] vector, int length) {
         double[] realVector = new double[length];
         System.arraycopy(vector, 0, realVector, 0, length);
@@ -297,8 +281,8 @@ public class FinalScale {
         return realVector;
     }
 
-    private static ListOfFloatArrays sparseMultiplyGetRowSums(IteratorContainer ic,
+    private static ListOfFloatArrays sparseMultiplyGetRowSums(BigArray ba,
                                                               ListOfFloatArrays vector, long vectorLength) {
-        return ic.sparseMultiply(vector, vectorLength);
+        return ba.sparseMultiplyAcrossLists(vector, vectorLength);
     }
 }

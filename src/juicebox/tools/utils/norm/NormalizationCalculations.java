@@ -28,9 +28,9 @@ import javastraw.reader.block.ContactRecord;
 import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
-import javastraw.reader.iterators.IteratorContainer;
 import javastraw.reader.type.NormalizationType;
 import juicebox.tools.clt.old.NormalizationBuilder;
+import juicebox.tools.utils.bigarray.BigArray;
 import juicebox.tools.utils.norm.scale.ScaleHandler;
 
 import java.util.Iterator;
@@ -50,14 +50,13 @@ import java.util.Random;
 public class NormalizationCalculations {
 
     private final long matrixSize; // x and y symmetric
-    private boolean isEnoughMemory = false;
-    private final IteratorContainer ic;
+    //private boolean isEnoughMemory = false;
+    private final BigArray ba;
     private final int resolution;
 
-    public NormalizationCalculations(IteratorContainer ic, int resolution) {
-        this.ic = ic;
-        this.matrixSize = ic.getMatrixSize();
-        isEnoughMemory = ic.getIsThereEnoughMemoryForNormCalculation();
+    public NormalizationCalculations(BigArray ba, int resolution) {
+        this.ba = ba;
+        this.matrixSize = ba.getMatrixSize();
         this.resolution = resolution;
     }
 
@@ -85,6 +84,7 @@ public class NormalizationCalculations {
         return result;
     }
 
+    /*
     private Iterator<ContactRecord> getIterator() {
         return ic.getNewContactRecordIterator();
     }
@@ -92,6 +92,7 @@ public class NormalizationCalculations {
     boolean isEnoughMemory() {
         return isEnoughMemory;
     }
+    */
 
     public ListOfFloatArrays getNorm(NormalizationType normOption) {
         ListOfFloatArrays norm;
@@ -119,22 +120,7 @@ public class NormalizationCalculations {
      * @return Normalization vector
      */
     ListOfFloatArrays computeVC() {
-        ListOfFloatArrays rowsums = new ListOfFloatArrays(matrixSize, 0);
-
-        Iterator<ContactRecord> iterator = getIterator();
-        while (iterator.hasNext()) {
-            ContactRecord cr = iterator.next();
-            int x = cr.getBinX();
-            int y = cr.getBinY();
-            float value = cr.getCounts();
-            rowsums.addTo(x, value);
-            if (x != y) {
-                rowsums.addTo(y, value);
-            }
-        }
-
-        return rowsums;
-
+        return ba.getRowSums();
     }
 
     /**
@@ -149,29 +135,7 @@ public class NormalizationCalculations {
     }
     
     public double[] getNormMatrixSumFactor(ListOfFloatArrays norm) {
-        double matrix_sum = 0;
-        double norm_sum = 0;
-
-        Iterator<ContactRecord> iterator = getIterator();
-        while (iterator.hasNext()) {
-            ContactRecord cr = iterator.next();
-            int x = cr.getBinX();
-            int y = cr.getBinY();
-            float value = cr.getCounts();
-            double valX = norm.get(x);
-            double valY = norm.get(y);
-            if (!Double.isNaN(valX) && !Double.isNaN(valY) && valX > 0 && valY > 0) {
-                // want total sum of matrix, not just upper triangle
-                if (x == y) {
-                    norm_sum += value / (valX * valY);
-                    matrix_sum += value;
-                } else {
-                    norm_sum += 2 * value / (valX * valY);
-                    matrix_sum += 2 * value;
-                }
-            }
-        }
-        return new double[]{norm_sum, matrix_sum};
+        return ba.getNormMatrixSumFactor(norm);
     }
 
 
@@ -192,7 +156,7 @@ public class NormalizationCalculations {
             vcSqrt.set(i, (float) Math.sqrt(vcSqrt.get(i)));
         }
         */
-        return ScaleHandler.mmbaScaleToVector(ic, resolution, matrixSize, null);
+        return ScaleHandler.mmbaScaleToVector(ba, resolution, matrixSize, null);
     }
 
     /*public BigContactRecordList booleanBalancing() {

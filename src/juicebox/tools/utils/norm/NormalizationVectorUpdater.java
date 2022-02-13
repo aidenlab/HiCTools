@@ -35,6 +35,8 @@ import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
 import javastraw.tools.HiCFileTools;
 import juicebox.HiCGlobals;
+import juicebox.tools.utils.bigarray.BigArray;
+import juicebox.tools.utils.bigarray.BigArrayCreator;
 import juicebox.tools.utils.original.ExpectedValueCalculation;
 import org.broad.igv.tdf.BufferedByteWriter;
 
@@ -162,11 +164,8 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                     System.out.println("Now Doing " + chr.getName());
                 }
 
-                NormalizationCalculations nc = new NormalizationCalculations(zd.getIteratorContainer(), zd.getBinSize());
-                if (!nc.isEnoughMemory()) {
-                    System.err.println("Not enough memory, skipping " + chr);
-                    continue;
-                }
+                BigArray ba = BigArrayCreator.createFromZD(zd);
+                NormalizationCalculations nc = new NormalizationCalculations(ba, zd.getBinSize());
 
                 if (weShouldBuildVC || weShouldBuildVCSqrt) {
                     buildVCOrVCSQRT(weShouldBuildVC && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC),

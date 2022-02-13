@@ -24,69 +24,26 @@
 
 package juicebox.tools.utils.norm.scale;
 
-import javastraw.reader.block.ContactRecord;
 import javastraw.reader.datastructures.ListOfFloatArrays;
-import javastraw.reader.iterators.IteratorContainer;
-import juicebox.tools.utils.norm.DistanceFilteredIteratorContainer;
-
-import java.util.Iterator;
+import juicebox.tools.utils.bigarray.BigArray;
 
 public class ScaleHandler {
-    public static ListOfFloatArrays scale(IteratorContainer ic, int resolution, long matrixSize,
+    public static ListOfFloatArrays scale(BigArray ic, int resolution, long matrixSize,
                                           ListOfFloatArrays initialGuess) {
-        IteratorContainer ic2 = ic;
+        /*
+        BigArray ic2 = ic;
         if (DistanceFilteredIteratorContainer.getUseFilterDistance()) {
             ic2 = new DistanceFilteredIteratorContainer(ic, resolution);
         }
-        return FinalScale.scaleToTargetVector(ic2, matrixSize, initialGuess);
+        */
+        return FinalScale.scaleToTargetVector(ic, matrixSize, initialGuess);
     }
 
 
-    public static ListOfFloatArrays normalizeVectorByScaleFactor(ListOfFloatArrays newNormVector, IteratorContainer ic) {
-
-        for (long k = 0; k < newNormVector.getLength(); k++) {
-            float kVal = newNormVector.get(k);
-            if (kVal <= 0 || Double.isNaN(kVal)) {
-                newNormVector.set(k, Float.NaN);
-            } else {
-                newNormVector.set(k, 1.f / kVal);
-            }
-        }
-
-        double normalizedSumTotal = 0, sumTotal = 0;
-
-        Iterator<ContactRecord> iterator = ic.getNewContactRecordIterator();
-        while (iterator.hasNext()) {
-            ContactRecord cr = iterator.next();
-
-            int x = cr.getBinX();
-            int y = cr.getBinY();
-            final float counts = cr.getCounts();
-
-            double valX = newNormVector.get(x);
-            double valY = newNormVector.get(y);
-
-            if (!Double.isNaN(valX) && !Double.isNaN(valY)) {
-                double normalizedValue = counts / (valX * valY);
-                normalizedSumTotal += normalizedValue;
-                sumTotal += counts;
-                if (x != y) {
-                    normalizedSumTotal += normalizedValue;
-                    sumTotal += counts;
-                }
-
-            }
-        }
-
-        double scaleFactor = Math.sqrt(normalizedSumTotal / sumTotal);
-        newNormVector.multiplyEverythingBy(scaleFactor);
-        return newNormVector;
-    }
-
-    public static ListOfFloatArrays mmbaScaleToVector(IteratorContainer ic, int resolution, long matrixSize,
+    public static ListOfFloatArrays mmbaScaleToVector(BigArray ic, int resolution, long matrixSize,
                                                       ListOfFloatArrays initialGuess) {
         ListOfFloatArrays newNormVector = scale(ic, resolution, matrixSize, initialGuess);
-        return normalizeVectorByScaleFactor(newNormVector, ic);
+        return ic.normalizeVectorByScaleFactor(newNormVector);
     }
 
 }
