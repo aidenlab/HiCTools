@@ -24,8 +24,8 @@
 
 package juicebox.tools.utils.norm.scale;
 
-import javastraw.reader.iterators.IteratorContainer;
 import javastraw.tools.ParallelizationTools;
+import juicebox.HiCGlobals;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -33,7 +33,7 @@ public class ParallelVectorTools {
     public static void process(long matrixSize, VectorFunction function) {
 
         long[] cutoffs = getCutoffs(matrixSize);
-        int numThreads = IteratorContainer.numCPUMatrixThreads;
+        int numThreads = HiCGlobals.numCPUMatrixThreads;
 
         AtomicInteger index = new AtomicInteger();
         ParallelizationTools.launchParallelizedCode(numThreads, () -> {
@@ -49,7 +49,7 @@ public class ParallelVectorTools {
     }
 
     private static long[] getCutoffs(long matrixSize) {
-        int n = IteratorContainer.numCPUMatrixThreads;
+        int n = HiCGlobals.numCPUMatrixThreads;
         long[] bounds = new long[n + 1];
         for (int z = 0; z < n; z++) {
             bounds[z] = (matrixSize * z / n);

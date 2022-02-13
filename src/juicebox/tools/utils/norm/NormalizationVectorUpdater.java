@@ -77,7 +77,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
         updateNormVectorIndexWithVector(normVectorIndex, normVectorBuffers, vec, chrIdx, type, zoom);
 
-        ev.addDistancesFromIterator(chrIdx, zd.getIteratorContainer(), vec);
+        ev.addDistancesFromIterator(chrIdx, zd.getDirectIterator(), vec);
     }
 
     protected void reEvaluateWhichIntraNormsToBuild(List<NormalizationType> normalizationsToBuild) {
@@ -144,7 +144,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                         normVectorIndices, normVectorBuffers, expectedValueCalculations);
             }
 
-            ds.clearCache();
+            ds.clearCache(true);
 
             //System.out.println("genomewide normalization: " + Duration.between(A,B).toMillis());
 
@@ -192,7 +192,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                 expectedValueCalculations.add(evSCALE);
             }
 
-            ds.clearCache();
+            ds.clearCache(false);
         }
         writeNormsToUpdateFile(reader, path, true, expectedValueCalculations, null, normVectorIndices,
                 normVectorBuffers, "Finished writing norms");

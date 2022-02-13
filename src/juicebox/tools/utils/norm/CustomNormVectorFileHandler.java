@@ -178,7 +178,7 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
             normVectorIndex.add(new NormalizationVectorIndexEntry(
                     customNormType.toString(), chrIndx, zoom.getUnit().toString(), zoom.getBinSize(), position, sizeInBytes));
     
-            evLoaded.addDistancesFromIterator(chrIndx, zd.getIteratorContainer(), vector.getData().convertToFloats());
+            evLoaded.addDistancesFromIterator(chrIndx, zd.getDirectIterator(), vector.getData().convertToFloats());
         }
     }
 

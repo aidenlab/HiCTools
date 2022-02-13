@@ -108,7 +108,7 @@ public class GenomeWideNormalizationVectorUpdater extends NormVectorUpdater {
             if (zd == null) continue;
             final int chrIdx = chr.getIndex();
 
-            Iterator<ContactRecord> iterator = zd.getFromFileIteratorContainer().getNewContactRecordIterator();
+            Iterator<ContactRecord> iterator = zd.getDirectIterator();
             while (iterator.hasNext()) {
                 ContactRecord cr = iterator.next();
                 int x = cr.getBinX();

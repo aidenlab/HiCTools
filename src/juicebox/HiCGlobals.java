@@ -46,6 +46,7 @@ public class HiCGlobals {
     public static boolean printVerboseComments = false;
     public static boolean USE_ITERATOR_NOT_ALL_IN_RAM = false;
     public static boolean CHECK_RAM_USAGE = false;
+    public static int numCPUMatrixThreads = 1;
 
 
     public static void verifySupportedHiCFileVersion(int version) throws RuntimeException {

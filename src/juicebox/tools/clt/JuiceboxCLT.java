@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,9 +25,9 @@
 package juicebox.tools.clt;
 
 import javastraw.reader.Dataset;
-import javastraw.reader.iterators.IteratorContainer;
 import javastraw.reader.type.NormalizationType;
 import javastraw.tools.HiCFileTools;
+import juicebox.HiCGlobals;
 
 /**
  * All command line tools should extend from this class
@@ -97,7 +97,7 @@ public abstract class JuiceboxCLT {
     protected void updateSecondaryNumberOfCPUThreads(CommandLineParser parser, int numDefaultThreads) {
         int numMThreads = parser.getNumMatrixOperationThreads();
         numCPUThreadsForSecondTask = getAppropriateNumberOfThreads(numMThreads, numDefaultThreads);
-        System.out.println("Using " + IteratorContainer.numCPUMatrixThreads + " CPU thread(s) for secondary task");
+        System.out.println("Using " + HiCGlobals.numCPUMatrixThreads + " CPU thread(s) for secondary task");
     }
 }
 

@@ -27,8 +27,8 @@ package juicebox.tools.utils.bigarray;
 import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
-import javastraw.reader.iterators.IteratorContainer;
 import javastraw.tools.ParallelizationTools;
+import juicebox.HiCGlobals;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -103,7 +103,7 @@ public class BigArray {
         final ListOfDoubleArrays totalSumVector = new ListOfDoubleArrays(vectorLength);
 
         AtomicInteger index = new AtomicInteger(0);
-        ParallelizationTools.launchParallelizedCode(IteratorContainer.numCPUMatrixThreads, () -> {
+        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
             int sIndx = index.getAndIncrement();
             ListOfDoubleArrays sumVector = new ListOfDoubleArrays(vectorLength);
             while (sIndx < binXs.size()) {

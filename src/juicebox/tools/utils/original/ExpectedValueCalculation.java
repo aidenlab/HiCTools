@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,6 @@ import javastraw.reader.block.ContactRecord;
 import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.expected.ExpectedValueFunctionImpl;
-import javastraw.reader.iterators.IteratorContainer;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationType;
 import juicebox.tools.utils.norm.NormVectorUpdater;
@@ -337,8 +336,7 @@ public class ExpectedValueCalculation {
     }
 
     // TODO: this is often inefficient, we have all of the contact records when we leave norm calculations, should do this there if possible
-    public void addDistancesFromIterator(int chrIndx, IteratorContainer ic, ListOfFloatArrays vector) {
-        Iterator<ContactRecord> iterator = ic.getNewContactRecordIterator();
+    public void addDistancesFromIterator(int chrIndx, Iterator<ContactRecord> iterator, ListOfFloatArrays vector) {
         while (iterator.hasNext()) {
             ContactRecord cr = iterator.next();
             int x = cr.getBinX();
