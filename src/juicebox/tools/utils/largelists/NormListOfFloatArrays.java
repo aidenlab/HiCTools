@@ -168,5 +168,36 @@ public class NormListOfFloatArrays {
             }
         });
     }
+
+    public void parMultiplyBy(NormListOfFloatArrays dv) {
+        AtomicInteger index = new AtomicInteger();
+        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+            int i = index.getAndIncrement();
+            while (i < internalList.size()) {
+                float[] orig = internalList.get(i);
+                float[] arr = dv.internalList.get(i);
+                for (int p = 0; p < orig.length; p++) {
+                    orig[p] *= arr[p];
+                }
+                i = index.getAndIncrement();
+            }
+        });
+    }
+
+    public void parSetToDivision(NormListOfShortArrays num, NormListOfFloatArrays denom) {
+        AtomicInteger index = new AtomicInteger();
+        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+            int i = index.getAndIncrement();
+            while (i < internalList.size()) {
+                float[] orig = internalList.get(i);
+                short[] num1 = num.internalList.get(i);
+                float[] denom1 = denom.internalList.get(i);
+                for (int p = 0; p < orig.length; p++) {
+                    orig[p] = num1[p] / denom1[p];
+                }
+                i = index.getAndIncrement();
+            }
+        });
+    }
 }
 

@@ -119,10 +119,10 @@ public class FinalScale {
             failed = true;
 
             col = update(matrixSize, bad, row, zTargetVector, svec, dr, ba);
-            multiply(col, dc, matrixSize);
+            col.parMultiplyBy(dc);
 
             row = update(matrixSize, bad, col, zTargetVector, svec, dc, ba);
-            multiply(row, dr, matrixSize);
+            row.parMultiplyBy(dr);
 
             // calculate current scaling vector
             // calculatedVectorB[p] = (float) Math.sqrt(dr[p] * dc[p]);
@@ -285,19 +285,12 @@ public class FinalScale {
         for (long p = 0; p < matrixSize; p++) {
             if (bad.get(p) == 1) vector.set(p, 1.0f);
         }
-        for (long p = 0; p < matrixSize; p++) {
-            s.set(p, target.get(p) / vector.get(p));
-        }
-        multiply(dVector, s, matrixSize);
+        // s = target/vector
+        s.parSetToDivision(target, vector);
+        dVector.parMultiplyBy(s);
 
         // find sums and update scaling vector
         return sparseMultiplyGetRowSums(ic, dVector, matrixSize);
-    }
-
-    private static void multiply(NormListOfFloatArrays vec, NormListOfFloatArrays dv, long matrixSize) {
-        for (long p = 0; p < matrixSize; p++) {
-            vec.multiplyBy(p, dv.get(p));
-        }
     }
 
     private static int[] dealWithSorting(int[] vector, int length) {

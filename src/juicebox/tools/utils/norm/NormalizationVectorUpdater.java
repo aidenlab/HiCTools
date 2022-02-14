@@ -180,6 +180,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                 }
 
                 zd.clearCache();
+                ba.clear();
             }
 
             if (weShouldBuildVC && evVC.hasData() && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC)) {

@@ -43,7 +43,6 @@ import org.broad.igv.tdf.BufferedByteWriter;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
 import java.util.zip.GZIPInputStream;
 
 public class CustomNormVectorFileHandler extends NormVectorUpdater {
@@ -75,12 +74,7 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
         List<NormalizationVectorIndexEntry> normVectorIndices = new ArrayList<>();
         Map<String, ExpectedValueFunction> expectedValueFunctionMap = ds.getExpectedValueFunctionMap();
 
-        for (Iterator<Map.Entry<String, ExpectedValueFunction>> it = expectedValueFunctionMap.entrySet().iterator(); it.hasNext(); ) {
-            Map.Entry<String, ExpectedValueFunction> entry = it.next();
-            if (entry.getKey().contains("NONE")) {
-                it.remove();
-            }
-        }
+        expectedValueFunctionMap.entrySet().removeIf(entry -> entry.getKey().contains("NONE"));
 
         // Get existing norm vectors so we don't lose them
         if (overwriteHicFileFooter) {
@@ -109,7 +103,7 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
             }
         }
 
-        ExecutorService executor = HiCGlobals.newFixedThreadPool();
+        //ExecutorService executor = HiCGlobals.newFixedThreadPool();
         for (NormalizationType customNormType : normalizationVectorMap.keySet()) {
             final Map<String, NormalizationVector> normVectorsByChrAndZoom = normalizationVectorMap.get(customNormType);
             final Set<String> keySet = new HashSet<>(normVectorsByChrAndZoom.keySet());
@@ -124,10 +118,12 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
             }
         }
 
+        /*
         executor.shutdown();
         // Wait until all threads finish
         while (!executor.isTerminated()) {
         }
+        */
 
         for (HiCZoom zoom : resolutions) {
             Map<String, Integer> fcm = zoom.getUnit() == HiCZoom.HiCUnit.FRAG ? fragCountMap : null;
