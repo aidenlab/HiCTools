@@ -26,7 +26,6 @@ package juicebox.tools.utils.norm.scale;
 
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
-import juicebox.HiCGlobals;
 import juicebox.tools.utils.bigarray.BigArray;
 
 import java.util.Arrays;
@@ -48,8 +47,6 @@ public class FinalScale {
         double low;
         int rlind;
         float localPercentLowRowSumExcluded = percentLowRowSumExcluded;
-
-        ListOfFloatArrays row, col;
         ListOfIntArrays bad = new ListOfIntArrays(matrixSize);
         ListOfFloatArrays s = new ListOfFloatArrays(matrixSize);
         double[] r0 = new double[(int) Math.min(matrixSize, Integer.MAX_VALUE - 1)];
@@ -85,7 +82,7 @@ public class FinalScale {
             }
         }
 
-        row = sparseMultiplyGetRowSums(ba, one, matrixSize);
+        ListOfFloatArrays row = sparseMultiplyGetRowSums(ba, one, matrixSize);
         ListOfFloatArrays rowBackup = row.deepClone();
 
         for (long p = 0; p < matrixSize; p++) {
@@ -96,11 +93,9 @@ public class FinalScale {
         if (initialGuess == null) {
             dr = one.deepClone();
         } else {
-            dr = initialGuess;
+            dr = initialGuess.deepClone();
         }
         ListOfFloatArrays dc = dr.deepClone();
-
-
         ListOfFloatArrays current = dr.deepClone();
         //	start iterations
         //	row is the current rows sum; dr and dc are the current rows and columns scaling vectors
@@ -111,6 +106,7 @@ public class FinalScale {
         int nerr = 0;
         double[] errors = new double[10000];
         int allItersI = 0;
+        ListOfFloatArrays col;
 
         // if perc or perc1 reached upper bound or the total number of iterationbs is too high, exit
         while ((ber > tolerance || err > 5.0 * tolerance) && iter < maxIter && allItersI < totalIterations
@@ -130,6 +126,7 @@ public class FinalScale {
             for (long p = 0; p < matrixSize; p++) {
                 calculatedVectorB.set(p, (float) Math.sqrt(dr.get(p) * dc.get(p)));
             }
+            //printFirst10(calculatedVectorB, iter);
 
             //	calculate the current error
             ber = 0;
@@ -143,8 +140,8 @@ public class FinalScale {
     
             reportErrorForIteration[allItersI - 1] = ber;
             numItersForAllIterations[allItersI - 1] = iter;
-    
-            //	since calculating the error in row sums requires matrix-vector multiplication we are are doing this every 10
+
+            //	since calculating the error in row sums requires matrix-vector multiplication we are doing this every 10
             //	iterations
             if (iter % 10 == 0) {
                 col = sparseMultiplyGetRowSums(ba, calculatedVectorB, matrixSize);
@@ -158,7 +155,8 @@ public class FinalScale {
                 }
                 errors[nerr++] = err;
             }
-    
+
+            current.clear();
             current = calculatedVectorB.deepClone();
 
             // check whether convergence rate is satisfactory
@@ -201,9 +199,19 @@ public class FinalScale {
                     //	if the current error is larger than 5 iteration ago start from scratch,
                     //	otherwise continue from the current position
                     if (reportErrorForIteration[allItersI - 1] > reportErrorForIteration[allItersI - 6]) {
-                        for (long p = 0; p < matrixSize; p++) {
-                            dr.set(p, 1 - bad.get(p));
+                        if (initialGuess != null) {
+                            for (long p = 0; p < matrixSize; p++) {
+                                dr.set(p, (1 - bad.get(p)) * initialGuess.get(p));
+                            }
+                        } else {
+                            for (long p = 0; p < matrixSize; p++) {
+                                dr.set(p, 1 - bad.get(p));
+                            }
                         }
+                        dc.clear();
+                        one.clear();
+                        current.clear();
+                        row.clear();
                         dc = dr.deepClone();
                         one = dr.deepClone();
                         current = dr.deepClone();
@@ -222,6 +230,7 @@ public class FinalScale {
         }
 
         //	find the final error in row sums
+        /*
         if (iter % 10 == 0) {
             col = sparseMultiplyGetRowSums(ba, calculatedVectorB, matrixSize);
             err = 0;
@@ -234,8 +243,10 @@ public class FinalScale {
             }
         }
         
+        
         reportErrorForIteration[allItersI + 1] = ber;
         reportErrorForIteration[allItersI + 2] = err;
+        */
 
         for (long p = 0; p < matrixSize; p++) {
             if (bad.get(p) == 1) {
@@ -243,13 +254,25 @@ public class FinalScale {
             }
         }
 
+        /*
         if (HiCGlobals.printVerboseComments) {
             System.out.println(allItersI);
             System.out.println(localPercentLowRowSumExcluded);
             System.out.println(Arrays.toString(reportErrorForIteration));
         }
+        */
 
+        //printFirst10(calculatedVectorB, -1);
+        //System.out.println("DONE");
         return calculatedVectorB;
+    }
+
+    private static void printFirst10(ListOfFloatArrays calculatedVectorB, int i) {
+        float[] row = new float[10];
+        for (int z = 0; z < 10; z++) {
+            row[z] = calculatedVectorB.get(z);
+        }
+        System.out.println("ITER " + i + " NORM VEC " + Arrays.toString(row));
     }
 
     private static ListOfFloatArrays update(long matrixSize, ListOfIntArrays bad,
