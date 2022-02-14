@@ -28,9 +28,9 @@ import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
 import javastraw.tools.ParallelizationTools;
 import juicebox.HiCGlobals;
-import juicebox.tools.utils.largelists.NormListOfDoubleArrays;
-import juicebox.tools.utils.largelists.NormListOfFloatArrays;
-import juicebox.tools.utils.largelists.NormListOfShortArrays;
+import juicebox.tools.utils.largelists.BigDoublesArray;
+import juicebox.tools.utils.largelists.BigFloatsArray;
+import juicebox.tools.utils.largelists.BigShortsArray;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,8 +50,8 @@ public class BigContactArray {
         this.matrixSize = matrixSize;
     }
 
-    public static void matrixVectorMult(NormListOfShortArrays vector,
-                                        NormListOfDoubleArrays sumVector, int x, int y, float c) {
+    public static void matrixVectorMult(BigShortsArray vector,
+                                        BigDoublesArray sumVector, int x, int y, float c) {
         double counts = c;
         if (x == y) {
             counts *= .5;
@@ -60,8 +60,8 @@ public class BigContactArray {
         sumVector.addTo(y, counts * vector.get(x));
     }
 
-    public static void matrixVectorMult(NormListOfFloatArrays vector,
-                                        NormListOfDoubleArrays sumVector, int x, int y, float c) {
+    public static void matrixVectorMult(BigFloatsArray vector,
+                                        BigDoublesArray sumVector, int x, int y, float c) {
         double counts = c;
         if (x == y) {
             counts *= .5;
@@ -111,13 +111,13 @@ public class BigContactArray {
         numOfContactRecords = 0;
     }
 
-    public NormListOfFloatArrays sparseMultiplyAcrossLists(NormListOfFloatArrays vector, long vectorLength) {
-        final NormListOfDoubleArrays totalSumVector = new NormListOfDoubleArrays(vectorLength);
+    public BigFloatsArray sparseMultiplyAcrossLists(BigFloatsArray vector, long vectorLength) {
+        final BigDoublesArray totalSumVector = new BigDoublesArray(vectorLength);
 
         AtomicInteger index = new AtomicInteger(0);
         ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
             int sIndx = index.getAndIncrement();
-            NormListOfDoubleArrays sumVector = new NormListOfDoubleArrays(vectorLength);
+            BigDoublesArray sumVector = new BigDoublesArray(vectorLength);
             while (sIndx < binXs.size()) {
                 int[] subBinXs = binXs.get(sIndx);
                 int[] subBinYs = binYs.get(sIndx);
@@ -138,13 +138,13 @@ public class BigContactArray {
         return totalSumVector.convertToFloats();
     }
 
-    public NormListOfFloatArrays sparseMultiplyAcrossLists(NormListOfShortArrays vector, long vectorLength) {
-        final NormListOfDoubleArrays totalSumVector = new NormListOfDoubleArrays(vectorLength);
+    public BigFloatsArray sparseMultiplyAcrossLists(BigShortsArray vector, long vectorLength) {
+        final BigDoublesArray totalSumVector = new BigDoublesArray(vectorLength);
 
         AtomicInteger index = new AtomicInteger(0);
         ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
             int sIndx = index.getAndIncrement();
-            NormListOfDoubleArrays sumVector = new NormListOfDoubleArrays(vectorLength);
+            BigDoublesArray sumVector = new BigDoublesArray(vectorLength);
             while (sIndx < binXs.size()) {
                 int[] subBinXs = binXs.get(sIndx);
                 int[] subBinYs = binYs.get(sIndx);

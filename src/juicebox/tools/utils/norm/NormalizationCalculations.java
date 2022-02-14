@@ -31,7 +31,7 @@ import javastraw.reader.datastructures.ListOfIntArrays;
 import javastraw.reader.type.NormalizationType;
 import juicebox.tools.clt.old.NormalizationBuilder;
 import juicebox.tools.utils.bigarray.BigContactArray;
-import juicebox.tools.utils.largelists.NormListOfFloatArrays;
+import juicebox.tools.utils.largelists.BigFloatsArray;
 import juicebox.tools.utils.norm.scale.ScaleHandler;
 
 import java.util.Iterator;
@@ -152,7 +152,7 @@ public class NormalizationCalculations {
     
     public ListOfFloatArrays computeMMBA() {
         ListOfFloatArrays vc = computeVC();
-        NormListOfFloatArrays vcSqrt = new NormListOfFloatArrays(vc.getLength());
+        BigFloatsArray vcSqrt = new BigFloatsArray(vc.getLength());
         for (long i = 0; i < vcSqrt.getLength(); i++) {
             vcSqrt.set(i, (float) Math.sqrt(vc.get(i)));
         }

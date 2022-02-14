@@ -35,13 +35,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * can't use <T> because we need to instantiate the array, otherwise that would have been nice
  */
-public class NormListOfShortArrays {
+public class BigShortsArray {
 
 	public static final int DEFAULT_LENGTH = 10000;
 	final long overallLength;
 	final List<short[]> internalList = new ArrayList<>();
 
-	public NormListOfShortArrays(long length) {
+	public BigShortsArray(long length) {
 		this.overallLength = length;
 		long tempLength = length;
 		while (tempLength > 0) {
@@ -55,7 +55,7 @@ public class NormListOfShortArrays {
 		}
 	}
 
-	public NormListOfShortArrays(long totSize, short defaultValue) {
+	public BigShortsArray(long totSize, short defaultValue) {
 		this(totSize);
 		for (short[] array : internalList) {
 			Arrays.fill(array, defaultValue);
@@ -94,8 +94,8 @@ public class NormListOfShortArrays {
 		return overallLength;
 	}
 
-	public NormListOfFloatArrays deepConvertedClone() {
-		NormListOfFloatArrays clone = new NormListOfFloatArrays(overallLength);
+	public BigFloatsArray deepConvertedClone() {
+		BigFloatsArray clone = new BigFloatsArray(overallLength);
 		for (int k = 0; k < internalList.size(); k++) {
 			float[] dest = clone.internalList.get(k);
 			short[] src = internalList.get(k);
@@ -110,7 +110,7 @@ public class NormListOfShortArrays {
 		return internalList;
 	}
 
-	public void parSetTo(NormListOfFloatArrays srcArrays) {
+	public void parSetTo(BigFloatsArray srcArrays) {
 		AtomicInteger index = new AtomicInteger();
 		ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
 			int i = index.getAndIncrement();

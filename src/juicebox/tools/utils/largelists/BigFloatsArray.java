@@ -35,13 +35,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * can't use <T> because we need to instantiate the array, otherwise that would have been nice
  */
-public class NormListOfFloatArrays {
+public class BigFloatsArray {
 
-    final long DEFAULT_LENGTH = NormListOfShortArrays.DEFAULT_LENGTH;
+    final long DEFAULT_LENGTH = BigShortsArray.DEFAULT_LENGTH;
     final long overallLength;
     final List<float[]> internalList = new ArrayList<>();
 
-    public NormListOfFloatArrays(long length) {
+    public BigFloatsArray(long length) {
         this.overallLength = length;
         long tempLength = length;
         while (tempLength > 0) {
@@ -86,16 +86,16 @@ public class NormListOfFloatArrays {
         return overallLength;
     }
 
-    public NormListOfFloatArrays deepClone() {
-        NormListOfFloatArrays clone = new NormListOfFloatArrays(overallLength);
+    public BigFloatsArray deepClone() {
+        BigFloatsArray clone = new BigFloatsArray(overallLength);
         for (int k = 0; k < internalList.size(); k++) {
             System.arraycopy(internalList.get(k), 0, clone.internalList.get(k), 0, internalList.get(k).length);
         }
         return clone;
     }
 
-    public NormListOfShortArrays deepCovertedClone() {
-        NormListOfShortArrays clone = new NormListOfShortArrays(overallLength);
+    public BigShortsArray deepCovertedClone() {
+        BigShortsArray clone = new BigShortsArray(overallLength);
         for (long p = 0; p < overallLength; p++) {
             clone.set(p, (short) get(p));
         }
@@ -125,7 +125,7 @@ public class NormListOfFloatArrays {
         return clone;
     }
 
-    public void parSetToGeoMean(NormListOfFloatArrays a, NormListOfFloatArrays b) {
+    public void parSetToGeoMean(BigFloatsArray a, BigFloatsArray b) {
         AtomicInteger index = new AtomicInteger();
         ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
             int i = index.getAndIncrement();
@@ -141,7 +141,7 @@ public class NormListOfFloatArrays {
         });
     }
 
-    public void parSetTo(NormListOfFloatArrays srcArrays) {
+    public void parSetTo(BigFloatsArray srcArrays) {
         AtomicInteger index = new AtomicInteger();
         ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
             int i = index.getAndIncrement();
@@ -154,7 +154,7 @@ public class NormListOfFloatArrays {
         });
     }
 
-    public void parMultiplyByOneMinus(NormListOfShortArrays array) {
+    public void parMultiplyByOneMinus(BigShortsArray array) {
         AtomicInteger index = new AtomicInteger();
         ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
             int i = index.getAndIncrement();
@@ -169,7 +169,7 @@ public class NormListOfFloatArrays {
         });
     }
 
-    public void parMultiplyBy(NormListOfFloatArrays dv) {
+    public void parMultiplyBy(BigFloatsArray dv) {
         AtomicInteger index = new AtomicInteger();
         ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
             int i = index.getAndIncrement();
@@ -184,7 +184,7 @@ public class NormListOfFloatArrays {
         });
     }
 
-    public void parSetToDivision(NormListOfShortArrays num, NormListOfFloatArrays denom) {
+    public void parSetToDivision(BigShortsArray num, BigFloatsArray denom) {
         AtomicInteger index = new AtomicInteger();
         ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
             int i = index.getAndIncrement();

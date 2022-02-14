@@ -30,13 +30,13 @@ import java.util.List;
 /**
  * can't use <T> because we need to instantiate the array, otherwise that would have been nice
  */
-public class NormListOfDoubleArrays {
+public class BigDoublesArray {
 
-	final long DEFAULT_LENGTH = NormListOfShortArrays.DEFAULT_LENGTH;
+	final long DEFAULT_LENGTH = BigShortsArray.DEFAULT_LENGTH;
 	final long overallLength;
 	final List<double[]> internalList = new ArrayList<>();
 
-	public NormListOfDoubleArrays(long length) {
+	public BigDoublesArray(long length) {
 		this.overallLength = length;
 		long tempLength = length;
 		while (tempLength > 0) {
@@ -98,7 +98,7 @@ public class NormListOfDoubleArrays {
 		}
 	}
 
-	public void addValuesFrom(NormListOfDoubleArrays other) {
+	public void addValuesFrom(BigDoublesArray other) {
 		if (overallLength == other.overallLength) {
 			for (int i = 0; i < internalList.size(); i++) {
 				for (int j = 0; j < internalList.get(i).length; j++) {
@@ -114,8 +114,8 @@ public class NormListOfDoubleArrays {
 		return internalList;
 	}
 
-	public NormListOfFloatArrays convertToFloats() {
-		NormListOfFloatArrays newList = new NormListOfFloatArrays(overallLength);
+	public BigFloatsArray convertToFloats() {
+		BigFloatsArray newList = new BigFloatsArray(overallLength);
 		for (int j = 0; j < internalList.size(); j++) {
 			float[] dest = newList.getValues().get(j);
 			double[] src = internalList.get(j);
