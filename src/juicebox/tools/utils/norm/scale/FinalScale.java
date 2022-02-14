@@ -52,7 +52,7 @@ public class FinalScale {
         int rlind;
         float localPercentLowRowSumExcluded = percentLowRowSumExcluded;
         NormListOfShortArrays bad = new NormListOfShortArrays(matrixSize);
-        NormListOfFloatArrays s = new NormListOfFloatArrays(matrixSize);
+        NormListOfFloatArrays svec = new NormListOfFloatArrays(matrixSize);
         int[] r0 = new int[(int) Math.min(matrixSize, Integer.MAX_VALUE - 1)];
 
         NormListOfShortArrays zTargetVector = new NormListOfShortArrays(matrixSize, S1);
@@ -74,7 +74,6 @@ public class FinalScale {
             }
         }
         r0 = dealWithSorting(r0, n0);
-
         rlind = (int) Math.max(0, n0 * localPercentLowRowSumExcluded + OFFSET);
         low = r0[rlind];
 
@@ -97,7 +96,7 @@ public class FinalScale {
         if (initialGuess == null) {
             dr = one.deepConvertedClone();
         } else {
-            dr = initialGuess.deepClone();
+            dr = initialGuess;
         }
         NormListOfFloatArrays dc = dr.deepClone();
         NormListOfFloatArrays current = dr.deepClone();
@@ -108,28 +107,26 @@ public class FinalScale {
         int iter = 0;
         boolean failed;
         int nerr = 0;
-        double[] errors = new double[10000];
+        float[] errors = new float[10000];
         int allItersI = 0;
-        NormListOfFloatArrays col;
+        NormListOfFloatArrays col = null;
 
         // if perc or perc1 reached upper bound or the total number of iterationbs is too high, exit
         while ((ber > tolerance || err > 5.0 * tolerance) && iter < maxIter && allItersI < totalIterations
                 && localPercentLowRowSumExcluded <= 0.2) {
-
             iter++;
             allItersI++;
             failed = true;
 
-            col = update(matrixSize, bad, row, zTargetVector, s, dr, ba);
+            col = update(matrixSize, bad, row, zTargetVector, svec, dr, ba);
             multiply(col, dc, matrixSize);
 
-            row = update(matrixSize, bad, col, zTargetVector, s, dc, ba);
+            row = update(matrixSize, bad, col, zTargetVector, svec, dc, ba);
             multiply(row, dr, matrixSize);
 
             // calculate current scaling vector
-            for (long p = 0; p < matrixSize; p++) {
-                calculatedVectorB.set(p, (float) Math.sqrt(dr.get(p) * dc.get(p)));
-            }
+            // calculatedVectorB[p] = (float) Math.sqrt(dr[p] * dc[p]);
+            calculatedVectorB.parSetToGeoMean(dr, dc);
             //printFirst10(calculatedVectorB, iter);
 
             //	calculate the current error
@@ -157,11 +154,11 @@ public class FinalScale {
                         err = tempErr;
                     }
                 }
-                errors[nerr++] = err;
+                errors[nerr++] = (float) err;
             }
 
-            current.clear();
-            current = calculatedVectorB.deepClone();
+            // current = calculatedVectorB
+            current.parSetTo(calculatedVectorB);
 
             // check whether convergence rate is satisfactory
             // if less than 5 iterations (so less than 5 errors) and less than 2 row sums errors, there is nothing to check
@@ -203,24 +200,13 @@ public class FinalScale {
                     //	if the current error is larger than 5 iteration ago start from scratch,
                     //	otherwise continue from the current position
                     if (reportErrorForIteration[allItersI - 1] > reportErrorForIteration[allItersI - 6]) {
-                        if (initialGuess != null) {
-                            for (long p = 0; p < matrixSize; p++) {
-                                dr.set(p, (1 - bad.get(p)) * initialGuess.get(p));
-                            }
-                        } else {
-                            // todo dr.setOneMinus(bad);
-                            for (long p = 0; p < matrixSize; p++) {
-                                dr.set(p, 1 - bad.get(p));
-                            }
+                        for (long p = 0; p < matrixSize; p++) {
+                            dr.set(p, 1 - bad.get(p));
                         }
-                        dc.clear();
-                        one.clear();
-                        current.clear();
-                        row.clear();
-                        dc = dr.deepClone();
-                        one = dr.deepCovertedClone();
-                        current = dr.deepClone();
-                        row = rowBackup.deepClone();
+                        dc.parSetTo(dr);
+                        one.parSetTo(dr);
+                        current.parSetTo(dr);
+                        row.parSetTo(rowBackup);
                     } else {
                         for (long p = 0; p < matrixSize; p++) {
                             dr.multiplyBy(p, (1 - bad.get(p)));
@@ -248,7 +234,6 @@ public class FinalScale {
             }
         }
         
-        
         reportErrorForIteration[allItersI + 1] = ber;
         reportErrorForIteration[allItersI + 2] = err;
         */
@@ -259,17 +244,33 @@ public class FinalScale {
             }
         }
 
+        bad.clear();
+        svec.clear();
+        zTargetVector.clear();
+        one.clear();
+        numNonZero.clear();
+        r0 = null;
+        row.clear();
+        rowBackup.clear();
+        dr.clear();
+        dc.clear();
+        current.clear();
+        if (col != null) {
+            col.clear();
+        }
+
         /*
         if (HiCGlobals.printVerboseComments) {
             System.out.println(allItersI);
             System.out.println(localPercentLowRowSumExcluded);
             System.out.println(Arrays.toString(reportErrorForIteration));
+            printFirst10(calculatedVectorB, -1);
+            System.out.println("DONE");
         }
         */
-
-        //printFirst10(calculatedVectorB, -1);
-        //System.out.println("DONE");
-        return calculatedVectorB.convertToRegular();
+        ListOfFloatArrays answer = calculatedVectorB.convertToRegular();
+        calculatedVectorB.clear();
+        return answer;
     }
 
     private static void printFirst10(ListOfFloatArrays calculatedVectorB, int i) {

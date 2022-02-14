@@ -25,9 +25,12 @@
 package juicebox.tools.utils.largelists;
 
 import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.tools.ParallelizationTools;
+import juicebox.HiCGlobals;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * can't use <T> because we need to instantiate the array, otherwise that would have been nice
@@ -120,6 +123,35 @@ public class NormListOfFloatArrays {
             clone.set(k, get(k));
         }
         return clone;
+    }
+
+    public void parSetToGeoMean(NormListOfFloatArrays a, NormListOfFloatArrays b) {
+        AtomicInteger index = new AtomicInteger();
+        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+            int i = index.getAndIncrement();
+            while (i < internalList.size()) {
+                float[] result = internalList.get(i);
+                float[] a1 = a.internalList.get(i);
+                float[] b1 = b.internalList.get(i);
+                for (int p = 0; p < result.length; p++) {
+                    result[p] = (float) Math.sqrt(a1[p] * b1[p]);
+                }
+                i = index.getAndIncrement();
+            }
+        });
+    }
+
+    public void parSetTo(NormListOfFloatArrays srcArrays) {
+        AtomicInteger index = new AtomicInteger();
+        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+            int i = index.getAndIncrement();
+            while (i < internalList.size()) {
+                float[] dest = internalList.get(i);
+                float[] src = srcArrays.internalList.get(i);
+                System.arraycopy(src, 0, dest, 0, dest.length);
+                i = index.getAndIncrement();
+            }
+        });
     }
 }
 

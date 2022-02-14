@@ -24,9 +24,13 @@
 
 package juicebox.tools.utils.largelists;
 
+import javastraw.tools.ParallelizationTools;
+import juicebox.HiCGlobals;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * can't use <T> because we need to instantiate the array, otherwise that would have been nice
@@ -104,5 +108,20 @@ public class NormListOfShortArrays {
 
 	public List<short[]> getValues() {
 		return internalList;
+	}
+
+	public void parSetTo(NormListOfFloatArrays srcArrays) {
+		AtomicInteger index = new AtomicInteger();
+		ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+			int i = index.getAndIncrement();
+			while (i < internalList.size()) {
+				short[] dest = internalList.get(i);
+				float[] src = srcArrays.internalList.get(i);
+				for (int z = 0; z < dest.length; z++) {
+					dest[z] = (short) src[z];
+				}
+				i = index.getAndIncrement();
+			}
+		});
 	}
 }
