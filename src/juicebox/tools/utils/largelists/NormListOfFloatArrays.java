@@ -153,5 +153,20 @@ public class NormListOfFloatArrays {
             }
         });
     }
+
+    public void parMultiplyByOneMinus(NormListOfShortArrays array) {
+        AtomicInteger index = new AtomicInteger();
+        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+            int i = index.getAndIncrement();
+            while (i < internalList.size()) {
+                float[] orig = internalList.get(i);
+                short[] arr = array.internalList.get(i);
+                for (int p = 0; p < orig.length; p++) {
+                    orig[p] *= (1 - arr[p]);
+                }
+                i = index.getAndIncrement();
+            }
+        });
+    }
 }
 

@@ -208,12 +208,9 @@ public class FinalScale {
                         current.parSetTo(dr);
                         row.parSetTo(rowBackup);
                     } else {
-                        for (long p = 0; p < matrixSize; p++) {
-                            dr.multiplyBy(p, (1 - bad.get(p)));
-                        }
-                        for (long p = 0; p < matrixSize; p++) {
-                            dc.multiplyBy(p, (1 - bad.get(p)));
-                        }
+                        // dr *= (1 - bad);
+                        dr.parMultiplyByOneMinus(bad);
+                        dc.parMultiplyByOneMinus(bad);
                     }
                     iter = 0;
                 }

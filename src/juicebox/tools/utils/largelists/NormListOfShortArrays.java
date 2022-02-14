@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class NormListOfShortArrays {
 
-	public static final int DEFAULT_LENGTH = 10000000;
+	public static final int DEFAULT_LENGTH = 10000;
 	final long overallLength;
 	final List<short[]> internalList = new ArrayList<>();
 
