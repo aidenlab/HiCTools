@@ -53,7 +53,7 @@ public class FinalScale {
         float localPercentLowRowSumExcluded = percentLowRowSumExcluded;
         NormListOfShortArrays bad = new NormListOfShortArrays(matrixSize);
         NormListOfFloatArrays s = new NormListOfFloatArrays(matrixSize);
-        double[] r0 = new double[(int) Math.min(matrixSize, Integer.MAX_VALUE - 1)];
+        int[] r0 = new int[(int) Math.min(matrixSize, Integer.MAX_VALUE - 1)];
 
         NormListOfShortArrays zTargetVector = new NormListOfShortArrays(matrixSize, S1);
         NormListOfFloatArrays calculatedVectorB = new NormListOfFloatArrays(matrixSize);
@@ -69,7 +69,7 @@ public class FinalScale {
         int n0 = 0;
         for (long p = 0; p < matrixSize; p++) {
             int valP = numNonZero.get(p);
-            if (valP > 0) {
+            if (valP > 0 && n0 < r0.length) {
                 r0[n0++] = valP;
             }
         }
@@ -302,8 +302,8 @@ public class FinalScale {
         }
     }
 
-    private static double[] dealWithSorting(double[] vector, int length) {
-        double[] realVector = new double[length];
+    private static int[] dealWithSorting(int[] vector, int length) {
+        int[] realVector = new int[length];
         System.arraycopy(vector, 0, realVector, 0, length);
         Arrays.sort(realVector);
         return realVector;
