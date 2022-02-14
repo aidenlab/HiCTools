@@ -33,7 +33,7 @@ import java.util.List;
  */
 public class NormListOfShortArrays {
 
-	final int DEFAULT_LENGTH = 10000000;
+	public static final int DEFAULT_LENGTH = 10000000;
 	final long overallLength;
 	final List<short[]> internalList = new ArrayList<>();
 
@@ -74,7 +74,6 @@ public class NormListOfShortArrays {
 	}
 
 	public void set(long index, short value) {
-		long tempIndex = index;
 		if (index < overallLength) {
 			int pseudoRow = (int) (index / DEFAULT_LENGTH);
 			int pseudoCol = (int) (index % DEFAULT_LENGTH);
@@ -91,57 +90,16 @@ public class NormListOfShortArrays {
 		return overallLength;
 	}
 
-	public NormListOfShortArrays deepClone() {
-		NormListOfShortArrays clone = new NormListOfShortArrays(overallLength);
-		for (int k = 0; k < internalList.size(); k++) {
-			System.arraycopy(internalList.get(k), 0, clone.internalList.get(k), 0, internalList.get(k).length);
-		}
-		return clone;
-	}
-
 	public NormListOfFloatArrays deepConvertedClone() {
 		NormListOfFloatArrays clone = new NormListOfFloatArrays(overallLength);
 		for (int k = 0; k < internalList.size(); k++) {
-			System.arraycopy(internalList.get(k), 0, clone.internalList.get(k), 0, internalList.get(k).length);
+			float[] dest = clone.internalList.get(k);
+			short[] src = internalList.get(k);
+			for (int q = 0; q < dest.length; q++) {
+				dest[q] = src[q];
+			}
 		}
 		return clone;
-
-	}
-
-	public void divideBy(long index, int value) {
-		if (index < overallLength) {
-			int pseudoRow = (int) (index / DEFAULT_LENGTH);
-			int pseudoCol = (int) (index % DEFAULT_LENGTH);
-			internalList.get(pseudoRow)[pseudoCol] /= value;
-		} else {
-			System.err.println("long index exceeds max size of list of arrays while dividing");
-			return;
-		}
-		System.err.println("unusual - long index exceeds max size of list of arrays while dividing");
-		return;
-	}
-
-	public void addValuesFrom(NormListOfShortArrays other) {
-		if (overallLength == other.overallLength) {
-			for (int i = 0; i < internalList.size(); i++) {
-				for (int j = 0; j < internalList.get(i).length; j++) {
-					internalList.get(i)[j] += other.internalList.get(i)[j];
-				}
-			}
-		} else {
-			System.err.println("Adding objects of different sizes!");
-		}
-	}
-
-	public void addTo(long index, int value) {
-		if (index < overallLength) {
-			int pseudoRow = (int) (index / DEFAULT_LENGTH);
-			int pseudoCol = (int) (index % DEFAULT_LENGTH);
-			internalList.get(pseudoRow)[pseudoCol] += value;
-		} else {
-			System.err.println("long index exceeds max size of list of arrays while adding");
-			return;
-		}
 	}
 
 	public List<short[]> getValues() {

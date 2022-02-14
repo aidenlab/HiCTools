@@ -25,7 +25,6 @@
 package juicebox.tools.utils.largelists;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -33,7 +32,7 @@ import java.util.List;
  */
 public class NormListOfDoubleArrays {
 
-	final long DEFAULT_LENGTH = 10000000;
+	final long DEFAULT_LENGTH = NormListOfShortArrays.DEFAULT_LENGTH;
 	final long overallLength;
 	final List<double[]> internalList = new ArrayList<>();
 
@@ -48,13 +47,6 @@ public class NormListOfDoubleArrays {
 				internalList.add(new double[(int) DEFAULT_LENGTH]);
 				tempLength -= DEFAULT_LENGTH;
 			}
-		}
-	}
-
-	public NormListOfDoubleArrays(long totSize, double defaultValue) {
-		this(totSize);
-		for (double[] array : internalList) {
-			Arrays.fill(array, defaultValue);
 		}
 	}
 
@@ -89,36 +81,6 @@ public class NormListOfDoubleArrays {
 		return overallLength;
 	}
 
-	public NormListOfDoubleArrays deepClone() {
-		NormListOfDoubleArrays clone = new NormListOfDoubleArrays(overallLength);
-		for (int k = 0; k < internalList.size(); k++) {
-			System.arraycopy(internalList.get(k), 0, clone.internalList.get(k), 0, internalList.get(k).length);
-		}
-		return clone;
-	}
-
-	public void divideBy(long index, double value) {
-		if (index < overallLength) {
-			int pseudoRow = (int) (index / DEFAULT_LENGTH);
-			int pseudoCol = (int) (index % DEFAULT_LENGTH);
-			internalList.get(pseudoRow)[pseudoCol] /= value;
-		} else {
-			System.err.println("long index exceeds max size of list of arrays while dividing");
-			return;
-		}
-	}
-
-	public void multiplyBy(long index, double value) {
-		if (index < overallLength) {
-			int pseudoRow = (int) (index / DEFAULT_LENGTH);
-			int pseudoCol = (int) (index % DEFAULT_LENGTH);
-			internalList.get(pseudoRow)[pseudoCol] *= value;
-		} else {
-			System.err.println("long index exceeds max size of list of arrays while mutiplying");
-			return;
-		}
-	}
-
 	public void addTo(long index, double value) {
 		if (index < overallLength) {
 			int pseudoRow = (int) (index / DEFAULT_LENGTH);
@@ -148,32 +110,17 @@ public class NormListOfDoubleArrays {
 		}
 	}
 
-	public double getFirstValue() {
-		return internalList.get(0)[0];
-	}
-
-	public double getLastValue() {
-		double[] temp = internalList.get(internalList.size() - 1);
-		return temp[temp.length - 1];
-	}
-
 	public List<double[]> getValues() {
 		return internalList;
-	}
-
-	public void multiplyEverythingBy(double val) {
-		for (double[] array : internalList) {
-			for (int k = 0; k < array.length; k++) {
-				array[k] *= val;
-			}
-		}
 	}
 
 	public NormListOfFloatArrays convertToFloats() {
 		NormListOfFloatArrays newList = new NormListOfFloatArrays(overallLength);
 		for (int j = 0; j < internalList.size(); j++) {
-			for (int k = 0; k < internalList.get(j).length; k++) {
-				newList.getValues().get(j)[k] = (float) internalList.get(j)[k];
+			float[] dest = newList.getValues().get(j);
+			double[] src = internalList.get(j);
+			for (int k = 0; k < dest.length; k++) {
+				dest[k] = (float) src[k];
 			}
 		}
 		return newList;
