@@ -34,13 +34,13 @@ import javastraw.reader.type.HiCZoom;
 
 import java.util.Iterator;
 
-public class BigArrayCreator {
-    public static BigArray createFromZD(MatrixZoomData zd) {
+public class BigContactArrayCreator {
+    public static BigContactArray createFromZD(MatrixZoomData zd) {
         return populateBigArrayFromSingleIterator(zd.getDirectIterator(), 10000000, zd.getMatrixSize());
     }
 
-    public static BigArray createForWholeGenome(Dataset dataset, ChromosomeHandler handler,
-                                                HiCZoom zoom, boolean includeIntra) {
+    public static BigContactArray createForWholeGenome(Dataset dataset, ChromosomeHandler handler,
+                                                       HiCZoom zoom, boolean includeIntra) {
         int limit = 10000000;
         if (includeIntra) {
             limit = 50000000;
@@ -49,9 +49,9 @@ public class BigArrayCreator {
                 calculateGWSize(handler, zoom.getBinSize()));
     }
 
-    public static BigArray populateBigArrayFromSingleIterator(Iterator<ContactRecord> iterator, int limit,
-                                                              long matrixSize) {
-        BigArray allRecords = new BigArray(limit, matrixSize);
+    public static BigContactArray populateBigArrayFromSingleIterator(Iterator<ContactRecord> iterator, int limit,
+                                                                     long matrixSize) {
+        BigContactArray allRecords = new BigContactArray(limit, matrixSize);
         int[] x = new int[limit];
         int[] y = new int[limit];
         float[] c = new float[limit];

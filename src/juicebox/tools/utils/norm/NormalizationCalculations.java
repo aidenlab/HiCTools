@@ -30,7 +30,8 @@ import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
 import javastraw.reader.type.NormalizationType;
 import juicebox.tools.clt.old.NormalizationBuilder;
-import juicebox.tools.utils.bigarray.BigArray;
+import juicebox.tools.utils.bigarray.BigContactArray;
+import juicebox.tools.utils.largelists.NormListOfFloatArrays;
 import juicebox.tools.utils.norm.scale.ScaleHandler;
 
 import java.util.Iterator;
@@ -51,10 +52,10 @@ public class NormalizationCalculations {
 
     private final long matrixSize; // x and y symmetric
     //private boolean isEnoughMemory = false;
-    private final BigArray ba;
+    private final BigContactArray ba;
     private final int resolution;
 
-    public NormalizationCalculations(BigArray ba, int resolution) {
+    public NormalizationCalculations(BigContactArray ba, int resolution) {
         this.ba = ba;
         this.matrixSize = ba.getMatrixSize();
         this.resolution = resolution;
@@ -150,9 +151,10 @@ public class NormalizationCalculations {
     }
     
     public ListOfFloatArrays computeMMBA() {
-        ListOfFloatArrays vcSqrt = computeVC();
+        ListOfFloatArrays vc = computeVC();
+        NormListOfFloatArrays vcSqrt = new NormListOfFloatArrays(vc.getLength());
         for (long i = 0; i < vcSqrt.getLength(); i++) {
-            vcSqrt.set(i, (float) Math.sqrt(vcSqrt.get(i)));
+            vcSqrt.set(i, (float) Math.sqrt(vc.get(i)));
         }
         return ScaleHandler.mmbaScaleToVector(ba, resolution, matrixSize, vcSqrt);
     }

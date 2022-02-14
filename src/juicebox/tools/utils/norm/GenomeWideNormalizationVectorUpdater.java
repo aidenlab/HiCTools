@@ -36,8 +36,8 @@ import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
 import javastraw.tools.HiCFileTools;
 import juicebox.HiCGlobals;
-import juicebox.tools.utils.bigarray.BigArray;
-import juicebox.tools.utils.bigarray.BigArrayCreator;
+import juicebox.tools.utils.bigarray.BigContactArray;
+import juicebox.tools.utils.bigarray.BigContactArrayCreator;
 import juicebox.tools.utils.original.ExpectedValueCalculation;
 import org.broad.igv.tdf.BufferedByteWriter;
 import org.broad.igv.util.Pair;
@@ -90,7 +90,7 @@ public class GenomeWideNormalizationVectorUpdater extends NormVectorUpdater {
         boolean includeIntraData = NormalizationHandler.isGenomeWideNormIntra(norm); // default INTER type
         final ChromosomeHandler chromosomeHandler = dataset.getChromosomeHandler();
         final int resolution = zoom.getBinSize();
-        final BigArray ba = BigArrayCreator.createForWholeGenome(dataset, chromosomeHandler, zoom,
+        final BigContactArray ba = BigContactArrayCreator.createForWholeGenome(dataset, chromosomeHandler, zoom,
                 includeIntraData);
 
         NormalizationCalculations calculations = new NormalizationCalculations(ba, resolution);

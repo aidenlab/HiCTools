@@ -26,12 +26,16 @@ package juicebox.tools.utils.norm.scale;
 
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
-import juicebox.tools.utils.bigarray.BigArray;
+import juicebox.tools.utils.bigarray.BigContactArray;
+import juicebox.tools.utils.largelists.NormListOfFloatArrays;
+import juicebox.tools.utils.largelists.NormListOfShortArrays;
 
 import java.util.Arrays;
 
 public class FinalScale {
 
+    private final static short S1 = (short) 1;
+    private final static short S0 = (short) 0;
     private final static float tol = .0005f;
     private final static float percentLowRowSumExcluded = 0.0001f;
     private final static float dp = percentLowRowSumExcluded / 2;
@@ -41,19 +45,19 @@ public class FinalScale {
     private final static float minErrorThreshold = .02f;
     private static final float OFFSET = .5f;
 
-    public static ListOfFloatArrays scaleToTargetVector(BigArray ba, long matrixSize,
-                                                        ListOfFloatArrays initialGuess) {
+    public static ListOfFloatArrays scaleToTargetVector(BigContactArray ba, long matrixSize,
+                                                        NormListOfFloatArrays initialGuess) {
 
         double low;
         int rlind;
         float localPercentLowRowSumExcluded = percentLowRowSumExcluded;
-        ListOfIntArrays bad = new ListOfIntArrays(matrixSize);
-        ListOfFloatArrays s = new ListOfFloatArrays(matrixSize);
+        NormListOfShortArrays bad = new NormListOfShortArrays(matrixSize);
+        NormListOfFloatArrays s = new NormListOfFloatArrays(matrixSize);
         double[] r0 = new double[(int) Math.min(matrixSize, Integer.MAX_VALUE - 1)];
 
-        ListOfFloatArrays zTargetVector = new ListOfFloatArrays(matrixSize, 1);
-        ListOfFloatArrays calculatedVectorB = new ListOfFloatArrays(matrixSize);
-        ListOfFloatArrays one = new ListOfFloatArrays(matrixSize, 1);
+        NormListOfShortArrays zTargetVector = new NormListOfShortArrays(matrixSize, S1);
+        NormListOfFloatArrays calculatedVectorB = new NormListOfFloatArrays(matrixSize);
+        NormListOfShortArrays one = new NormListOfShortArrays(matrixSize, S1);
 
         double[] reportErrorForIteration = new double[totalIterations + 3];
         int[] numItersForAllIterations = new int[totalIterations + 3];
@@ -77,26 +81,26 @@ public class FinalScale {
         //	find the "bad" rows and exclude them
         for (long p = 0; p < matrixSize; p++) {
             if (numNonZero.get(p) < low) {
-                bad.set(p, 1);
-                zTargetVector.set(p, 0f);
+                bad.set(p, S1);
+                zTargetVector.set(p, S0);
             }
         }
 
-        ListOfFloatArrays row = sparseMultiplyGetRowSums(ba, one, matrixSize);
-        ListOfFloatArrays rowBackup = row.deepClone();
+        NormListOfFloatArrays row = sparseMultiplyGetRowSums(ba, one, matrixSize);
+        NormListOfFloatArrays rowBackup = row.deepClone();
 
         for (long p = 0; p < matrixSize; p++) {
-            one.set(p, 1 - bad.get(p));
+            one.set(p, (short) (1 - bad.get(p)));
         }
 
-        ListOfFloatArrays dr;
+        NormListOfFloatArrays dr;
         if (initialGuess == null) {
-            dr = one.deepClone();
+            dr = one.deepConvertedClone();
         } else {
             dr = initialGuess.deepClone();
         }
-        ListOfFloatArrays dc = dr.deepClone();
-        ListOfFloatArrays current = dr.deepClone();
+        NormListOfFloatArrays dc = dr.deepClone();
+        NormListOfFloatArrays current = dr.deepClone();
         //	start iterations
         //	row is the current rows sum; dr and dc are the current rows and columns scaling vectors
         double ber = 10.0 * (1.0 + tolerance);
@@ -106,7 +110,7 @@ public class FinalScale {
         int nerr = 0;
         double[] errors = new double[10000];
         int allItersI = 0;
-        ListOfFloatArrays col;
+        NormListOfFloatArrays col;
 
         // if perc or perc1 reached upper bound or the total number of iterationbs is too high, exit
         while ((ber > tolerance || err > 5.0 * tolerance) && iter < maxIter && allItersI < totalIterations
@@ -187,9 +191,9 @@ public class FinalScale {
                     low = r0[rlind];
                     for (long p = 0; p < matrixSize; p++) {
                         if (numNonZero.get(p) < low && zTargetVector.get(p) > 0) {
-                            bad.set(p, 1);
-                            one.set(p, 0);
-                            zTargetVector.set(p, 0f);
+                            bad.set(p, S1);
+                            one.set(p, S0);
+                            zTargetVector.set(p, S0);
                         }
                     }
 
@@ -204,6 +208,7 @@ public class FinalScale {
                                 dr.set(p, (1 - bad.get(p)) * initialGuess.get(p));
                             }
                         } else {
+                            // todo dr.setOneMinus(bad);
                             for (long p = 0; p < matrixSize; p++) {
                                 dr.set(p, 1 - bad.get(p));
                             }
@@ -213,7 +218,7 @@ public class FinalScale {
                         current.clear();
                         row.clear();
                         dc = dr.deepClone();
-                        one = dr.deepClone();
+                        one = dr.deepCovertedClone();
                         current = dr.deepClone();
                         row = rowBackup.deepClone();
                     } else {
@@ -264,7 +269,7 @@ public class FinalScale {
 
         //printFirst10(calculatedVectorB, -1);
         //System.out.println("DONE");
-        return calculatedVectorB;
+        return calculatedVectorB.convertToRegular();
     }
 
     private static void printFirst10(ListOfFloatArrays calculatedVectorB, int i) {
@@ -275,10 +280,10 @@ public class FinalScale {
         System.out.println("ITER " + i + " NORM VEC " + Arrays.toString(row));
     }
 
-    private static ListOfFloatArrays update(long matrixSize, ListOfIntArrays bad,
-                                            ListOfFloatArrays vector, ListOfFloatArrays target,
-                                            ListOfFloatArrays s, ListOfFloatArrays dVector,
-                                            BigArray ic) {
+    private static NormListOfFloatArrays update(long matrixSize, NormListOfShortArrays bad,
+                                                NormListOfFloatArrays vector, NormListOfShortArrays target,
+                                                NormListOfFloatArrays s, NormListOfFloatArrays dVector,
+                                                BigContactArray ic) {
         for (long p = 0; p < matrixSize; p++) {
             if (bad.get(p) == 1) vector.set(p, 1.0f);
         }
@@ -291,7 +296,7 @@ public class FinalScale {
         return sparseMultiplyGetRowSums(ic, dVector, matrixSize);
     }
 
-    private static void multiply(ListOfFloatArrays vec, ListOfFloatArrays dv, long matrixSize) {
+    private static void multiply(NormListOfFloatArrays vec, NormListOfFloatArrays dv, long matrixSize) {
         for (long p = 0; p < matrixSize; p++) {
             vec.multiplyBy(p, dv.get(p));
         }
@@ -304,8 +309,11 @@ public class FinalScale {
         return realVector;
     }
 
-    private static ListOfFloatArrays sparseMultiplyGetRowSums(BigArray ba,
-                                                              ListOfFloatArrays vector, long vectorLength) {
+    private static NormListOfFloatArrays sparseMultiplyGetRowSums(BigContactArray ba, NormListOfFloatArrays vector, long vectorLength) {
+        return ba.sparseMultiplyAcrossLists(vector, vectorLength);
+    }
+
+    private static NormListOfFloatArrays sparseMultiplyGetRowSums(BigContactArray ba, NormListOfShortArrays vector, long vectorLength) {
         return ba.sparseMultiplyAcrossLists(vector, vectorLength);
     }
 }

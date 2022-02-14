@@ -24,17 +24,19 @@
 
 package juicebox.tools.utils.bigarray;
 
-import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
 import javastraw.tools.ParallelizationTools;
 import juicebox.HiCGlobals;
+import juicebox.tools.utils.largelists.NormListOfDoubleArrays;
+import juicebox.tools.utils.largelists.NormListOfFloatArrays;
+import juicebox.tools.utils.largelists.NormListOfShortArrays;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class BigArray {
+public class BigContactArray {
 
     private final int limit;
     private final List<int[]> binXs = new ArrayList<>();
@@ -43,13 +45,23 @@ public class BigArray {
     private final long matrixSize;
     private long numOfContactRecords = 0;
 
-    public BigArray(int limit, long matrixSize) {
+    public BigContactArray(int limit, long matrixSize) {
         this.limit = limit;
         this.matrixSize = matrixSize;
     }
 
-    public static void matrixVectorMult(ListOfFloatArrays vector,
-                                        ListOfDoubleArrays sumVector, int x, int y, float c) {
+    public static void matrixVectorMult(NormListOfShortArrays vector,
+                                        NormListOfDoubleArrays sumVector, int x, int y, float c) {
+        double counts = c;
+        if (x == y) {
+            counts *= .5;
+        }
+        sumVector.addTo(x, counts * vector.get(y));
+        sumVector.addTo(y, counts * vector.get(x));
+    }
+
+    public static void matrixVectorMult(NormListOfFloatArrays vector,
+                                        NormListOfDoubleArrays sumVector, int x, int y, float c) {
         double counts = c;
         if (x == y) {
             counts *= .5;
@@ -75,7 +87,7 @@ public class BigArray {
         addSubList(x2, y2, c2);
     }
 
-    public void addAllSubLists(BigArray other) {
+    public void addAllSubLists(BigContactArray other) {
         binXs.addAll(other.binXs);
         binYs.addAll(other.binYs);
         binVals.addAll(other.binVals);
@@ -99,13 +111,40 @@ public class BigArray {
         numOfContactRecords = 0;
     }
 
-    public ListOfFloatArrays sparseMultiplyAcrossLists(ListOfFloatArrays vector, long vectorLength) {
-        final ListOfDoubleArrays totalSumVector = new ListOfDoubleArrays(vectorLength);
+    public NormListOfFloatArrays sparseMultiplyAcrossLists(NormListOfFloatArrays vector, long vectorLength) {
+        final NormListOfDoubleArrays totalSumVector = new NormListOfDoubleArrays(vectorLength);
 
         AtomicInteger index = new AtomicInteger(0);
         ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
             int sIndx = index.getAndIncrement();
-            ListOfDoubleArrays sumVector = new ListOfDoubleArrays(vectorLength);
+            NormListOfDoubleArrays sumVector = new NormListOfDoubleArrays(vectorLength);
+            while (sIndx < binXs.size()) {
+                int[] subBinXs = binXs.get(sIndx);
+                int[] subBinYs = binYs.get(sIndx);
+                float[] subBinVals = binVals.get(sIndx);
+
+                for (int z = 0; z < subBinXs.length; z++) {
+                    matrixVectorMult(vector, sumVector,
+                            subBinXs[z], subBinYs[z], subBinVals[z]);
+                }
+                sIndx = index.getAndIncrement();
+            }
+
+            synchronized (totalSumVector) {
+                totalSumVector.addValuesFrom(sumVector);
+            }
+        });
+
+        return totalSumVector.convertToFloats();
+    }
+
+    public NormListOfFloatArrays sparseMultiplyAcrossLists(NormListOfShortArrays vector, long vectorLength) {
+        final NormListOfDoubleArrays totalSumVector = new NormListOfDoubleArrays(vectorLength);
+
+        AtomicInteger index = new AtomicInteger(0);
+        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+            int sIndx = index.getAndIncrement();
+            NormListOfDoubleArrays sumVector = new NormListOfDoubleArrays(vectorLength);
             while (sIndx < binXs.size()) {
                 int[] subBinXs = binXs.get(sIndx);
                 int[] subBinYs = binYs.get(sIndx);

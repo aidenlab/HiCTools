@@ -31,29 +31,29 @@ import java.util.List;
 /**
  * can't use <T> because we need to instantiate the array, otherwise that would have been nice
  */
-public class NormListOfDoubleArrays {
+public class NormListOfShortArrays {
 
-	final long DEFAULT_LENGTH = 10000000;
+	final int DEFAULT_LENGTH = 10000000;
 	final long overallLength;
-	final List<double[]> internalList = new ArrayList<>();
+	final List<short[]> internalList = new ArrayList<>();
 
-	public NormListOfDoubleArrays(long length) {
+	public NormListOfShortArrays(long length) {
 		this.overallLength = length;
 		long tempLength = length;
 		while (tempLength > 0) {
 			if (tempLength < DEFAULT_LENGTH) {
-				internalList.add(new double[(int) tempLength]);
+				internalList.add(new short[(int) tempLength]);
 				break;
 			} else {
-				internalList.add(new double[(int) DEFAULT_LENGTH]);
+				internalList.add(new short[DEFAULT_LENGTH]);
 				tempLength -= DEFAULT_LENGTH;
 			}
 		}
 	}
 
-	public NormListOfDoubleArrays(long totSize, double defaultValue) {
+	public NormListOfShortArrays(long totSize, short defaultValue) {
 		this(totSize);
-		for (double[] array : internalList) {
+		for (short[] array : internalList) {
 			Arrays.fill(array, defaultValue);
 		}
 	}
@@ -62,42 +62,53 @@ public class NormListOfDoubleArrays {
 		internalList.clear();
 	}
 
-	public double get(long index) {
+	public int get(long index) {
 		if (index < overallLength) {
 			int pseudoRow = (int) (index / DEFAULT_LENGTH);
 			int pseudoCol = (int) (index % DEFAULT_LENGTH);
 			return internalList.get(pseudoRow)[pseudoCol];
 		} else {
-			System.err.println("long index exceeds max size of list of arrays while getting: " + index + " " + overallLength);
-			Exception ioe = new Exception();
-			ioe.printStackTrace();
-			return Double.NaN;
+			System.err.println("long index exceeds max size of list of int arrays while getting");
+			return -Integer.MAX_VALUE;
 		}
 	}
 
-	public void set(long index, double value) {
+	public void set(long index, short value) {
+		long tempIndex = index;
 		if (index < overallLength) {
 			int pseudoRow = (int) (index / DEFAULT_LENGTH);
 			int pseudoCol = (int) (index % DEFAULT_LENGTH);
 			internalList.get(pseudoRow)[pseudoCol] = value;
 		} else {
 			System.err.println("long index exceeds max size of list of arrays while setting");
+			return;
 		}
+		//System.err.println("unusual - long index exceeds max size of list of arrays while setting");
+		return;
 	}
 
 	public long getLength() {
 		return overallLength;
 	}
 
-	public NormListOfDoubleArrays deepClone() {
-		NormListOfDoubleArrays clone = new NormListOfDoubleArrays(overallLength);
+	public NormListOfShortArrays deepClone() {
+		NormListOfShortArrays clone = new NormListOfShortArrays(overallLength);
 		for (int k = 0; k < internalList.size(); k++) {
 			System.arraycopy(internalList.get(k), 0, clone.internalList.get(k), 0, internalList.get(k).length);
 		}
 		return clone;
 	}
 
-	public void divideBy(long index, double value) {
+	public NormListOfFloatArrays deepConvertedClone() {
+		NormListOfFloatArrays clone = new NormListOfFloatArrays(overallLength);
+		for (int k = 0; k < internalList.size(); k++) {
+			System.arraycopy(internalList.get(k), 0, clone.internalList.get(k), 0, internalList.get(k).length);
+		}
+		return clone;
+
+	}
+
+	public void divideBy(long index, int value) {
 		if (index < overallLength) {
 			int pseudoRow = (int) (index / DEFAULT_LENGTH);
 			int pseudoCol = (int) (index % DEFAULT_LENGTH);
@@ -106,37 +117,11 @@ public class NormListOfDoubleArrays {
 			System.err.println("long index exceeds max size of list of arrays while dividing");
 			return;
 		}
+		System.err.println("unusual - long index exceeds max size of list of arrays while dividing");
+		return;
 	}
 
-	public void multiplyBy(long index, double value) {
-		if (index < overallLength) {
-			int pseudoRow = (int) (index / DEFAULT_LENGTH);
-			int pseudoCol = (int) (index % DEFAULT_LENGTH);
-			internalList.get(pseudoRow)[pseudoCol] *= value;
-		} else {
-			System.err.println("long index exceeds max size of list of arrays while mutiplying");
-			return;
-		}
-	}
-
-	public void addTo(long index, double value) {
-		if (index < overallLength) {
-			int pseudoRow = (int) (index / DEFAULT_LENGTH);
-			int pseudoCol = (int) (index % DEFAULT_LENGTH);
-			try {
-				internalList.get(pseudoRow)[pseudoCol] += value;
-			} catch (Exception e) {
-				System.err.println(index + " " + pseudoCol);
-				e.printStackTrace();
-			}
-		} else {
-			System.err.println("long index exceeds max size of list of arrays while adding: " + index + " " + overallLength);
-			Exception ioe = new Exception();
-			ioe.printStackTrace();
-		}
-	}
-
-	public void addValuesFrom(NormListOfDoubleArrays other) {
+	public void addValuesFrom(NormListOfShortArrays other) {
 		if (overallLength == other.overallLength) {
 			for (int i = 0; i < internalList.size(); i++) {
 				for (int j = 0; j < internalList.get(i).length; j++) {
@@ -148,34 +133,18 @@ public class NormListOfDoubleArrays {
 		}
 	}
 
-	public double getFirstValue() {
-		return internalList.get(0)[0];
+	public void addTo(long index, int value) {
+		if (index < overallLength) {
+			int pseudoRow = (int) (index / DEFAULT_LENGTH);
+			int pseudoCol = (int) (index % DEFAULT_LENGTH);
+			internalList.get(pseudoRow)[pseudoCol] += value;
+		} else {
+			System.err.println("long index exceeds max size of list of arrays while adding");
+			return;
+		}
 	}
 
-	public double getLastValue() {
-		double[] temp = internalList.get(internalList.size() - 1);
-		return temp[temp.length - 1];
-	}
-
-	public List<double[]> getValues() {
+	public List<short[]> getValues() {
 		return internalList;
-	}
-
-	public void multiplyEverythingBy(double val) {
-		for (double[] array : internalList) {
-			for (int k = 0; k < array.length; k++) {
-				array[k] *= val;
-			}
-		}
-	}
-
-	public NormListOfFloatArrays convertToFloats() {
-		NormListOfFloatArrays newList = new NormListOfFloatArrays(overallLength);
-		for (int j = 0; j < internalList.size(); j++) {
-			for (int k = 0; k < internalList.get(j).length; k++) {
-				newList.getValues().get(j)[k] = (float) internalList.get(j)[k];
-			}
-		}
-		return newList;
 	}
 }

@@ -25,11 +25,12 @@
 package juicebox.tools.utils.norm.scale;
 
 import javastraw.reader.datastructures.ListOfFloatArrays;
-import juicebox.tools.utils.bigarray.BigArray;
+import juicebox.tools.utils.bigarray.BigContactArray;
+import juicebox.tools.utils.largelists.NormListOfFloatArrays;
 
 public class ScaleHandler {
-    public static ListOfFloatArrays scale(BigArray ic, int resolution, long matrixSize,
-                                          ListOfFloatArrays initialGuess) {
+    public static ListOfFloatArrays scale(BigContactArray ic, int resolution, long matrixSize,
+                                          NormListOfFloatArrays initialGuess) {
         /*
         BigArray ic2 = ic;
         if (DistanceFilteredIteratorContainer.getUseFilterDistance()) {
@@ -40,8 +41,8 @@ public class ScaleHandler {
     }
 
 
-    public static ListOfFloatArrays mmbaScaleToVector(BigArray ic, int resolution, long matrixSize,
-                                                      ListOfFloatArrays initialGuess) {
+    public static ListOfFloatArrays mmbaScaleToVector(BigContactArray ic, int resolution, long matrixSize,
+                                                      NormListOfFloatArrays initialGuess) {
         ListOfFloatArrays newNormVector = scale(ic, resolution, matrixSize, initialGuess);
         return ic.normalizeVectorByScaleFactor(newNormVector);
     }
