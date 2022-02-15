@@ -112,7 +112,7 @@ public class BigShortsArray {
 
 	public void parSetTo(BigFloatsArray srcArrays) {
 		AtomicInteger index = new AtomicInteger();
-		ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+		ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
 			int i = index.getAndIncrement();
 			while (i < internalList.size()) {
 				short[] dest = internalList.get(i);
@@ -123,5 +123,9 @@ public class BigShortsArray {
 				i = index.getAndIncrement();
 			}
 		});
+	}
+
+	private int getNumThreads() {
+		return Math.min(HiCGlobals.numCPUMatrixThreads, internalList.size());
 	}
 }

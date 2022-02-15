@@ -24,6 +24,7 @@
 
 package juicebox.tools.utils.largelists;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.tools.ParallelizationTools;
 import juicebox.HiCGlobals;
@@ -125,9 +126,70 @@ public class BigFloatsArray {
         return clone;
     }
 
+    public static double parCalculateError(BigFloatsArray col, BigFloatsArray scale, BigShortsArray target, BigShortsArray bad) {
+        AtomicDouble atomicDouble = new AtomicDouble(0);
+        AtomicInteger index = new AtomicInteger();
+        ParallelizationTools.launchParallelizedCode(col.getNumThreads(), () -> {
+            int i = index.getAndIncrement();
+            float err = 0;
+            while (i < col.internalList.size()) {
+                float[] colA = col.internalList.get(i);
+                float[] scaleA = scale.internalList.get(i);
+                short[] targetA = target.internalList.get(i);
+                short[] badA = bad.internalList.get(i);
+
+                for (int z = 0; z < colA.length; z++) {
+                    if (badA[z] == 1) continue;
+                    float tempErr = Math.abs((colA[z] * scaleA[z] - targetA[z]));
+                    if (tempErr > err) {
+                        err = tempErr;
+                    }
+                }
+                i = index.getAndIncrement();
+            }
+            synchronized (atomicDouble) {
+                if (err > atomicDouble.get()) {
+                    atomicDouble.set(err);
+                }
+            }
+        });
+        return atomicDouble.get();
+    }
+
+    public static double parCalculateConvergenceError(BigFloatsArray calculatedVectorB, BigFloatsArray current,
+                                                      BigShortsArray bad) {
+        AtomicDouble atomicDouble = new AtomicDouble(0);
+        AtomicInteger index = new AtomicInteger();
+        ParallelizationTools.launchParallelizedCode(current.getNumThreads(), () -> {
+            int i = index.getAndIncrement();
+            float err = 0;
+            while (i < current.internalList.size()) {
+
+                float[] calcA = calculatedVectorB.internalList.get(i);
+                float[] currA = current.internalList.get(i);
+                short[] badA = bad.internalList.get(i);
+
+                for (int z = 0; z < calcA.length; z++) {
+                    if (badA[z] == 1) continue;
+                    float tempErr = Math.abs(calcA[z] - currA[z]);
+                    if (tempErr > err) {
+                        err = tempErr;
+                    }
+                }
+                i = index.getAndIncrement();
+            }
+            synchronized (atomicDouble) {
+                if (err > atomicDouble.get()) {
+                    atomicDouble.set(err);
+                }
+            }
+        });
+        return atomicDouble.get();
+    }
+
     public void parSetToGeoMean(BigFloatsArray a, BigFloatsArray b) {
         AtomicInteger index = new AtomicInteger();
-        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+        ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
             int i = index.getAndIncrement();
             while (i < internalList.size()) {
                 float[] result = internalList.get(i);
@@ -143,7 +205,7 @@ public class BigFloatsArray {
 
     public void parSetTo(BigFloatsArray srcArrays) {
         AtomicInteger index = new AtomicInteger();
-        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+        ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
             int i = index.getAndIncrement();
             while (i < internalList.size()) {
                 float[] dest = internalList.get(i);
@@ -156,7 +218,7 @@ public class BigFloatsArray {
 
     public void parMultiplyByOneMinus(BigShortsArray array) {
         AtomicInteger index = new AtomicInteger();
-        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+        ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
             int i = index.getAndIncrement();
             while (i < internalList.size()) {
                 float[] orig = internalList.get(i);
@@ -171,7 +233,7 @@ public class BigFloatsArray {
 
     public void parMultiplyBy(BigFloatsArray dv) {
         AtomicInteger index = new AtomicInteger();
-        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+        ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
             int i = index.getAndIncrement();
             while (i < internalList.size()) {
                 float[] orig = internalList.get(i);
@@ -186,7 +248,7 @@ public class BigFloatsArray {
 
     public void parSetToDivision(BigShortsArray num, BigFloatsArray denom) {
         AtomicInteger index = new AtomicInteger();
-        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+        ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
             int i = index.getAndIncrement();
             while (i < internalList.size()) {
                 float[] orig = internalList.get(i);
@@ -198,6 +260,10 @@ public class BigFloatsArray {
                 i = index.getAndIncrement();
             }
         });
+    }
+
+    private int getNumThreads() {
+        return Math.min(HiCGlobals.numCPUMatrixThreads, internalList.size());
     }
 }
 

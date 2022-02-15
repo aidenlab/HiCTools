@@ -24,6 +24,8 @@
 
 package juicebox.tools.utils.largelists;
 
+import juicebox.HiCGlobals;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -124,5 +126,9 @@ public class BigDoublesArray {
 			}
 		}
 		return newList;
+	}
+
+	private int getNumThreads() {
+		return Math.min(HiCGlobals.numCPUMatrixThreads, internalList.size());
 	}
 }

@@ -111,11 +111,15 @@ public class BigContactArray {
         numOfContactRecords = 0;
     }
 
-    public BigFloatsArray sparseMultiplyAcrossLists(BigFloatsArray vector, long vectorLength) {
+    private int getNumThreads() {
+        return Math.min(HiCGlobals.numCPUMatrixThreads, binXs.size());
+    }
+
+    public BigFloatsArray parSparseMultiplyAcrossLists(BigFloatsArray vector, long vectorLength) {
         final BigDoublesArray totalSumVector = new BigDoublesArray(vectorLength);
 
         AtomicInteger index = new AtomicInteger(0);
-        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+        ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
             int sIndx = index.getAndIncrement();
             BigDoublesArray sumVector = new BigDoublesArray(vectorLength);
             while (sIndx < binXs.size()) {
@@ -138,11 +142,11 @@ public class BigContactArray {
         return totalSumVector.convertToFloats();
     }
 
-    public BigFloatsArray sparseMultiplyAcrossLists(BigShortsArray vector, long vectorLength) {
+    public BigFloatsArray parSparseMultiplyAcrossLists(BigShortsArray vector, long vectorLength) {
         final BigDoublesArray totalSumVector = new BigDoublesArray(vectorLength);
 
         AtomicInteger index = new AtomicInteger(0);
-        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
+        ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
             int sIndx = index.getAndIncrement();
             BigDoublesArray sumVector = new BigDoublesArray(vectorLength);
             while (sIndx < binXs.size()) {
