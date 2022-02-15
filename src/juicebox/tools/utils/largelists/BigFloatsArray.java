@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.AtomicDouble;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.tools.ParallelizationTools;
 import juicebox.HiCGlobals;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -155,6 +156,25 @@ public class BigFloatsArray {
         });
         return atomicDouble.get();
     }
+
+    public static double calculateError90(BigFloatsArray col, BigFloatsArray scale,
+                                          BigShortsArray target, BigShortsArray bad) {
+        DescriptiveStatistics stats = new DescriptiveStatistics();
+        for (int i = 0; i < col.internalList.size(); i++) {
+            float[] colA = col.internalList.get(i);
+            float[] scaleA = scale.internalList.get(i);
+            short[] targetA = target.internalList.get(i);
+            short[] badA = bad.internalList.get(i);
+
+            for (int z = 0; z < colA.length; z++) {
+                if (badA[z] == 1) continue;
+                float tempErr = Math.abs((colA[z] * scaleA[z] - targetA[z]));
+                stats.addValue(tempErr);
+            }
+        }
+        return stats.getPercentile(90);
+    }
+
 
     public static double parCalculateConvergenceError(BigFloatsArray calculatedVectorB, BigFloatsArray current,
                                                       BigShortsArray bad) {

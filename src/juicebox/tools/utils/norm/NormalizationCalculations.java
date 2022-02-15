@@ -29,6 +29,7 @@ import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
 import javastraw.reader.type.NormalizationType;
+import juicebox.HiCGlobals;
 import juicebox.tools.clt.old.NormalizationBuilder;
 import juicebox.tools.utils.bigarray.BigContactArray;
 import juicebox.tools.utils.largelists.BigFloatsArray;
@@ -149,14 +150,28 @@ public class NormalizationCalculations {
         }
         return counter;
     }
-    
-    public ListOfFloatArrays computeMMBA() {
-        ListOfFloatArrays vc = computeVC();
-        BigFloatsArray vcSqrt = new BigFloatsArray(vc.getLength());
-        for (long i = 0; i < vcSqrt.getLength(); i++) {
-            vcSqrt.set(i, (float) Math.sqrt(vc.get(i)));
+
+    private BigFloatsArray getInitialStartingVector() {
+        BigFloatsArray initial = null;
+        if (HiCGlobals.INIT_TYPE == 1 || HiCGlobals.INIT_TYPE == 2) {
+            ListOfFloatArrays vc = computeVC();
+            initial = new BigFloatsArray(vc.getLength());
+            if (HiCGlobals.INIT_TYPE == 1) {
+                for (long i = 0; i < vc.getLength(); i++) {
+                    initial.set(i, (float) Math.sqrt(vc.get(i)));
+                }
+            } else {
+                for (long i = 0; i < vc.getLength(); i++) {
+                    initial.set(i, vc.get(i));
+                }
+            }
         }
-        return ScaleHandler.mmbaScaleToVector(ba, resolution, matrixSize, vcSqrt);
+        return initial;
+    }
+
+    public ListOfFloatArrays computeMMBA() {
+        BigFloatsArray initial = getInitialStartingVector();
+        return ScaleHandler.mmbaScaleToVector(ba, resolution, matrixSize, initial);
     }
 
     /*public BigContactRecordList booleanBalancing() {

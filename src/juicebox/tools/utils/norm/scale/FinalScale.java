@@ -26,6 +26,7 @@ package juicebox.tools.utils.norm.scale;
 
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
+import juicebox.HiCGlobals;
 import juicebox.tools.utils.bigarray.BigContactArray;
 import juicebox.tools.utils.largelists.BigFloatsArray;
 import juicebox.tools.utils.largelists.BigShortsArray;
@@ -205,13 +206,20 @@ public class FinalScale {
         }
 
         //	find the final error in row sums
-        if (iter % 10 == 0) {
+        if (HiCGlobals.printVerboseComments) {
             col = parSparseMultiplyGetRowSums(ba, calculatedVectorB, matrixSize);
             err = BigFloatsArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
+            double err90 = BigFloatsArray.calculateError90(col, calculatedVectorB, zTargetVector, bad);
+            System.out.println("Total iters " + realIters + " Row Sums Error " + err + " Error90 " + err90);
+
+            reportErrorForIteration[allItersI + 1] = ber;
+            reportErrorForIteration[allItersI + 2] = err;
+
+            //System.out.println(allItersI);
+            //System.out.println(localPercentLowRowSumExcluded);
+            //System.out.println(Arrays.toString(reportErrorForIteration));
+            //printFirst10(calculatedVectorB, -1);
         }
-        
-        reportErrorForIteration[allItersI + 1] = ber;
-        reportErrorForIteration[allItersI + 2] = err;
 
         for (long p = 0; p < matrixSize; p++) {
             if (bad.get(p) == 1) {
@@ -234,18 +242,8 @@ public class FinalScale {
             col.clear();
         }
 
-        /*
-        if (HiCGlobals.printVerboseComments) {
-            System.out.println(allItersI);
-            System.out.println(localPercentLowRowSumExcluded);
-            System.out.println(Arrays.toString(reportErrorForIteration));
-            printFirst10(calculatedVectorB, -1);
-            System.out.println("DONE");
-        }
-        */
         ListOfFloatArrays answer = calculatedVectorB.convertToRegular();
         calculatedVectorB.clear();
-        System.out.println("Total iters " + realIters + " Row Sums Error " + err);
         return answer;
     }
 
