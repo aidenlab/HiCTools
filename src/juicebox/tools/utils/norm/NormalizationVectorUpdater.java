@@ -122,9 +122,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
             List<NormalizationType> interNormalizations = GWNorms.getInterNorms(normalizationsToBuild, resolutionsToBuildTo, zoom);
 
             Map<NormalizationType, Map<Chromosome, NormalizationVector>>
-                    gwNormMaps = GWNorms.getGWNormMaps(gwNormalizations, ds, zoom, true);
-            Map<NormalizationType, Map<Chromosome, NormalizationVector>>
-                    interNormMaps = GWNorms.getGWNormMaps(interNormalizations, ds, zoom, false);
+                    gwNormMaps = GWNorms.getGWNormMaps(gwNormalizations, interNormalizations, ds, zoom);
 
             Map<NormalizationType, ExpectedValueCalculation> gwMapExpected = GWNorms.createdExpectedMap(gwNormalizations,
                     interNormalizations, chromosomeHandler, zoom.getBinSize());
@@ -151,7 +149,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
                 GWNorms.addGWNormsToBuffer(gwNormalizations, gwNormMaps, chrom, normVectorIndices,
                         normVectorBuffers, zoom, gwMapExpected, ba);
-                GWNorms.addGWNormsToBuffer(interNormalizations, interNormMaps, chrom, normVectorIndices,
+                GWNorms.addGWNormsToBuffer(interNormalizations, gwNormMaps, chrom, normVectorIndices,
                         normVectorBuffers, zoom, gwMapExpected, ba);
 
                 NormalizationCalculations nc = new NormalizationCalculations(ba, zd.getBinSize());
@@ -173,6 +171,9 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
             GWNorms.populateGWExpecteds(expectedValueCalculations, gwMapExpected, gwNormalizations);
             GWNorms.populateGWExpecteds(expectedValueCalculations, gwMapExpected, interNormalizations);
+
+            gwMapExpected.clear();
+            gwNormMaps.clear();
 
             if (evVC.hasData()) {
                 expectedValueCalculations.add(evVC);

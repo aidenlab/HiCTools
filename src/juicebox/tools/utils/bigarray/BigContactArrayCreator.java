@@ -24,13 +24,8 @@
 
 package juicebox.tools.utils.bigarray;
 
-import javastraw.reader.Dataset;
-import javastraw.reader.basics.Chromosome;
-import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.block.ContactRecord;
-import javastraw.reader.iterators.GenomeWideIterator;
 import javastraw.reader.mzd.MatrixZoomData;
-import javastraw.reader.type.HiCZoom;
 
 import java.util.Iterator;
 
@@ -39,19 +34,9 @@ public class BigContactArrayCreator {
         return populateBigArrayFromSingleIterator(zd.getDirectIterator(), 10000000, zd.getMatrixSize());
     }
 
-    public static BigContactArray createForWholeGenome(Dataset dataset, ChromosomeHandler handler,
-                                                       HiCZoom zoom, boolean includeIntra) {
-        int limit = 10000000;
-        if (includeIntra) {
-            limit = 50000000;
-        }
-        return populateBigArrayFromSingleIterator(new GenomeWideIterator(dataset, handler, zoom, includeIntra), limit,
-                calculateGWSize(handler, zoom.getBinSize()));
-    }
-
     public static BigContactArray populateBigArrayFromSingleIterator(Iterator<ContactRecord> iterator, int limit,
                                                                      long matrixSize) {
-        BigContactArray allRecords = new BigContactArray(limit, matrixSize);
+        BigContactArray allRecords = new BigContactArray(matrixSize);
         int[] x = new int[limit];
         int[] y = new int[limit];
         float[] c = new float[limit];
@@ -74,14 +59,6 @@ public class BigContactArrayCreator {
             allRecords.addSubList(x, y, c, counter);
         }
         return allRecords;
-    }
-
-    private static long calculateGWSize(ChromosomeHandler handler, int resolution) {
-        long totalSize = 0;
-        for (Chromosome c1 : handler.getChromosomeArrayWithoutAllByAll()) {
-            totalSize += (c1.getLength() / resolution) + 1;
-        }
-        return totalSize;
     }
 
 }

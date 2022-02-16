@@ -39,15 +39,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class BigContactArray {
 
-    private final int limit;
-    private final List<int[]> binXs = new ArrayList<>();
-    private final List<int[]> binYs = new ArrayList<>();
-    private final List<float[]> binVals = new ArrayList<>();
+    protected final List<int[]> binXs = new ArrayList<>();
+    protected final List<int[]> binYs = new ArrayList<>();
+    protected final List<float[]> binVals = new ArrayList<>();
     private final long matrixSize;
-    private long numOfContactRecords = 0;
 
-    public BigContactArray(int limit, long matrixSize) {
-        this.limit = limit;
+    public BigContactArray(long matrixSize) {
         this.matrixSize = matrixSize;
     }
 
@@ -75,7 +72,6 @@ public class BigContactArray {
         binXs.add(x);
         binYs.add(y);
         binVals.add(c);
-        numOfContactRecords += x.length;
     }
 
     public void addSubList(int[] x, int[] y, float[] c, int counter) {
@@ -92,24 +88,12 @@ public class BigContactArray {
         binXs.addAll(other.binXs);
         binYs.addAll(other.binYs);
         binVals.addAll(other.binVals);
-        for (float[] records : other.binVals) {
-            numOfContactRecords += records.length;
-        }
-    }
-
-    public long getTotalSize() {
-        return numOfContactRecords;
-    }
-
-    public int getNumLists() {
-        return binXs.size();
     }
 
     public void clear() {
         binXs.clear();
         binYs.clear();
         binVals.clear();
-        numOfContactRecords = 0;
     }
 
     private int getNumThreads() {

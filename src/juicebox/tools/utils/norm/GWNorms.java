@@ -33,7 +33,8 @@ import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
 import juicebox.tools.utils.bigarray.BigContactArray;
-import juicebox.tools.utils.bigarray.BigContactArrayCreator;
+import juicebox.tools.utils.bigarray.BigGWContactArray;
+import juicebox.tools.utils.bigarray.BigGWContactArrayCreator;
 import juicebox.tools.utils.original.ExpectedValueCalculation;
 import org.broad.igv.tdf.BufferedByteWriter;
 
@@ -69,22 +70,43 @@ public class GWNorms {
         return norms;
     }
 
-    public static Map<NormalizationType, Map<Chromosome, NormalizationVector>> getGWNormMaps(List<NormalizationType> norms,
-                                                                                             Dataset ds, HiCZoom zoom,
-                                                                                             boolean includeIntra) {
+    public static Map<NormalizationType, Map<Chromosome, NormalizationVector>> getGWNormMaps(List<NormalizationType> gwNorms,
+                                                                                             List<NormalizationType> interNorms,
+                                                                                             Dataset ds, HiCZoom zoom) {
 
-        if (norms.isEmpty()) return new HashMap<>();
+        if (gwNorms.isEmpty() && interNorms.isEmpty()) return new HashMap<>();
+
         final ChromosomeHandler handler = ds.getChromosomeHandler();
-        final BigContactArray ba = BigContactArrayCreator.createForWholeGenome(ds, handler, zoom, includeIntra);
+        final BigGWContactArray ba;
+        if (gwNorms.isEmpty()) {
+            // only INTER_ norms getting used
+            ba = BigGWContactArrayCreator.createForWholeGenome(ds, handler, zoom, false);
+        } else if (interNorms.isEmpty()) {
+            // only GW_ norms getting used
+            ba = BigGWContactArrayCreator.createForWholeGenome(ds, handler, zoom, true);
+        } else {
+            // using both
+            ba = BigGWContactArrayCreator.createForWholeGenome(ds, handler, zoom, true);
+        }
 
         Map<NormalizationType, Map<Chromosome, NormalizationVector>> result = new HashMap<>();
-        for (NormalizationType normType : norms) {
+        for (NormalizationType normType : gwNorms) {
             Map<Chromosome, NormalizationVector> wgVectors = getWGVectors(zoom, normType, ba, handler);
             if (wgVectors != null) {
                 result.put(normType, wgVectors);
             }
         }
-        ba.clear();
+
+        ba.clearIntraAndShiftInter();
+
+        for (NormalizationType normType : interNorms) {
+            Map<Chromosome, NormalizationVector> wgVectors = getWGVectors(zoom, normType, ba, handler);
+            if (wgVectors != null) {
+                result.put(normType, wgVectors);
+            }
+        }
+
+        ba.clearAll();
         return result;
     }
 
