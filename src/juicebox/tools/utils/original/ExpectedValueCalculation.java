@@ -33,7 +33,6 @@ import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.expected.ExpectedValueFunctionImpl;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationType;
-import juicebox.tools.utils.norm.NormVectorUpdater;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -344,7 +343,7 @@ public class ExpectedValueCalculation {
             final float counts = cr.getCounts();
             float xVal = vector.get(x);
             float yVal = vector.get(y);
-            if (NormVectorUpdater.isValidNormValue(xVal) & NormVectorUpdater.isValidNormValue(yVal)) {
+            if (xVal > 0 & yVal > 0) {
                 double value = counts / (xVal * yVal);
                 addDistance(chrIndx, x, y, value);
             }

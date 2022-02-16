@@ -35,11 +35,10 @@ import java.util.concurrent.Executors;
  */
 public class HiCGlobals {
 
-    public static final String versionNum = "3.05.01";
+    public static final String versionNum = "3.06.01";
     public static final int minVersion = 6;
     public static final int writingVersion = 9;
     public static final int bufferSize = 2097152;
-    public static int INIT_TYPE = 0;
     public static int MAX_PEARSON_ZOOM = 50000;
     public static int MAX_EIGENVECTOR_ZOOM = 250000;
     public static boolean useCache = true;

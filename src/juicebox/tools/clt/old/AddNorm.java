@@ -100,8 +100,6 @@ public class AddNorm extends JuiceboxCLT {
         updateNumberOfCPUThreads(parser, 10);
         HiCGlobals.numCPUMatrixThreads = numCPUThreads;
 
-        HiCGlobals.INIT_TYPE = parser.getInitType();
-
         usingMultiThreadedVersion = numCPUThreads > 1;
 
         genomeWideResolution = parser.getGenomeWideOption();
