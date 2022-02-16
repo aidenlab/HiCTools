@@ -38,20 +38,17 @@ public class FinalScale {
     private final static short S1 = (short) 1;
     private final static short S0 = (short) 0;
     private final static float tol = .0005f;
-    private final static float percentLowRowSumExcluded = 0.0001f;
-    private final static float dp = percentLowRowSumExcluded / 2;
+    private final static float zscoreCutoff = -3;
+    private final static float dZscore = 0.25f;
     private final static float tolerance = .0005f;
     private final static int maxIter = 100;
     private final static int totalIterations = 3 * maxIter;
     private final static float minErrorThreshold = .02f;
-    private static final float OFFSET = .5f;
 
     public static ListOfFloatArrays scaleToTargetVector(BigContactArray ba, long matrixSize,
                                                         BigFloatsArray initialGuess) {
 
-        double low;
-        int rlind;
-        float localPercentLowRowSumExcluded = percentLowRowSumExcluded;
+        float localZscoreCutoff = zscoreCutoff;
         BigShortsArray bad = new BigShortsArray(matrixSize);
         BigFloatsArray svec = new BigFloatsArray(matrixSize);
         int[] r0 = new int[(int) Math.min(matrixSize, Integer.MAX_VALUE - 1)];
@@ -67,21 +64,10 @@ public class FinalScale {
         ListOfIntArrays numNonZero = ba.getNumNonZeroInRows();
 
         //	find relevant percentiles
-        int n0 = 0;
+        ZScore zscore = new ZScore(numNonZero);
+        float lowCutoff = zscore.getCutoff(localZscoreCutoff);
         for (long p = 0; p < matrixSize; p++) {
-            int valP = numNonZero.get(p);
-            if (valP > 0 && n0 < r0.length) {
-                r0[n0++] = valP;
-            }
-        }
-        r0 = dealWithSorting(r0, n0);
-        rlind = (int) Math.max(0, n0 * localPercentLowRowSumExcluded + OFFSET);
-        low = r0[rlind];
-
-        //	find the "bad" rows and exclude them
-        for (long p = 0; p < matrixSize; p++) {
-            if (numNonZero.get(p) < low) {
-                // todo used to be only bad and target were erased; one was not...
+            if (numNonZero.get(p) < lowCutoff) {
                 excludeBadRow(p, bad, zTargetVector, one);
             }
         }
@@ -115,7 +101,7 @@ public class FinalScale {
 
         // if perc or perc1 reached upper bound or the total number of iterationbs is too high, exit
         while ((ber > tolerance || err > 5.0 * tolerance) && iter < maxIter && allItersI < totalIterations
-                && localPercentLowRowSumExcluded <= 0.2) {
+                && localZscoreCutoff <= -.5) {
             iter++;
             allItersI++;
             realIters++;
@@ -172,12 +158,11 @@ public class FinalScale {
                 }
 
                 if (failed) {
-                    localPercentLowRowSumExcluded += dp;
+                    localZscoreCutoff += dZscore;
                     nerr = 0;
-                    rlind = (int) Math.max(0, n0 * localPercentLowRowSumExcluded + OFFSET);
-                    low = r0[rlind];
+                    lowCutoff = zscore.getCutoff(localZscoreCutoff);
                     for (long p = 0; p < matrixSize; p++) {
-                        if (numNonZero.get(p) < low && zTargetVector.get(p) > 0) {
+                        if (numNonZero.get(p) < lowCutoff && zTargetVector.get(p) > 0) {
                             excludeBadRow(p, bad, zTargetVector, one);
                         }
                     }
