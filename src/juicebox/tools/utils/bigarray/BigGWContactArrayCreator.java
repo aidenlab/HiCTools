@@ -30,6 +30,10 @@ import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.iterators.GenomeWideIterator;
 import javastraw.reader.type.HiCZoom;
 
+import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class BigGWContactArrayCreator {
     public static BigGWContactArray createForWholeGenome(Dataset dataset, ChromosomeHandler handler,
                                                          HiCZoom zoom, boolean includeIntra) {
@@ -39,23 +43,46 @@ public class BigGWContactArrayCreator {
         }
         long matrixSize = calculateGWSize(handler, zoom.getBinSize());
 
+        BigContactArray[] bas = parLoadInterAndIntraGWData(dataset, handler, zoom, includeIntra, limit, matrixSize);
+
         BigGWContactArray array = new BigGWContactArray(matrixSize);
-
-        BigContactArray interBA = BigContactArrayCreator.populateBigArrayFromSingleIterator(new GenomeWideIterator(dataset, handler,
-                        zoom, false, true), limit,
-                matrixSize);
-        array.addAllSubLists(interBA);
-        array.addAllSubListsToInterBackup(interBA);
-        interBA.clear();
-
-        if (includeIntra) {
-            BigContactArray intraBA = BigContactArrayCreator.populateBigArrayFromSingleIterator(new GenomeWideIterator(dataset, handler,
-                    zoom, true, false), limit, matrixSize);
-            array.addAllSubLists(intraBA);
-            intraBA.clear();
+        array.addAllSubLists(bas[0]);
+        array.addAllSubListsToInterBackup(bas[0]);
+        bas[0].clear();
+        if (bas[1] != null) {
+            array.addAllSubLists(bas[1]);
+            bas[1].clear();
         }
+        bas = null;
 
         return array;
+    }
+
+    private static BigContactArray[] parLoadInterAndIntraGWData(Dataset dataset, ChromosomeHandler handler, HiCZoom zoom, boolean includeIntra, int limit, long matrixSize) {
+        BigContactArray[] bas = new BigContactArray[2];
+        Arrays.fill(bas, null);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        Runnable worker = () -> {
+            bas[0] = BigContactArrayCreator.populateBigArrayFromSingleIterator(new GenomeWideIterator(dataset, handler,
+                    zoom, false, true), limit, matrixSize);
+        };
+        executor.execute(worker);
+
+        Runnable worker2 = () -> {
+            if (includeIntra) {
+                bas[1] = BigContactArrayCreator.populateBigArrayFromSingleIterator(new GenomeWideIterator(dataset, handler,
+                        zoom, true, false), limit, matrixSize);
+            }
+        };
+        executor.execute(worker2);
+
+        executor.shutdown();
+
+        while (!executor.isTerminated()) {
+        }
+
+        return bas;
     }
 
     private static long calculateGWSize(ChromosomeHandler handler, int resolution) {
