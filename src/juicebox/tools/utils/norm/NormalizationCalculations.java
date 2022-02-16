@@ -24,30 +24,13 @@
 
 package juicebox.tools.utils.norm;
 
-import javastraw.reader.block.ContactRecord;
-import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.datastructures.ListOfFloatArrays;
-import javastraw.reader.datastructures.ListOfIntArrays;
 import javastraw.reader.type.NormalizationType;
 import juicebox.tools.clt.old.NormalizationBuilder;
 import juicebox.tools.utils.bigarray.BigContactArray;
 import juicebox.tools.utils.largelists.BigFloatsArray;
 import juicebox.tools.utils.norm.scale.ScaleHandler;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-
-
-/**
- * Class for computing VC ("Vanilla Coverage") and KR normalization vector.
- * <p/>
- * Note: currently these are valid for square matrices only.
- *
- * @author jrobinso
- * Date: 1/25/13
- * Time: 4:03 PM
- */
 public class NormalizationCalculations {
 
     private final long matrixSize; // x and y symmetric
@@ -60,40 +43,6 @@ public class NormalizationCalculations {
         this.matrixSize = ba.getMatrixSize();
         this.resolution = resolution;
     }
-
-    private static ListOfDoubleArrays sparseMultiplyFromContactRecords(ListOfIntArrays offset,
-                                                                       Iterator<ContactRecord> iterator, ListOfDoubleArrays vector) {
-        ListOfDoubleArrays result = new ListOfDoubleArrays(vector.getLength());
-
-        while (iterator.hasNext()) {
-            ContactRecord cr = iterator.next();
-            int row = cr.getBinX();
-            int col = cr.getBinY();
-            float value = cr.getCounts();
-
-            row = offset.get(row);
-            col = offset.get(col);
-
-            if (row != -1 && col != -1) {
-                result.addTo(row, vector.get(col) * value);
-                if (row != col) {
-                    result.addTo(col, vector.get(row) * value);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    /*
-    private Iterator<ContactRecord> getIterator() {
-        return ic.getNewContactRecordIterator();
-    }
-
-    boolean isEnoughMemory() {
-        return isEnoughMemory;
-    }
-    */
 
     public ListOfFloatArrays getNorm(NormalizationType normOption) {
         ListOfFloatArrays norm;
@@ -137,17 +86,6 @@ public class NormalizationCalculations {
     
     public double[] getNormMatrixSumFactor(ListOfFloatArrays norm) {
         return ba.getNormMatrixSumFactor(norm);
-    }
-
-
-    public int getNumberOfValidEntriesInVector(double[] norm) {
-        int counter = 0;
-        for (double val : norm) {
-            if (!Double.isNaN(val) && val > 0) {
-                counter++;
-            }
-        }
-        return counter;
     }
 
     private BigFloatsArray getInitialStartingVector(ListOfFloatArrays vc) {
@@ -401,7 +339,7 @@ public class NormalizationCalculations {
 
         return contactRecords;
 
-    }*/
+    }
 
     public int getRandomWithExclusion(Random rnd, int end, List<Integer> exclude) {
         int random = 0;
@@ -418,5 +356,5 @@ public class NormalizationCalculations {
             random++;
         }
         return random;
-    }
+    }*/
 }
