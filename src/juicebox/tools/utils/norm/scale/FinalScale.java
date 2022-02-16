@@ -51,7 +51,6 @@ public class FinalScale {
         float localZscoreCutoff = zscoreCutoff;
         BigShortsArray bad = new BigShortsArray(matrixSize);
         BigFloatsArray svec = new BigFloatsArray(matrixSize);
-        int[] r0 = new int[(int) Math.min(matrixSize, Integer.MAX_VALUE - 1)];
 
         BigShortsArray zTargetVector = new BigShortsArray(matrixSize, S1);
         BigFloatsArray calculatedVectorB = new BigFloatsArray(matrixSize);
@@ -217,7 +216,6 @@ public class FinalScale {
         zTargetVector.clear();
         one.clear();
         numNonZero.clear();
-        r0 = null;
         row.clear();
         rowBackup.clear();
         dr.clear();

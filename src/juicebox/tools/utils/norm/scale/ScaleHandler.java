@@ -29,21 +29,15 @@ import juicebox.tools.utils.bigarray.BigContactArray;
 import juicebox.tools.utils.largelists.BigFloatsArray;
 
 public class ScaleHandler {
-    public static ListOfFloatArrays scale(BigContactArray ic, int resolution, long matrixSize,
+    public static ListOfFloatArrays scale(BigContactArray ic, long matrixSize,
                                           BigFloatsArray initialGuess) {
-        /*
-        BigArray ic2 = ic;
-        if (DistanceFilteredIteratorContainer.getUseFilterDistance()) {
-            ic2 = new DistanceFilteredIteratorContainer(ic, resolution);
-        }
-        */
         return FinalScale.scaleToTargetVector(ic, matrixSize, initialGuess);
     }
 
 
-    public static ListOfFloatArrays mmbaScaleToVector(BigContactArray ic, int resolution, long matrixSize,
+    public static ListOfFloatArrays mmbaScaleToVector(BigContactArray ic, long matrixSize,
                                                       BigFloatsArray initialGuess) {
-        ListOfFloatArrays newNormVector = scale(ic, resolution, matrixSize, initialGuess);
+        ListOfFloatArrays newNormVector = scale(ic, matrixSize, initialGuess);
         return ic.normalizeVectorByScaleFactor(newNormVector);
     }
 
