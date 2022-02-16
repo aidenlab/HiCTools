@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -78,6 +78,7 @@ public class CommandLineParser extends CmdLineParser {
     private final Option threadNumOption = addIntegerOption('j', "threads");
     private final Option matrixThreadNumOption = addIntegerOption("mthreads");
     private final Option v9DepthBaseOption = addIntegerOption("v9-depth-base");
+    private final Option initOption = addIntegerOption("initial");
 
     // sets of strings
     private final Option multipleChromosomesOption = addStringOption('c', "chromosomes");
@@ -260,6 +261,10 @@ public class CommandLineParser extends CmdLineParser {
 
     public int getV9DepthBase() {
         return optionToInt(v9DepthBaseOption);
+    }
+
+    public int getInitType() {
+        return optionToInt(initOption);
     }
 
     /**

@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,11 +28,11 @@ import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.datastructures.ListOfFloatArrays;
-import javastraw.reader.iterators.IteratorContainer;
 import javastraw.reader.norm.NormalizationVector;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationType;
 import javastraw.tools.ParallelizationTools;
+import juicebox.HiCGlobals;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -47,7 +47,7 @@ public class NormalizationTools {
         final AtomicInteger index = new AtomicInteger(0);
         Chromosome[] chromosomes = chromosomeHandler.getChromosomeArrayWithoutAllByAll();
         long[] offsets = createOffsets(chromosomes, resolution);
-        ParallelizationTools.launchParallelizedCode(IteratorContainer.numCPUMatrixThreads, () -> {
+        ParallelizationTools.launchParallelizedCode(HiCGlobals.numCPUMatrixThreads, () -> {
             int i = index.getAndIncrement();
             while (i < (chromosomes).length) {
                 Chromosome c1 = chromosomes[i];

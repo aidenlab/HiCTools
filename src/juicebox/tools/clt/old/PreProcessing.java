@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,6 @@ package juicebox.tools.clt.old;
 
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.basics.ChromosomeTools;
-import javastraw.reader.iterators.IteratorContainer;
 import javastraw.reader.type.NormalizationType;
 import juicebox.HiCGlobals;
 import juicebox.tools.clt.CommandLineParser;
@@ -103,7 +102,7 @@ public class PreProcessing extends JuiceboxCLT {
 
         updateNumberOfCPUThreads(parser, 1);
         updateSecondaryNumberOfCPUThreads(parser, 10);
-        IteratorContainer.numCPUMatrixThreads = numCPUThreadsForSecondTask;
+        HiCGlobals.numCPUMatrixThreads = numCPUThreadsForSecondTask;
 
         if (numCPUThreads < 2) {
             preprocessor = new Preprocessor(new File(outputFile), genomeId, chromHandler, hicFileScalingFactor);

@@ -35,6 +35,8 @@ import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
 import javastraw.tools.HiCFileTools;
 import juicebox.HiCGlobals;
+import juicebox.tools.utils.bigarray.BigContactArray;
+import juicebox.tools.utils.bigarray.BigContactArrayCreator;
 import juicebox.tools.utils.original.ExpectedValueCalculation;
 import org.broad.igv.tdf.BufferedByteWriter;
 
@@ -75,7 +77,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
         updateNormVectorIndexWithVector(normVectorIndex, normVectorBuffers, vec, chrIdx, type, zoom);
 
-        ev.addDistancesFromIterator(chrIdx, zd.getIteratorContainer(), vec);
+        ev.addDistancesFromIterator(chrIdx, zd.getDirectIterator(), vec);
     }
 
     protected void reEvaluateWhichIntraNormsToBuild(List<NormalizationType> normalizationsToBuild) {
@@ -142,7 +144,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                         normVectorIndices, normVectorBuffers, expectedValueCalculations);
             }
 
-            ds.clearCache();
+            ds.clearCache(true);
 
             //System.out.println("genomewide normalization: " + Duration.between(A,B).toMillis());
 
@@ -162,11 +164,9 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                     System.out.println("Now Doing " + chr.getName());
                 }
 
-                NormalizationCalculations nc = new NormalizationCalculations(zd.getIteratorContainer(), zd.getBinSize());
-                if (!nc.isEnoughMemory()) {
-                    System.err.println("Not enough memory, skipping " + chr);
-                    continue;
-                }
+                BigContactArray ba = BigContactArrayCreator.createFromZD(zd);
+                NormalizationCalculations nc = new NormalizationCalculations(ba, zd.getBinSize());
+                zd.clearCache();
 
                 if (weShouldBuildVC || weShouldBuildVCSqrt) {
                     buildVCOrVCSQRT(weShouldBuildVC && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC),
@@ -180,6 +180,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                 }
 
                 zd.clearCache();
+                ba.clear();
             }
 
             if (weShouldBuildVC && evVC.hasData() && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC)) {
@@ -192,7 +193,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                 expectedValueCalculations.add(evSCALE);
             }
 
-            ds.clearCache();
+            ds.clearCache(false);
         }
         writeNormsToUpdateFile(reader, path, true, expectedValueCalculations, null, normVectorIndices,
                 normVectorBuffers, "Finished writing norms");

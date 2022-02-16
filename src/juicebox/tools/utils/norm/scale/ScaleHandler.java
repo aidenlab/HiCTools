@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,69 +24,27 @@
 
 package juicebox.tools.utils.norm.scale;
 
-import javastraw.reader.block.ContactRecord;
 import javastraw.reader.datastructures.ListOfFloatArrays;
-import javastraw.reader.iterators.IteratorContainer;
-import juicebox.tools.utils.norm.DistanceFilteredIteratorContainer;
-
-import java.util.Iterator;
+import juicebox.tools.utils.bigarray.BigContactArray;
+import juicebox.tools.utils.largelists.BigFloatsArray;
 
 public class ScaleHandler {
-    public static ListOfFloatArrays scale(IteratorContainer ic, ListOfFloatArrays targetVectorInitial,
-                                          int resolution) {
-        IteratorContainer ic2 = ic;
+    public static ListOfFloatArrays scale(BigContactArray ic, int resolution, long matrixSize,
+                                          BigFloatsArray initialGuess) {
+        /*
+        BigArray ic2 = ic;
         if (DistanceFilteredIteratorContainer.getUseFilterDistance()) {
             ic2 = new DistanceFilteredIteratorContainer(ic, resolution);
         }
-        return FinalScale.scaleToTargetVector(ic2, targetVectorInitial);
+        */
+        return FinalScale.scaleToTargetVector(ic, matrixSize, initialGuess);
     }
 
 
-    public static ListOfFloatArrays normalizeVectorByScaleFactor(ListOfFloatArrays newNormVector, IteratorContainer ic) {
-
-        for (long k = 0; k < newNormVector.getLength(); k++) {
-            float kVal = newNormVector.get(k);
-            if (kVal <= 0 || Double.isNaN(kVal)) {
-                newNormVector.set(k, Float.NaN);
-            } else {
-                newNormVector.set(k, 1.f / kVal);
-            }
-        }
-
-        double normalizedSumTotal = 0, sumTotal = 0;
-
-        Iterator<ContactRecord> iterator = ic.getNewContactRecordIterator();
-        while (iterator.hasNext()) {
-            ContactRecord cr = iterator.next();
-
-            int x = cr.getBinX();
-            int y = cr.getBinY();
-            final float counts = cr.getCounts();
-
-            double valX = newNormVector.get(x);
-            double valY = newNormVector.get(y);
-
-            if (!Double.isNaN(valX) && !Double.isNaN(valY)) {
-                double normalizedValue = counts / (valX * valY);
-                normalizedSumTotal += normalizedValue;
-                sumTotal += counts;
-                if (x != y) {
-                    normalizedSumTotal += normalizedValue;
-                    sumTotal += counts;
-                }
-
-            }
-        }
-
-        double scaleFactor = Math.sqrt(normalizedSumTotal / sumTotal);
-        newNormVector.multiplyEverythingBy(scaleFactor);
-        return newNormVector;
-    }
-
-    public static ListOfFloatArrays mmbaScaleToVector(IteratorContainer ic, ListOfFloatArrays tempTargetVector,
-                                                      int resolution) {
-        ListOfFloatArrays newNormVector = scale(ic, tempTargetVector, resolution);
-        return normalizeVectorByScaleFactor(newNormVector, ic);
+    public static ListOfFloatArrays mmbaScaleToVector(BigContactArray ic, int resolution, long matrixSize,
+                                                      BigFloatsArray initialGuess) {
+        ListOfFloatArrays newNormVector = scale(ic, resolution, matrixSize, initialGuess);
+        return ic.normalizeVectorByScaleFactor(newNormVector);
     }
 
 }

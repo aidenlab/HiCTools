@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,13 +24,11 @@
 
 package juicebox.tools.clt.old;
 
-import javastraw.reader.iterators.IteratorContainer;
 import javastraw.reader.type.NormalizationType;
 import juicebox.HiCGlobals;
 import juicebox.tools.clt.CommandLineParser;
 import juicebox.tools.clt.JuiceboxCLT;
 import juicebox.tools.utils.norm.CustomNormVectorFileHandler;
-import juicebox.tools.utils.norm.DistanceFilteredIteratorContainer;
 import juicebox.tools.utils.norm.NormalizationVectorUpdater;
 
 import java.io.IOException;
@@ -100,10 +98,11 @@ public class AddNorm extends JuiceboxCLT {
         HiCGlobals.setMatrixZoomDataRAMUsage();
 
         updateNumberOfCPUThreads(parser, 10);
-        IteratorContainer.numCPUMatrixThreads = numCPUThreads;
+        HiCGlobals.numCPUMatrixThreads = numCPUThreads;
+
+        HiCGlobals.INIT_TYPE = parser.getInitType();
 
         usingMultiThreadedVersion = numCPUThreads > 1;
-        DistanceFilteredIteratorContainer.setFilterDistance(parser.getNearDiagonalOption());
 
         genomeWideResolution = parser.getGenomeWideOption();
         normalizationTypes.addAll(parser.getAllNormalizationTypesOption());

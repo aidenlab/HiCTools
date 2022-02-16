@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +29,6 @@ import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.block.ContactRecord;
 import javastraw.reader.datastructures.ListOfFloatArrays;
-import javastraw.reader.iterators.IteratorContainer;
-import javastraw.reader.iterators.ListOfListGenerator;
 import javastraw.reader.mzd.MatrixZoomData;
 import javastraw.reader.norm.NormalizationVector;
 import javastraw.reader.type.HiCZoom;
@@ -38,6 +36,8 @@ import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
 import javastraw.tools.HiCFileTools;
 import juicebox.HiCGlobals;
+import juicebox.tools.utils.bigarray.BigContactArray;
+import juicebox.tools.utils.bigarray.BigContactArrayCreator;
 import juicebox.tools.utils.original.ExpectedValueCalculation;
 import org.broad.igv.tdf.BufferedByteWriter;
 import org.broad.igv.util.Pair;
@@ -90,14 +90,15 @@ public class GenomeWideNormalizationVectorUpdater extends NormVectorUpdater {
         boolean includeIntraData = NormalizationHandler.isGenomeWideNormIntra(norm); // default INTER type
         final ChromosomeHandler chromosomeHandler = dataset.getChromosomeHandler();
         final int resolution = zoom.getBinSize();
-        final IteratorContainer ic = ListOfListGenerator.createForWholeGenome(dataset, chromosomeHandler, zoom,
-                includeIntraData, HiCGlobals.USE_ITERATOR_NOT_ALL_IN_RAM, HiCGlobals.CHECK_RAM_USAGE);
+        final BigContactArray ba = BigContactArrayCreator.createForWholeGenome(dataset, chromosomeHandler, zoom,
+                includeIntraData);
 
-        NormalizationCalculations calculations = new NormalizationCalculations(ic, resolution);
+        NormalizationCalculations calculations = new NormalizationCalculations(ba, resolution);
         ListOfFloatArrays vector = calculations.getNorm(norm);
         if (vector == null) {
             return null;
         }
+        ba.clear();
 
         ExpectedValueCalculation expectedValueCalculation = new ExpectedValueCalculation(chromosomeHandler, resolution, null, norm);
         int addY = 0;
@@ -107,7 +108,7 @@ public class GenomeWideNormalizationVectorUpdater extends NormVectorUpdater {
             if (zd == null) continue;
             final int chrIdx = chr.getIndex();
 
-            Iterator<ContactRecord> iterator = zd.getFromFileIteratorContainer().getNewContactRecordIterator();
+            Iterator<ContactRecord> iterator = zd.getDirectIterator();
             while (iterator.hasNext()) {
                 ContactRecord cr = iterator.next();
                 int x = cr.getBinX();
@@ -119,14 +120,13 @@ public class GenomeWideNormalizationVectorUpdater extends NormVectorUpdater {
                     expectedValueCalculation.addDistance(chrIdx, x, y, value);
                 }
             }
+            zd.clearCache();
             addY += chr.getLength() / resolution + 1;
         }
 
         // Split normalization vector by chromosome
         Map<Chromosome, NormalizationVector> normVectorMap =
                 NormalizationTools.parCreateNormVectorMap(chromosomeHandler, resolution, vector, norm, zoom);
-
-        ic.clear();
 
         return new Pair<>(normVectorMap, expectedValueCalculation);
     }

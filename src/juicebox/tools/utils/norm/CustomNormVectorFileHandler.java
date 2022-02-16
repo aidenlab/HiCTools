@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2021 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,6 @@ import org.broad.igv.tdf.BufferedByteWriter;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
 import java.util.zip.GZIPInputStream;
 
 public class CustomNormVectorFileHandler extends NormVectorUpdater {
@@ -75,12 +74,7 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
         List<NormalizationVectorIndexEntry> normVectorIndices = new ArrayList<>();
         Map<String, ExpectedValueFunction> expectedValueFunctionMap = ds.getExpectedValueFunctionMap();
 
-        for (Iterator<Map.Entry<String, ExpectedValueFunction>> it = expectedValueFunctionMap.entrySet().iterator(); it.hasNext(); ) {
-            Map.Entry<String, ExpectedValueFunction> entry = it.next();
-            if (entry.getKey().contains("NONE")) {
-                it.remove();
-            }
-        }
+        expectedValueFunctionMap.entrySet().removeIf(entry -> entry.getKey().contains("NONE"));
 
         // Get existing norm vectors so we don't lose them
         if (overwriteHicFileFooter) {
@@ -109,7 +103,7 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
             }
         }
 
-        ExecutorService executor = HiCGlobals.newFixedThreadPool();
+        //ExecutorService executor = HiCGlobals.newFixedThreadPool();
         for (NormalizationType customNormType : normalizationVectorMap.keySet()) {
             final Map<String, NormalizationVector> normVectorsByChrAndZoom = normalizationVectorMap.get(customNormType);
             final Set<String> keySet = new HashSet<>(normVectorsByChrAndZoom.keySet());
@@ -121,37 +115,15 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
                     normVectorsByChrAndZoom.remove(key);
                     continue;
                 }
-                if (nv instanceof CustomNormalizationVector) {
-                    CustomNormalizationVector cnv = (CustomNormalizationVector) nv;
-                    if (cnv.doesItNeedToBeScaledTo()) {
-                        Runnable worker = new Runnable() {
-                            @Override
-                            public void run() {
-                                NormalizationVector newScaledVector = cnv.mmbaScaleToVector(ds);
-                                synchronized (normVectorsByChrAndZoom) {
-                                    if (newScaledVector != null) {
-                                        normVectorsByChrAndZoom.put(key, newScaledVector);
-                                    } else {
-                                        normVectorsByChrAndZoom.remove(key);
-                                        int currResolution = nv.getResolution();
-                                        int chrIndx = nv.getChrIdx();
-                                        if (currResolution < chrAndResolutionWhichFailed.get(chrIndx)) {
-                                            chrAndResolutionWhichFailed.put(chrIndx, currResolution);
-                                        }
-                                    }
-                                }
-                            }
-                        };
-                        executor.execute(worker);
-                    }
-                }
             }
         }
 
+        /*
         executor.shutdown();
         // Wait until all threads finish
         while (!executor.isTerminated()) {
         }
+        */
 
         for (HiCZoom zoom : resolutions) {
             Map<String, Integer> fcm = zoom.getUnit() == HiCZoom.HiCUnit.FRAG ? fragCountMap : null;
@@ -202,7 +174,7 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
             normVectorIndex.add(new NormalizationVectorIndexEntry(
                     customNormType.toString(), chrIndx, zoom.getUnit().toString(), zoom.getBinSize(), position, sizeInBytes));
     
-            evLoaded.addDistancesFromIterator(chrIndx, zd.getIteratorContainer(), vector.getData().convertToFloats());
+            evLoaded.addDistancesFromIterator(chrIndx, zd.getDirectIterator(), vector.getData().convertToFloats());
         }
     }
 
@@ -274,8 +246,8 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
                     if (!normVectors.containsKey(customNormType)) {
                         normVectors.put(customNormType, new HashMap<>());
                     }
-                    CustomNormalizationVector vector = new CustomNormalizationVector(customNormType, chr.getIndex(), unit,
-                            resolution, data, needsToBeScaledTo);
+                    NormalizationVector vector = new NormalizationVector(customNormType, chr.getIndex(), unit,
+                            resolution, data);
                     normVectors.get(customNormType).put(vector.getKey(), vector);
 
                 } else {
