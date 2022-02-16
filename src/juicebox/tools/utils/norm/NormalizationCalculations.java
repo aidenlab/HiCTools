@@ -100,7 +100,7 @@ public class NormalizationCalculations {
         if (NormalizationBuilder.usesVC(normOption)) {
             norm = computeVC();
         } else if (NormalizationBuilder.usesSCALE(normOption)) {
-            norm = computeMMBA();
+            norm = computeSCALE(computeVC());
         } else if (NormalizationBuilder.isNONE(normOption)) {
             return new ListOfFloatArrays(matrixSize, 1);
         } else {
@@ -150,8 +150,7 @@ public class NormalizationCalculations {
         return counter;
     }
 
-    private BigFloatsArray getInitialStartingVector() {
-        ListOfFloatArrays vc = computeVC();
+    private BigFloatsArray getInitialStartingVector(ListOfFloatArrays vc) {
         BigFloatsArray initial = new BigFloatsArray(vc.getLength());
         for (long i = 0; i < vc.getLength(); i++) {
             initial.set(i, (float) Math.sqrt(vc.get(i)));
@@ -159,8 +158,8 @@ public class NormalizationCalculations {
         return initial;
     }
 
-    public ListOfFloatArrays computeMMBA() {
-        BigFloatsArray initial = getInitialStartingVector();
+    public ListOfFloatArrays computeSCALE(ListOfFloatArrays vc) {
+        BigFloatsArray initial = getInitialStartingVector(vc);
         return ScaleHandler.mmbaScaleToVector(ba, matrixSize, initial);
     }
 
