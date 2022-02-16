@@ -31,6 +31,7 @@ import juicebox.HiCGlobals;
 import juicebox.tools.utils.largelists.BigDoublesArray;
 import juicebox.tools.utils.largelists.BigFloatsArray;
 import juicebox.tools.utils.largelists.BigShortsArray;
+import juicebox.tools.utils.original.ExpectedValueCalculation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -281,5 +282,29 @@ public class BigContactArray {
             }
         }
         return numNonZero;
+    }
+
+    public void updateGenomeWideExpected(int chrIdx, ListOfFloatArrays vector, ExpectedValueCalculation exp) {
+        for (int sIndx = 0; sIndx < binXs.size(); sIndx++) {
+            int[] subBinXs = binXs.get(sIndx);
+            int[] subBinYs = binYs.get(sIndx);
+            float[] subBinVals = binVals.get(sIndx);
+
+            for (int z = 0; z < subBinXs.length; z++) {
+                int x = subBinXs[z];
+                int y = subBinYs[z];
+                float counts = subBinVals[z];
+                if (counts > 0) {
+                    final float vx = vector.get(x);
+                    final float vy = vector.get(y);
+                    if (vx > 0 && vy > 0) {
+                        double value = counts / (vx * vy);
+                        if (value > 0) {
+                            exp.addDistance(chrIdx, x, y, value);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
