@@ -29,7 +29,7 @@ import javastraw.reader.type.NormalizationType;
 import juicebox.tools.clt.old.NormalizationBuilder;
 import juicebox.tools.utils.bigarray.BigContactArray;
 import juicebox.tools.utils.largelists.BigFloatsArray;
-import juicebox.tools.utils.norm.scale.ScaleHandler;
+import juicebox.tools.utils.norm.scale.FinalScale;
 
 public class NormalizationCalculations {
 
@@ -44,12 +44,12 @@ public class NormalizationCalculations {
         this.resolution = resolution;
     }
 
-    public ListOfFloatArrays getNorm(NormalizationType normOption) {
+    public ListOfFloatArrays getNorm(NormalizationType normOption, String stem) {
         ListOfFloatArrays norm;
         if (NormalizationBuilder.usesVC(normOption)) {
             norm = computeVC();
         } else if (NormalizationBuilder.usesSCALE(normOption)) {
-            norm = computeSCALE(computeVC());
+            norm = computeSCALE(computeVC(), stem);
         } else if (NormalizationBuilder.isNONE(normOption)) {
             return new ListOfFloatArrays(matrixSize, 1);
         } else {
@@ -96,9 +96,10 @@ public class NormalizationCalculations {
         return initial;
     }
 
-    public ListOfFloatArrays computeSCALE(ListOfFloatArrays vc) {
+    public ListOfFloatArrays computeSCALE(ListOfFloatArrays vc, String stem) {
         BigFloatsArray initial = getInitialStartingVector(vc);
-        return ScaleHandler.mmbaScaleToVector(ba, matrixSize, initial);
+        ListOfFloatArrays newNormVector = FinalScale.scaleToTargetVector(ba, matrixSize, initial, stem);
+        return ba.normalizeVectorByScaleFactor(newNormVector);
     }
 
     /*public BigContactRecordList booleanBalancing() {

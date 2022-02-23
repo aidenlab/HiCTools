@@ -197,12 +197,13 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
         final int chrIdx = chr.getIndex();
         ListOfFloatArrays vc = nc.computeVC();
+        String stem = "NORM_" + chrIdx + "_" + zoom.getBinSize();
 
         if (saveScale) {
             Set<Chromosome> failureSet = zoom.getUnit() == HiCZoom.HiCUnit.FRAG ? scaleFragFailChroms : scaleBPFailChroms;
 
             if (!failureSet.contains(chr)) {
-                ListOfFloatArrays scale = nc.computeSCALE(vc);
+                ListOfFloatArrays scale = nc.computeSCALE(vc, stem);
                 if (scale == null) {
                     failureSet.add(chr);
                 } else {

@@ -46,7 +46,7 @@ public class FinalScale {
     private final static float minErrorThreshold = .02f;
 
     public static ListOfFloatArrays scaleToTargetVector(BigContactArray ba, long matrixSize,
-                                                        BigFloatsArray initialGuess) {
+                                                        BigFloatsArray initialGuess, String stem) {
 
         float localZscoreCutoff = zscoreCutoff;
         BigShortsArray bad = new BigShortsArray(matrixSize);
@@ -88,8 +88,8 @@ public class FinalScale {
         BigFloatsArray current = dr.deepClone();
         //	start iterations
         //	row is the current rows sum; dr and dc are the current rows and columns scaling vectors
-        double ber = 10.0 * (1.0 + tolerance);
-        double err = ber;
+        double convergeError = 10.0 * (1.0 + tolerance);
+        double rowSumError = convergeError;
         int iter = 0;
         boolean failed;
         int nerr = 0;
@@ -98,8 +98,12 @@ public class FinalScale {
         BigFloatsArray col = null;
         int realIters = 0;
 
-        // if perc or perc1 reached upper bound or the total number of iterationbs is too high, exit
-        while ((ber > tolerance || err > 5.0 * tolerance) && iter < maxIter && allItersI < totalIterations
+        // rowSumError = .1
+        // total iter ~ 50
+
+        // if perc or perc1 reached upper bound or the total number of iterations is too high, exit
+        while ((convergeError > tolerance || rowSumError > 5.0 * tolerance)
+                && iter < maxIter && allItersI < totalIterations
                 && localZscoreCutoff <= -.5) {
             iter++;
             allItersI++;
@@ -118,18 +122,18 @@ public class FinalScale {
             //printFirst10(calculatedVectorB, iter);
 
             //	calculate the current error
-            ber = BigFloatsArray.parCalculateConvergenceError(calculatedVectorB, current, bad);
+            convergeError = BigFloatsArray.parCalculateConvergenceError(calculatedVectorB, current, bad);
 
 
-            reportErrorForIteration[allItersI - 1] = ber;
+            reportErrorForIteration[allItersI - 1] = convergeError;
             numItersForAllIterations[allItersI - 1] = iter;
 
-            //	since calculating the error in row sums requires matrix-vector multiplication we are doing this every 10
-            //	iterations
+            //	since calculating the error in row sums requires matrix-vector multiplication
+            //	we are doing this every 10	iterations
             if (iter % 10 == 0) {
                 col = parSparseMultiplyGetRowSums(ba, calculatedVectorB, matrixSize);
-                err = BigFloatsArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
-                errors[nerr++] = (float) err;
+                rowSumError = BigFloatsArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
+                errors[nerr++] = (float) rowSumError;
             }
 
             // current = calculatedVectorB
@@ -138,7 +142,8 @@ public class FinalScale {
             // check whether convergence rate is satisfactory
             // if less than 5 iterations (so less than 5 errors) and less than 2 row sums errors, there is nothing to check
 
-            if (ber < tolerance && (nerr < 2 || errors[nerr - 1] < 0.5 * errors[nerr - 2])) continue;
+            if (convergeError < tolerance
+                    && (nerr < 2 || errors[nerr - 1] < 0.5 * errors[nerr - 2])) continue;
 
             if (iter > 5) {
                 for (int q = 1; q <= 5; q++) {
@@ -147,7 +152,7 @@ public class FinalScale {
                         break;
                     }
                 }
-    
+
                 if (nerr >= 2 && errors[nerr - 1] > 0.75 * errors[nerr - 2]) {
                     failed = true;
                 }
@@ -166,9 +171,9 @@ public class FinalScale {
                         }
                     }
 
-                    ber = 10.0 * (1.0 + tol);
-                    err = 10.0 * (1.0 + tol);
-    
+                    convergeError = 10.0 * (1.0 + tol);
+                    rowSumError = 10.0 * (1.0 + tol);
+
                     //	if the current error is larger than 5 iteration ago start from scratch,
                     //	otherwise continue from the current position
                     if (reportErrorForIteration[allItersI - 1] > reportErrorForIteration[allItersI - 6]) {
@@ -192,12 +197,12 @@ public class FinalScale {
         //	find the final error in row sums
         if (HiCGlobals.printVerboseComments) {
             col = parSparseMultiplyGetRowSums(ba, calculatedVectorB, matrixSize);
-            err = BigFloatsArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
+            rowSumError = BigFloatsArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
             double err90 = BigFloatsArray.calculateError90(col, calculatedVectorB, zTargetVector, bad);
-            System.out.println("Total iters " + realIters + " Row Sums Error " + err + " Error90 " + err90);
+            System.out.println("Total iters " + realIters + " Row Sums Error " + rowSumError + " Error90 " + err90);
 
-            reportErrorForIteration[allItersI + 1] = ber;
-            reportErrorForIteration[allItersI + 2] = err;
+            reportErrorForIteration[allItersI + 1] = convergeError;
+            reportErrorForIteration[allItersI + 2] = rowSumError;
 
             //System.out.println(allItersI);
             //System.out.println(localPercentLowRowSumExcluded);

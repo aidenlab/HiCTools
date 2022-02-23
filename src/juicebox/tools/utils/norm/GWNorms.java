@@ -91,7 +91,7 @@ public class GWNorms {
 
         Map<NormalizationType, Map<Chromosome, NormalizationVector>> result = new HashMap<>();
         for (NormalizationType normType : gwNorms) {
-            Map<Chromosome, NormalizationVector> wgVectors = getWGVectors(zoom, normType, ba, handler);
+            Map<Chromosome, NormalizationVector> wgVectors = getWGVectors(zoom, normType, ba, handler, "GW");
             if (wgVectors != null) {
                 result.put(normType, wgVectors);
             }
@@ -100,7 +100,7 @@ public class GWNorms {
         ba.clearIntraAndShiftInter();
 
         for (NormalizationType normType : interNorms) {
-            Map<Chromosome, NormalizationVector> wgVectors = getWGVectors(zoom, normType, ba, handler);
+            Map<Chromosome, NormalizationVector> wgVectors = getWGVectors(zoom, normType, ba, handler, "INTER");
             if (wgVectors != null) {
                 result.put(normType, wgVectors);
             }
@@ -111,10 +111,11 @@ public class GWNorms {
     }
 
     private static Map<Chromosome, NormalizationVector> getWGVectors(HiCZoom zoom, NormalizationType norm,
-                                                                     BigContactArray ba, ChromosomeHandler handler) {
+                                                                     BigContactArray ba, ChromosomeHandler handler,
+                                                                     String stem) {
         final int resolution = zoom.getBinSize();
         NormalizationCalculations calculations = new NormalizationCalculations(ba, resolution);
-        ListOfFloatArrays vector = calculations.getNorm(norm);
+        ListOfFloatArrays vector = calculations.getNorm(norm, stem + "_NORM_" + zoom.getBinSize());
         if (vector == null) {
             return null;
         }
