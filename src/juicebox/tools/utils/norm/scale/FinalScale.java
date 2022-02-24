@@ -50,7 +50,6 @@ public class FinalScale {
 
         float localZscoreCutoff = zscoreCutoff;
         BigShortsArray bad = new BigShortsArray(matrixSize);
-        BigFloatsArray svec = new BigFloatsArray(matrixSize);
 
         BigShortsArray zTargetVector = new BigShortsArray(matrixSize, S1);
         BigFloatsArray calculatedVectorB = new BigFloatsArray(matrixSize);
@@ -71,7 +70,7 @@ public class FinalScale {
             }
         }
 
-        BigFloatsArray row = parSparseMultiplyGetRowSums(ba, one, matrixSize);
+        BigFloatsArray row = ba.parSparseMultiplyAcrossLists(one, matrixSize);
         BigFloatsArray rowBackup = row.deepClone();
 
         for (long p = 0; p < matrixSize; p++) {
@@ -110,10 +109,10 @@ public class FinalScale {
             realIters++;
             failed = true;
 
-            col = update(matrixSize, bad, row, zTargetVector, svec, dr, ba);
+            col = update(matrixSize, bad, row, zTargetVector, dr, ba);
             col.parMultiplyBy(dc);
 
-            row = update(matrixSize, bad, col, zTargetVector, svec, dc, ba);
+            row = update(matrixSize, bad, col, zTargetVector, dc, ba);
             row.parMultiplyBy(dr);
 
             // calculate current scaling vector
@@ -131,7 +130,7 @@ public class FinalScale {
             //	since calculating the error in row sums requires matrix-vector multiplication
             //	we are doing this every 10	iterations
             if (iter % 10 == 0) {
-                col = parSparseMultiplyGetRowSums(ba, calculatedVectorB, matrixSize);
+                col = ba.parSparseMultiplyAcrossLists(calculatedVectorB, matrixSize);
                 rowSumError = BigFloatsArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
                 errors[nerr++] = (float) rowSumError;
             }
@@ -196,7 +195,7 @@ public class FinalScale {
 
         //	find the final error in row sums
         if (HiCGlobals.printVerboseComments) {
-            col = parSparseMultiplyGetRowSums(ba, calculatedVectorB, matrixSize);
+            col = ba.parSparseMultiplyAcrossLists(calculatedVectorB, matrixSize);
             rowSumError = BigFloatsArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
             double err90 = BigFloatsArray.calculateError90(col, calculatedVectorB, zTargetVector, bad);
             System.out.println("Total iters " + realIters + " Row Sums Error " + rowSumError + " Error90 " + err90);
@@ -217,7 +216,6 @@ public class FinalScale {
         }
 
         bad.clear();
-        svec.clear();
         zTargetVector.clear();
         one.clear();
         numNonZero.clear();
@@ -251,33 +249,16 @@ public class FinalScale {
 
     private static BigFloatsArray update(long matrixSize, BigShortsArray bad,
                                          BigFloatsArray vector, BigShortsArray target,
-                                         BigFloatsArray s, BigFloatsArray dVector,
-                                         BigContactArray ic) {
+                                         BigFloatsArray dVector, BigContactArray ba) {
         for (long p = 0; p < matrixSize; p++) {
             if (bad.get(p) == 1) {
                 vector.set(p, 1f);
             }
         }
-        // s = target/vector
-        s.parSetToDivision(target, vector);
-        dVector.parMultiplyBy(s);
+        // d *= target/vector
+        dVector.parScaleByRatio(target, vector);
 
         // find sums and update scaling vector
-        return parSparseMultiplyGetRowSums(ic, dVector, matrixSize);
-    }
-
-    private static int[] dealWithSorting(int[] vector, int length) {
-        int[] realVector = new int[length];
-        System.arraycopy(vector, 0, realVector, 0, length);
-        Arrays.sort(realVector);
-        return realVector;
-    }
-
-    private static BigFloatsArray parSparseMultiplyGetRowSums(BigContactArray ba, BigFloatsArray vector, long vectorLength) {
-        return ba.parSparseMultiplyAcrossLists(vector, vectorLength);
-    }
-
-    private static BigFloatsArray parSparseMultiplyGetRowSums(BigContactArray ba, BigShortsArray vector, long vectorLength) {
-        return ba.parSparseMultiplyAcrossLists(vector, vectorLength);
+        return ba.parSparseMultiplyAcrossLists(dVector, matrixSize);
     }
 }
