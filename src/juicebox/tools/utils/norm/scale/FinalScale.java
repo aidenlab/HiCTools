@@ -48,6 +48,8 @@ public class FinalScale {
     public static ListOfFloatArrays scaleToTargetVector(BigContactArray ba, long matrixSize,
                                                         BigFloatsArray initialGuess, String stem) {
 
+        long startTime = System.currentTimeMillis();
+
         float localZscoreCutoff = zscoreCutoff;
         BigShortsArray bad = new BigShortsArray(matrixSize);
 
@@ -226,6 +228,19 @@ public class FinalScale {
         current.clear();
         if (col != null) {
             col.clear();
+        }
+
+        if (HiCGlobals.printVerboseComments) {
+            long endTime = System.currentTimeMillis();
+            long timeInSecs = (endTime - startTime) / 1000;
+
+            System.out.println(stem + " took " + timeInSecs + " seconds");
+            for (int q = 0; q < allItersI; q++) {
+                System.out.println(numItersForAllIterations[q] + ": " + reportErrorForIteration[q]);
+            }
+            System.out.println("Total " + allItersI + " iterations; final zscore = " + localZscoreCutoff);
+            System.out.println("Final error in scaling vector is " + reportErrorForIteration[allItersI + 1] +
+                    " and in row sums is " + reportErrorForIteration[allItersI + 2]);
         }
 
         ListOfFloatArrays answer = calculatedVectorB.convertToRegular();
