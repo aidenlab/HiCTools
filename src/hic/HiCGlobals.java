@@ -35,7 +35,7 @@ import java.util.concurrent.Executors;
  */
 public class HiCGlobals {
 
-    public static final String versionNum = "3.07.01";
+    public static final String versionNum = "3.07.02";
     public static final int minVersion = 6;
     public static final int writingVersion = 9;
     public static final int bufferSize = 2097152;

@@ -31,14 +31,10 @@ public class NormalizationBuilder {
 
     public static Integer getIdealResolutionLimit(NormalizationType normalizationType) {
         if (NormalizationHandler.isGenomeWideNorm(normalizationType)) {
-            return 25000;
+            return 1000;
         } else {
             return 0;
         }
-    }
-
-    public static boolean usesKR(NormalizationType option) {
-        return option.getLabel().contains("KR");
     }
 
     public static boolean usesVC(NormalizationType option) {
