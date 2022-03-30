@@ -39,7 +39,7 @@ public class FinalScale {
     private final static short S0 = (short) 0;
     private final static float tol = .0005f;
     private final static float zscoreCutoff = -3;
-    private final static float dZscore = 0.25f;
+    private final static float dZscore = 0.2f;
     private final static float tolerance = .0005f;
     private final static int maxIter = 100;
     private final static int totalIterations = 3 * maxIter;
