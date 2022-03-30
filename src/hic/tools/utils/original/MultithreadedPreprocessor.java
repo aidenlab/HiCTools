@@ -161,8 +161,7 @@ public class MultithreadedPreprocessor extends Preprocessor {
                 iter = new AsciiPairIterator(inputFile, chromosomeIndexes, chunkPositions.get(chrChunk),
                         chromosomeHandler);
             }
-            ContactCleaner cleaner = ContactCleaner.create(chromosomeHandler, allowPositionsRandomization,
-                    fragmentCalculation, fragmentCalculationsForRandomization, random);
+            ContactCleaner cleaner = new ContactCleaner(chromosomeHandler);
 
             while (iter.hasNext()) {
                 AlignmentPair pair = iter.next();
@@ -193,7 +192,7 @@ public class MultithreadedPreprocessor extends Preprocessor {
                             if (outputFile != null) outputFile.deleteOnExit();
                             System.exit(58);
                         }
-                        currentMatrix = new MatrixPP(currentChr1, currentChr2, chromosomeHandler, bpBinSizes, fragmentCalculation, fragBinSizes, countThreshold, v9DepthBase, chrPairBlockCapacities.get(currentChrPair));
+                        currentMatrix = new MatrixPP(currentChr1, currentChr2, chromosomeHandler, bpBinSizes, countThreshold, v9DepthBase, chrPairBlockCapacities.get(currentChrPair));
                     }
                     cleaner.incrementCount(currentMatrix, localExpectedValueCalculations, tmpDir);
 
@@ -253,15 +252,6 @@ public class MultithreadedPreprocessor extends Preprocessor {
                             String key = "BP_" + bBinSize;
                             localExpectedValueCalculations.put(key, calc);
                         }
-                        if (fragmentCalculation != null) {
-                            Map<String, Integer> fragmentCountMap = Preprocessor.generateFragmentCountMap(fragmentCalculation);
-                            for (int fBinSize : fragBinSizes) {
-                                ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, fBinSize, fragmentCountMap, NormalizationHandler.NONE);
-                                String key = "FRAG_" + fBinSize;
-                                localExpectedValueCalculations.put(key, calc);
-                            }
-
-                        }
                     }
                     while (currentChunk < totalChunks) {
                         int currentChrPair = chunkCounterToChrPairMap.get(currentChunk);
@@ -270,7 +260,7 @@ public class MultithreadedPreprocessor extends Preprocessor {
                             if (!finalChrMatrices.containsKey(currentChrPair)) {
                                 int currentChr1 = chromosomePairIndex1.get(currentChrPair);
                                 int currentChr2 = chromosomePairIndex2.get(currentChrPair);
-                                finalChrMatrices.put(currentChrPair, new MatrixPP(currentChr1, currentChr2, chromosomeHandler, bpBinSizes, fragmentCalculation, fragBinSizes, countThreshold, v9DepthBase, chrPairBlockCapacities.get(currentChrPair)));
+                                finalChrMatrices.put(currentChrPair, new MatrixPP(currentChr1, currentChr2, chromosomeHandler, bpBinSizes, countThreshold, v9DepthBase, chrPairBlockCapacities.get(currentChrPair)));
                             }
                             synchronized (finalChrMatrices.get(currentChrPair)) {
                                 finalChrMatrices.get(currentChrPair).mergeMatrices(threadSpecificChrPairMatrices.get(currentChrPair).get(threadNum).getSecond());

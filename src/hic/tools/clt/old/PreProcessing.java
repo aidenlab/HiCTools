@@ -124,7 +124,6 @@ public class PreProcessing extends JuiceboxCLT {
         preprocessor.setV9DepthBase(parser.getV9DepthBase());
         preprocessor.setMapqThreshold(parser.getMapqThresholdOption());
         preprocessor.setDiagonalsOnly(parser.getDiagonalsOption());
-        preprocessor.setFragmentFile(parser.getFragmentOption());
         preprocessor.setExpectedVectorFile(parser.getExpectedVectorOption());
         preprocessor.setTmpdir(tmpDir);
         preprocessor.setStatisticsFile(parser.getStatsOption());
@@ -132,10 +131,6 @@ public class PreProcessing extends JuiceboxCLT {
         preprocessor.setGenome(parser.getGenomeOption());
         preprocessor.setResolutions(parser.getResolutionOption());
         preprocessor.setAlignmentFilter(parser.getAlignmentOption());
-        preprocessor.setRandomizePosition(parser.getRandomizePositionsOption());
-        preprocessor.setPositionRandomizerSeed(parser.getRandomPositionSeedOption());
-        preprocessor.setRandomizeFragMaps(parser.getRandomizePositionMaps());
-        preprocessor.setThrowOutIntraFragOption(parser.getThrowIntraFragOption());
         int blockCapacity = parser.getBlockCapacityOption();
         if (blockCapacity > 10) {
             Preprocessor.BLOCK_CAPACITY = blockCapacity;

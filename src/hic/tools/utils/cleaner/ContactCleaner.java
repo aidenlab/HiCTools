@@ -26,15 +26,12 @@ package hic.tools.utils.cleaner;
 
 import hic.tools.utils.mnditerator.AlignmentPair;
 import hic.tools.utils.original.ExpectedValueCalculation;
-import hic.tools.utils.original.FragmentCalculation;
 import hic.tools.utils.original.MatrixPP;
 import javastraw.reader.basics.ChromosomeHandler;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 public class ContactCleaner {
     protected final ChromosomeHandler handler;
@@ -43,21 +40,6 @@ public class ContactCleaner {
 
     public ContactCleaner(ChromosomeHandler chromosomeHandler) {
         this.handler = chromosomeHandler;
-    }
-
-    public static ContactCleaner create(ChromosomeHandler chromosomeHandler,
-                                        boolean allowPositionsRandomization,
-                                        FragmentCalculation fragmentCalculation,
-                                        List<FragmentCalculation> fragmentCalculationsForRandomization,
-                                        Random random) {
-        if (allowPositionsRandomization) {
-            if (fragmentCalculationsForRandomization != null && fragmentCalculationsForRandomization.size() > 0) {
-                return new ContactCleanerWithRandomizerType2(chromosomeHandler, fragmentCalculationsForRandomization, random);
-            } else if (fragmentCalculation != null) {
-                return new ContactCleanerWithRandomizer(chromosomeHandler, fragmentCalculation, random);
-            }
-        }
-        return new ContactCleaner(chromosomeHandler);
     }
 
     public static int getWholeGenomePosition(int chr, int pos, ChromosomeHandler handler) {
@@ -71,7 +53,7 @@ public class ContactCleaner {
     }
 
     public void updateLatestContact(AlignmentPair pair) {
-        if (pair.getChr1() < pair.getChr2()) {
+        if (isUpperTriangular(pair)) {
             bp1 = pair.getPos1();
             bp2 = pair.getPos2();
             frag1 = pair.getFrag1();
@@ -90,6 +72,13 @@ public class ContactCleaner {
 
         bp1 = ensureFitInChromosomeBounds(bp1, chr1);
         bp2 = ensureFitInChromosomeBounds(bp2, chr2);
+    }
+
+    private boolean isUpperTriangular(AlignmentPair pair) {
+        boolean isIntra = pair.getChr1() == pair.getChr2();
+        boolean isUpperTriangular = pair.getPos1() <= pair.getPos2();
+        boolean isInterUpperTriangular = pair.getChr1() < pair.getChr2();
+        return (isIntra && isUpperTriangular) || isInterUpperTriangular;
     }
 
     protected int ensureFitInChromosomeBounds(int bp, int chrom) {

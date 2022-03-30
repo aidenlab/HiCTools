@@ -48,25 +48,20 @@ public class MatrixPP {
      * @param chr1Idx             Chromosome 1
      * @param chromosomeHandler
      * @param bpBinSizes
-     * @param fragmentCalculation
-     * @param fragBinSizes
      * @param chr2Idx             Chromosome 2
      */
     public MatrixPP(int chr1Idx, int chr2Idx, ChromosomeHandler chromosomeHandler, int[] bpBinSizes,
-                    FragmentCalculation fragmentCalculation, int[] fragBinSizes, int countThreshold, int v9DepthBase, int BLOCK_CAPACITY) {
+                    int countThreshold, int v9DepthBase, int BLOCK_CAPACITY) {
         this.chr1Idx = chr1Idx;
         this.chr2Idx = chr2Idx;
 
         int nResolutions = bpBinSizes.length;
-        if (fragmentCalculation != null) {
-            nResolutions += fragBinSizes.length;
-        }
 
         zoomData = new MatrixZoomDataPP[nResolutions];
 
         int zoom = 0; //
         for (int idx = 0; idx < bpBinSizes.length; idx++) {
-			int binSize = bpBinSizes[zoom];
+            int binSize = bpBinSizes[zoom];
 			Chromosome chrom1 = chromosomeHandler.getChromosomeFromIndex(chr1Idx);
 			Chromosome chrom2 = chromosomeHandler.getChromosomeFromIndex(chr2Idx);
 	
@@ -81,25 +76,9 @@ public class MatrixPP {
             } else {
                 nColumns = getNumColumnsFromNumBins(nBins, binSize, INTER_CUTOFF);
             }
-            zoomData[idx] = new MatrixZoomDataPP(chrom1, chrom2, binSize, nColumns, zoom, false, fragmentCalculation, countThreshold, v9DepthBase, BLOCK_CAPACITY);
+            zoomData[idx] = new MatrixZoomDataPP(chrom1, chrom2, binSize, nColumns, zoom, countThreshold, v9DepthBase, BLOCK_CAPACITY);
             zoom++;
 
-        }
-
-        if (fragmentCalculation != null) {
-            Chromosome chrom1 = chromosomeHandler.getChromosomeFromIndex(chr1Idx);
-            Chromosome chrom2 = chromosomeHandler.getChromosomeFromIndex(chr2Idx);
-            int nFragBins1 = Math.max(fragmentCalculation.getNumberFragments(chrom1.getName()),
-                    fragmentCalculation.getNumberFragments(chrom2.getName()));
-
-            zoom = 0;
-            for (int idx = bpBinSizes.length; idx < nResolutions; idx++) {
-                int binSize = fragBinSizes[zoom];
-                int nBins = nFragBins1 / binSize + 1;
-                int nColumns = getNumColumnsFromNumBins(nBins, binSize, 0);
-                zoomData[idx] = new MatrixZoomDataPP(chrom1, chrom2, binSize, nColumns, zoom, true, fragmentCalculation, countThreshold, v9DepthBase);
-                zoom++;
-            }
         }
     }
 
@@ -122,12 +101,12 @@ public class MatrixPP {
      * @param binSize Bin size
      */
     MatrixPP(int chr1Idx, int chr2Idx, int binSize, int blockColumnCount, ChromosomeHandler chromosomeHandler,
-             FragmentCalculation fragmentCalculation, int countThreshold, int v9DepthBase) {
+             int countThreshold, int v9DepthBase) {
         this.chr1Idx = chr1Idx;
         this.chr2Idx = chr2Idx;
         zoomData = new MatrixZoomDataPP[1];
         zoomData[0] = new MatrixZoomDataPP(chromosomeHandler.getChromosomeFromIndex(chr1Idx), chromosomeHandler.getChromosomeFromIndex(chr2Idx),
-                binSize, blockColumnCount, 0, false, fragmentCalculation, countThreshold, v9DepthBase);
+                binSize, blockColumnCount, 0, countThreshold, v9DepthBase);
 
     }
 
@@ -139,11 +118,7 @@ public class MatrixPP {
 
     public void incrementCount(int pos1, int pos2, int frag1, int frag2, float score, Map<String, ExpectedValueCalculation> expectedValueCalculations, File tmpDir) throws IOException {
         for (MatrixZoomDataPP aZoomData : zoomData) {
-            if (aZoomData.isFrag) {
-                aZoomData.incrementCount(frag1, frag2, score, expectedValueCalculations, tmpDir);
-            } else {
-                aZoomData.incrementCount(pos1, pos2, score, expectedValueCalculations, tmpDir);
-            }
+            aZoomData.incrementCount(pos1, pos2, score, expectedValueCalculations, tmpDir);
         }
     }
 
