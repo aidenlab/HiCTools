@@ -99,7 +99,11 @@ public class NormalizationCalculations {
     public ListOfFloatArrays computeSCALE(ListOfFloatArrays vc, String stem) {
         BigFloatsArray initial = getInitialStartingVector(vc);
         ListOfFloatArrays newNormVector = FinalScale.scaleToTargetVector(ba, matrixSize, initial, stem);
-        return ba.normalizeVectorByScaleFactor(newNormVector);
+        if (newNormVector != null) {
+            return ba.normalizeVectorByScaleFactor(newNormVector);
+        } else {
+            return null;
+        }
     }
 
     /*public BigContactRecordList booleanBalancing() {

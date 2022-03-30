@@ -211,9 +211,11 @@ public class FinalScale {
             //printFirst10(calculatedVectorB, -1);
         }
 
+        long numNans = 0;
         for (long p = 0; p < matrixSize; p++) {
             if (bad.get(p) == 1) {
                 calculatedVectorB.set(p, Float.NaN);
+                numNans++;
             }
         }
 
@@ -241,6 +243,11 @@ public class FinalScale {
             System.out.println("Total " + allItersI + " iterations; final zscore = " + localZscoreCutoff);
             System.out.println("Final error in scaling vector is " + reportErrorForIteration[allItersI + 1] +
                     " and in row sums is " + reportErrorForIteration[allItersI + 2]);
+        }
+
+        if (numNans > .7 * matrixSize) {
+            calculatedVectorB.clear();
+            return null;
         }
 
         ListOfFloatArrays answer = calculatedVectorB.convertToRegular();
