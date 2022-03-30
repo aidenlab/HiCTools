@@ -49,7 +49,7 @@ public class MultithreadedPreprocessor extends Preprocessor {
     private final Map<String, Integer> chromosomePairIndexesReverse = new ConcurrentHashMap<>();
     private final Map<Integer, Integer> chromosomePairIndex1 = new ConcurrentHashMap<>();
     private final Map<Integer, Integer> chromosomePairIndex2 = new ConcurrentHashMap<>();
-    private int chromosomePairCounter = 0;
+    private final int chromosomePairCounter;
     private final Map<Integer, Integer> nonemptyChromosomePairs = new ConcurrentHashMap<>();
     private final Map<Integer, Map<Integer, MatrixPP>> wholeGenomeMatrixParts = new ConcurrentHashMap<>();
     private final Map<String, IndexEntry> localMatrixPositions = new ConcurrentHashMap<>();
@@ -60,8 +60,6 @@ public class MultithreadedPreprocessor extends Preprocessor {
     protected static Map<Integer, List<Chunk>> mndIndex = null;
     private final AtomicInteger chunkCounter = new AtomicInteger(0);
     private int totalChunks = 0;
-    private int totalChrPairToWrite = 0;
-    private final AtomicInteger totalChrPairsWritten = new AtomicInteger(0);
     private final ConcurrentHashMap<Integer, AtomicInteger> completedChunksPerChrPair = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, Integer> numChunksPerChrPair = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, AtomicInteger> chrPairCompleted = new ConcurrentHashMap<>();
@@ -138,13 +136,13 @@ public class MultithreadedPreprocessor extends Preprocessor {
         int i = chunkNumber;
         int chunksProcessed = 0;
 
-        String currentMatrixName = null;
-        int currentPairIndex = -1;
+        String currentMatrixName;
+        int currentPairIndex;
 
         int currentChr1 = -1;
         int currentChr2 = -1;
         MatrixPP currentMatrix = null;
-        String currentMatrixKey = null;
+        String currentMatrixKey;
 
         while (i < totalChunks) {
             int chrPair = chunkCounterToChrPairMap.get(i);
@@ -206,8 +204,6 @@ public class MultithreadedPreprocessor extends Preprocessor {
         }
         if (currentMatrix != null) {
             currentMatrix.parsingComplete();
-            //LittleEndianOutputStream[] localLos = {new LittleEndianOutputStream(new BufferedOutputStream(new FileOutputStream(outputFile + "_" + chromosomePairIndexes.get(currentPairIndex)), HiCGlobals.bufferSize))};
-            //writeMatrix(currentMatrix, localLos, getDefaultCompressor(), localMatrixPositions, currentPairIndex, true);
         }
         wholeGenomeMatrixParts.get(currentChrPair).put(threadNum, wholeGenomeMatrix);
         return new Pair<>(new Pair<>(i, chunksProcessed), currentMatrix);
@@ -221,7 +217,6 @@ public class MultithreadedPreprocessor extends Preprocessor {
         for (int chrPair = 1; chrPair < chromosomePairCounter; chrPair++) {
             if (mndIndex.containsKey(chrPair)) {
                 int numOfChunks = mndIndex.get(chrPair).size();
-                totalChrPairToWrite++;
                 completedChunksPerChrPair.put(chrPair, new AtomicInteger(0));
                 numChunksPerChrPair.put(chrPair, numOfChunks);
                 chrPairCompleted.put(chrPair, new AtomicInteger(0));
@@ -301,7 +296,7 @@ public class MultithreadedPreprocessor extends Preprocessor {
         // Wait until all threads finish
         while (!executor.isTerminated()) {
             try {
-                Thread.sleep(50);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 System.err.println(e.getLocalizedMessage());
             }
@@ -338,8 +333,8 @@ public class MultithreadedPreprocessor extends Preprocessor {
         nonemptyChromosomePairs.put(0, 1);
 
         long currentPosition = losArray[0].getWrittenCount();
-        long nextMatrixPosition = 0;
-        String currentMatrixKey = null;
+        long nextMatrixPosition;
+        String currentMatrixKey;
 
         for (int i = 0; i < chromosomePairCounter; i++) {
             if (nonemptyChromosomePairs.containsKey(i) && chromosomePairBlockIndexes.containsKey(i)) {
