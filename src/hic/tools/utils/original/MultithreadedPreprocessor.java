@@ -248,7 +248,7 @@ public class MultithreadedPreprocessor extends Preprocessor {
                     if (expectedVectorFile == null) {
                         localExpectedValueCalculations = new LinkedHashMap<>();
                         for (int bBinSize : bpBinSizes) {
-                            ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, bBinSize, null, NormalizationHandler.NONE);
+                            ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, bBinSize, NormalizationHandler.NONE);
                             String key = "BP_" + bBinSize;
                             localExpectedValueCalculations.put(key, calc);
                         }

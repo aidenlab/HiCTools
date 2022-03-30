@@ -282,7 +282,7 @@ public class Preprocessor {
             if (expectedVectorFile == null) {
                 expectedValueCalculations = Collections.synchronizedMap(new LinkedHashMap<>());
                 for (int bBinSize : bpBinSizes) {
-                    ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, bBinSize, null, NormalizationHandler.NONE);
+                    ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, bBinSize, NormalizationHandler.NONE);
                     String key = "BP_" + bBinSize;
                     expectedValueCalculations.put(key, calc);
                 }
@@ -620,7 +620,7 @@ public class Preprocessor {
                 ev.computeDensity();
 
                 int binSize = ev.getGridSize();
-                HiCZoom.HiCUnit unit = ev.isFrag ? HiCZoom.HiCUnit.FRAG : HiCZoom.HiCUnit.BP;
+                HiCZoom.HiCUnit unit = HiCZoom.HiCUnit.BP;
 
                 bufferList.get(bufferList.size()-1).putNullTerminatedString(unit.toString());
                 bufferList.get(bufferList.size()-1).putInt(binSize);

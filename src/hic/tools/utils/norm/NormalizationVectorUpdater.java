@@ -129,11 +129,9 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
             ds.clearCache(true);
 
-            Map<String, Integer> fcm = zoom.getUnit() == HiCZoom.HiCUnit.FRAG ? fragCountMap : null;
-
-            ExpectedValueCalculation evVC = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, NormalizationHandler.VC);
-            ExpectedValueCalculation evVCSqrt = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, NormalizationHandler.VC_SQRT);
-            ExpectedValueCalculation evSCALE = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, NormalizationHandler.SCALE);
+            ExpectedValueCalculation evVC = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), NormalizationHandler.VC);
+            ExpectedValueCalculation evVCSqrt = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), NormalizationHandler.VC_SQRT);
+            ExpectedValueCalculation evSCALE = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), NormalizationHandler.SCALE);
 
             // Loop through chromosomes
             for (Chromosome chrom : chromosomeHandler.getChromosomeArrayWithoutAllByAll()) {

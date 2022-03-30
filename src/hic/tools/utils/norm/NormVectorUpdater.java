@@ -168,7 +168,7 @@ public class NormVectorUpdater {
 
         for (ExpectedValueCalculation ev : expectedValueCalculations) {
             ev.computeDensity();
-            HiCZoom.HiCUnit unit = ev.isFrag ? HiCZoom.HiCUnit.FRAG : HiCZoom.HiCUnit.BP;
+            HiCZoom.HiCUnit unit = HiCZoom.HiCUnit.BP;
             appendExpectedValuesToBuffer(expectedBuffers, ev.getType(),
                     unit, ev.getGridSize(), ev.getDensityAvg(),
                     ev.getChrScaleFactors());

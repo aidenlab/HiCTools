@@ -103,7 +103,6 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
             }
         }
 
-        //ExecutorService executor = HiCGlobals.newFixedThreadPool();
         for (NormalizationType customNormType : normalizationVectorMap.keySet()) {
             final Map<String, NormalizationVector> normVectorsByChrAndZoom = normalizationVectorMap.get(customNormType);
             final Set<String> keySet = new HashSet<>(normVectorsByChrAndZoom.keySet());
@@ -118,19 +117,10 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
             }
         }
 
-        /*
-        executor.shutdown();
-        // Wait until all threads finish
-        while (!executor.isTerminated()) {
-        }
-        */
-
         for (HiCZoom zoom : resolutions) {
-            Map<String, Integer> fcm = zoom.getUnit() == HiCZoom.HiCUnit.FRAG ? fragCountMap : null;
-
             for (NormalizationType customNormType : normalizationVectorMap.keySet()) {
 
-                ExpectedValueCalculation evLoaded = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, customNormType);
+                ExpectedValueCalculation evLoaded = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), customNormType);
                 String key = ExpectedValueFunction.getKey(zoom, customNormType, false, 0);
 
                 // Loop through chromosomes

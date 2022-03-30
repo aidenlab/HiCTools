@@ -69,7 +69,6 @@ public class ExpectedValueCalculation {
     private final Map<Integer, Double> chrScaleFactors = new ConcurrentHashMap<>();
     private final NormalizationType type;
     // A little redundant, for clarity
-    public boolean isFrag = false;
 	/**
 	 * Genome wide count of binned reads at a given distance
 	 */
@@ -82,30 +81,18 @@ public class ExpectedValueCalculation {
 	 * Chromosome in this genome, needed for normalizations
 	 */
 	private final Map<Integer, Chromosome> chromosomesMap = new ConcurrentHashMap<>();
-    /**
-     * Stores restriction site fragment information for fragment maps
-     */
-    private final Map<String, Integer> fragmentCountMap;
 
     /**
      * Instantiate a DensityCalculation.  This constructor is used to compute the "expected" density from pair data.
      *
      * @param chromosomeHandler Handler for list of chromosomesMap, mainly used for size
-     * @param gridSize         Grid size, used for binning appropriately
-     * @param fragmentCountMap Optional.  Map of chromosome name -> number of fragments
-     * @param type             Identifies the observed matrix type,  either NONE (observed), VC, or KR.
+     * @param gridSize          Grid size, used for binning appropriately
+     * @param type              Identifies the observed matrix type,  either NONE (observed), VC, or KR.
      */
-    public ExpectedValueCalculation(ChromosomeHandler chromosomeHandler, int gridSize, Map<String, Integer> fragmentCountMap, NormalizationType type) {
+    public ExpectedValueCalculation(ChromosomeHandler chromosomeHandler, int gridSize, NormalizationType type) {
 
         this.type = type;
         this.gridSize = gridSize;
-
-        if (fragmentCountMap != null) {
-            this.isFrag = true;
-            this.fragmentCountMap = fragmentCountMap;
-        } else {
-            this.fragmentCountMap = null;
-        }
 
         long maxLen = 0;
 
@@ -113,9 +100,7 @@ public class ExpectedValueCalculation {
             if (chr != null) {
                 chromosomesMap.put(chr.getIndex(), chr);
                 try {
-                    maxLen = isFrag ?
-                            Math.max(maxLen, fragmentCountMap.get(chr.getName())) :
-                            Math.max(maxLen, chr.getLength());
+                    maxLen = Math.max(maxLen, chr.getLength());
                 }
                 catch (NullPointerException error) {
                     System.err.println("Problem with creating fragment-delimited maps, NullPointerException.\n" +
@@ -220,8 +205,8 @@ public class ExpectedValueCalculation {
 			if (chr == null || !chromosomeCounts.containsKey(chr.getIndex())) continue;
 		
 			// use correct units (bp or fragments)
-			long len = isFrag ? fragmentCountMap.get(chr.getName()) : chr.getLength();
-			long nChrBins = len / gridSize;
+            long len = chr.getLength();
+            long nChrBins = len / gridSize;
 		
 			maxNumBins = Math.max(maxNumBins, nChrBins);
 		
@@ -278,8 +263,8 @@ public class ExpectedValueCalculation {
 				continue;
 			}
 			//int len = isFrag ? fragmentCalculation.getNumberFragments(chr.getName()) : chr.getLength();
-			long len = isFrag ? fragmentCountMap.get(chr.getName()) : chr.getLength();
-			long nChrBins = len / gridSize;
+            long len = chr.getLength();
+            long nChrBins = len / gridSize;
 	
 	
 			double expectedCount = 0;
@@ -331,7 +316,7 @@ public class ExpectedValueCalculation {
 
     public ExpectedValueFunctionImpl getExpectedValueFunction() {
         computeDensity();
-        return new ExpectedValueFunctionImpl(type, isFrag ? HiCZoom.HiCUnit.FRAG : HiCZoom.HiCUnit.BP, gridSize, densityAvg, chrScaleFactors);
+        return new ExpectedValueFunctionImpl(type, HiCZoom.HiCUnit.BP, gridSize, densityAvg, chrScaleFactors);
     }
 
     // TODO: this is often inefficient, we have all of the contact records when we leave norm calculations, should do this there if possible

@@ -154,11 +154,11 @@ public class GWNorms {
         Map<NormalizationType, ExpectedValueCalculation> expMap = new HashMap<>();
 
         for (NormalizationType norm : gwNorms) {
-            expMap.put(norm, new ExpectedValueCalculation(chromosomeHandler, resolution, null, norm));
+            expMap.put(norm, new ExpectedValueCalculation(chromosomeHandler, resolution, norm));
         }
 
         for (NormalizationType norm : interNorms) {
-            expMap.put(norm, new ExpectedValueCalculation(chromosomeHandler, resolution, null, norm));
+            expMap.put(norm, new ExpectedValueCalculation(chromosomeHandler, resolution, norm));
         }
 
         return expMap;
