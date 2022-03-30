@@ -154,7 +154,7 @@ public class ExpectedValueCalculation {
         }
         dist = Math.abs(bin1 - bin2);
 
-        actualDistances[dist] += weight;
+        actualDistances[dist] += Math.log(1 + weight);
     }
 
     public void merge(ExpectedValueCalculation otherEVCalc) {
@@ -219,29 +219,30 @@ public class ExpectedValueCalculation {
 		densityAvg = new ListOfDoubleArrays(maxNumBins);
 	
 		// Smoothing.  Keep pointers to window size.  When read counts drops below 400 (= 5% shot noise), smooth
+        double shotNoiseMinimum = Math.log(1 + 400);
 	
 		double numSum = actualDistances[0];
 		double denSum = possibleDistances[0];
 		int bound1 = 0;
 		int bound2 = 0;
 		for (long ii = 0; ii < maxNumBins; ii++) {
-			if (numSum < 400) {
-				while (numSum < 400 && bound2 < maxNumBins) {
-					// increase window size until window is big enough.  This code will only execute once;
-					// after this, the window will always contain at least 400 reads.
-					bound2++;
-					numSum += actualDistances[bound2];
-					denSum += possibleDistances[bound2];
-				}
-			} else if (numSum >= 400 && bound2 - bound1 > 0) {
-				while (bound2 - bound1 > 0 && bound2 < numberOfBins && bound1 < numberOfBins && numSum - actualDistances[bound1] - actualDistances[bound2] >= 400) {
+            if (numSum < shotNoiseMinimum) {
+                while (numSum < shotNoiseMinimum && bound2 < maxNumBins) {
+                    // increase window size until window is big enough.  This code will only execute once;
+                    // after this, the window will always contain at least 400 reads.
+                    bound2++;
+                    numSum += actualDistances[bound2];
+                    denSum += possibleDistances[bound2];
+                }
+            } else if (numSum >= shotNoiseMinimum && bound2 - bound1 > 0) {
+                while (bound2 - bound1 > 0 && bound2 < numberOfBins && bound1 < numberOfBins && numSum - actualDistances[bound1] - actualDistances[bound2] >= shotNoiseMinimum) {
                     numSum = numSum - actualDistances[bound1] - actualDistances[bound2];
                     denSum = denSum - possibleDistances[bound1] - possibleDistances[bound2];
                     bound1++;
                     bound2--;
                 }
             }
-			densityAvg.set(ii, numSum / denSum);
+            densityAvg.set(ii, Math.expm1(numSum / denSum));
             // Default case - bump the window size up by 2 to keep it centered for the next iteration
             if (bound2 + 2 < maxNumBins) {
                 numSum += actualDistances[bound2 + 1] + actualDistances[bound2 + 2];
