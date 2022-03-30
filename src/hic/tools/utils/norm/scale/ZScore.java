@@ -27,11 +27,42 @@ package hic.tools.utils.norm.scale;
 import javastraw.reader.datastructures.ListOfIntArrays;
 
 public class ZScore {
+    private final static int UPPER_CUTOFF = 2;
     private final float mu, std;
 
     public ZScore(ListOfIntArrays array) {
-        mu = getMean(array);
-        std = getStandardDev(array, mu);
+        float initialMu = getMean(array);
+        float initialStd = getStandardDev(array, initialMu);
+        mu = getConservativeMean(array, initialMu, initialStd);
+        std = getConservativeStd(array, mu, initialMu, initialStd);
+    }
+
+    private float getConservativeStd(ListOfIntArrays array, float mu, float initialMu, float initialStd) {
+        double std = 0;
+        long num = 0;
+        for (long p = 0; p < array.getLength(); p++) {
+            int valP = array.get(p);
+            if (valP > 0 && getZ(valP, initialMu, initialStd) < UPPER_CUTOFF) {
+                float diff = valP - mu;
+                std += diff * diff;
+                num++;
+            }
+        }
+
+        return (float) Math.sqrt(std / Math.max(num, 1));
+    }
+
+    private float getConservativeMean(ListOfIntArrays array, float initialMu, float initialStd) {
+        double mu = 0;
+        long num = 0;
+        for (long p = 0; p < array.getLength(); p++) {
+            int valP = array.get(p);
+            if (valP > 0 && getZ(valP, initialMu, initialStd) < UPPER_CUTOFF) {
+                mu += valP;
+                num++;
+            }
+        }
+        return (float) (mu / num);
     }
 
     private static float getMean(ListOfIntArrays array) {
@@ -64,5 +95,9 @@ public class ZScore {
 
     public float getCutoff(float z) {
         return mu + z * std;
+    }
+
+    private float getZ(float val, float mu, float std) {
+        return (val - mu) / std;
     }
 }
