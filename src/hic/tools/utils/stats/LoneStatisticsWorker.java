@@ -25,7 +25,6 @@
 package hic.tools.utils.stats;
 
 import hic.tools.utils.mnditerator.SimpleAsciiPairIterator;
-import hic.tools.utils.original.FragmentCalculation;
 
 import java.io.IOException;
 import java.util.List;
@@ -35,8 +34,8 @@ public class LoneStatisticsWorker extends StatisticsWorker {
     private SimpleAsciiPairIterator fileIterator;
 
     public LoneStatisticsWorker(String siteFile, List<String> statsFiles, List<Integer> mapqThresholds, String ligationJunction,
-                                String inFile, FragmentCalculation fragmentCalculation) {
-        super(siteFile, statsFiles, mapqThresholds, ligationJunction, inFile, fragmentCalculation);
+                                String inFile) {
+        super(siteFile, statsFiles, mapqThresholds, ligationJunction, inFile);
     }
 
     public void infileStatistics() {

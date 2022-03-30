@@ -31,7 +31,7 @@ public class NormalizationBuilder {
 
     public static Integer getIdealResolutionLimit(NormalizationType normalizationType) {
         if (NormalizationHandler.isGenomeWideNorm(normalizationType)) {
-            return 1000;
+            return 10000;
         } else {
             return 0;
         }

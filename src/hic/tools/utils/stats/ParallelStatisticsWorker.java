@@ -27,7 +27,6 @@ package hic.tools.utils.stats;
 import hic.tools.utils.mnditerator.AlignmentPairLong;
 import hic.tools.utils.mnditerator.AsciiPairIterator;
 import hic.tools.utils.original.Chunk;
-import hic.tools.utils.original.FragmentCalculation;
 import javastraw.reader.basics.ChromosomeHandler;
 
 import java.io.IOException;
@@ -40,9 +39,8 @@ public class ParallelStatisticsWorker extends StatisticsWorker {
     private final ChromosomeHandler localHandler;
 
     public ParallelStatisticsWorker(String siteFile, List<String> statsFiles, List<Integer> mapqThresholds,
-                                    String ligationJunction, String inFile, ChromosomeHandler localHandler,
-                                    FragmentCalculation chromosomes) {
-        super(siteFile, statsFiles, mapqThresholds, ligationJunction, inFile, chromosomes);
+                                    String ligationJunction, String inFile, ChromosomeHandler localHandler) {
+        super(siteFile, statsFiles, mapqThresholds, ligationJunction, inFile);
         this.localHandler = localHandler;
     }
 

@@ -26,16 +26,13 @@ package hic;
 
 import javastraw.reader.mzd.MatrixZoomData;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 /**
  * @author Muhammad Shamim
  * @since 11/25/14
  */
 public class HiCGlobals {
 
-    public static final String versionNum = "3.07.04";
+    public static final String versionNum = "3.08.01";
     public static final int minVersion = 6;
     public static final int writingVersion = 9;
     public static final int bufferSize = 2097152;
@@ -61,14 +58,6 @@ public class HiCGlobals {
             throw new RuntimeException("This file is version " + version +
                     ". Only versions " + writingVersion + " and greater can be edited using this jar.");
         }
-    }
-
-    public static int getIdealThreadCount() {
-        return Math.max(1, Runtime.getRuntime().availableProcessors());
-    }
-
-    public static ExecutorService newFixedThreadPool() {
-        return Executors.newFixedThreadPool(getIdealThreadCount());
     }
 
     public static void setMatrixZoomDataRAMUsage() {

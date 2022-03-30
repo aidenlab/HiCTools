@@ -221,23 +221,6 @@ public class Preprocessor {
         this.alignmentFilter = al;
     }
 
-
-
-
-    /**
-     * Create map of chr name -> # of fragments
-     */
-    protected static Map<String, Integer> generateFragmentCountMap(FragmentCalculation fragmentCalculation) {
-        Map<String, int[]> sitesMap = fragmentCalculation.getSitesMap();
-        Map<String, Integer> fragmentCountMap = new HashMap<>();
-        for (Map.Entry<String, int[]> entry : sitesMap.entrySet()) {
-            int fragCount = entry.getValue().length + 1;
-            String chr = entry.getKey();
-            fragmentCountMap.put(chr, fragCount);
-        }
-        return fragmentCountMap;
-    }
-
     public void preprocess(final String inputFile, final String headerFile, final String footerFile,
                            Map<Integer, List<Chunk>> mndIndex) throws IOException {
         File file = new File(inputFile);
