@@ -146,11 +146,11 @@ public class ExpectedValueCalculation {
         Chromosome chr = chromosomesMap.get(chrIdx);
         if (chr == null) return;
 
-        Double count = chromosomeCounts.get(chrIdx);
-        if (count == null) {
-            chromosomeCounts.put(chrIdx, weight);
-        } else {
+        if (chromosomeCounts.containsKey(chrIdx)) {
+            double count = chromosomeCounts.get(chrIdx);
             chromosomeCounts.put(chrIdx, count + weight);
+        } else {
+            chromosomeCounts.put(chrIdx, weight);
         }
         dist = Math.abs(bin1 - bin2);
 
