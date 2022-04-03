@@ -51,36 +51,8 @@ import java.util.zip.Deflater;
  * @author jrobinso
  * @since Aug 16, 2010
  */
-public class Preprocessor {
-    protected static final int VERSION = 9;
-    protected static final int BLOCK_SIZE = 1000;
-    protected int v9DepthBase = 2;
-    protected final ChromosomeHandler chromosomeHandler;
-    protected Map<String, Integer> chromosomeIndexes;
-    protected final File outputFile;
-    protected final Map<String, IndexEntry> matrixPositions;
-    protected String genomeId;
-    protected final Deflater compressor;
-    protected LittleEndianOutputStream[] losArray = new LittleEndianOutputStream[1];
-    protected long masterIndexPosition;
-    protected int countThreshold = 0;
-    protected int mapqThreshold = 0;
-    protected boolean diagonalsOnly = false;
-    protected String statsFileName = null;
-    protected String graphFileName = null;
-    protected Set<String> includedChromosomes;
-    protected Alignment alignmentFilter;
-    public static int BLOCK_CAPACITY = 1000;
-    
-    // Base-pair resolutions
-    protected int[] bpBinSizes = {2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000};
+public class Preprocessor extends HiCFileBuilder {
 
-    // number of resolutions
-    protected int numResolutions;
-
-    // hic scaling factor value
-    protected double hicFileScalingFactor = 1;
-    
     /**
      * The position of the field containing the masterIndex position
      */
@@ -88,102 +60,9 @@ public class Preprocessor {
     protected long normVectorIndexPosition;
     protected long normVectorLengthPosition;
     protected Map<String, ExpectedValueCalculation> expectedValueCalculations;
-    protected File tmpDir;
-    
+
     public Preprocessor(File outputFile, String genomeId, ChromosomeHandler chromosomeHandler, double hicFileScalingFactor) {
-        this.genomeId = genomeId;
-        this.outputFile = outputFile;
-        this.matrixPositions = new LinkedHashMap<>();
-
-        this.chromosomeHandler = chromosomeHandler;
-        chromosomeIndexes = new Hashtable<>();
-        for (int i = 0; i < chromosomeHandler.size(); i++) {
-            chromosomeIndexes.put(chromosomeHandler.getChromosomeFromIndex(i).getName(), i);
-        }
-
-        compressor = WriterUtils.getDefaultCompressor();
-
-        this.tmpDir = null;  // TODO -- specify this
-
-        if (hicFileScalingFactor > 0) {
-            this.hicFileScalingFactor = hicFileScalingFactor;
-        }
-
-    }
-
-    public void setCountThreshold(int countThreshold) {
-        this.countThreshold = countThreshold;
-    }
-
-    public void setV9DepthBase(int v9DepthBase) {
-        if (v9DepthBase > 1 || v9DepthBase < 0) {
-            this.v9DepthBase = v9DepthBase;
-        }
-    }
-
-    public void setMapqThreshold(int mapqThreshold) {
-        this.mapqThreshold = mapqThreshold;
-    }
-
-    public void setDiagonalsOnly(boolean diagonalsOnly) {
-        this.diagonalsOnly = diagonalsOnly;
-    }
-
-    public void setIncludedChromosomes(Set<String> includedChromosomes) {
-        if (includedChromosomes != null && includedChromosomes.size() > 0) {
-            this.includedChromosomes = Collections.synchronizedSet(new HashSet<>());
-            for (String name : includedChromosomes) {
-                this.includedChromosomes.add(chromosomeHandler.cleanUpName(name));
-            }
-        }
-    }
-
-    public void setGraphFile(String graphFileName) {
-        this.graphFileName = graphFileName;
-    }
-
-    public void setGenome(String genome) {
-        if (genome != null) {
-            this.genomeId = genome;
-        }
-    }
-
-    public void setResolutions(List<String> resolutions) {
-        if (resolutions != null) {
-            ArrayList<Integer> bpResolutions = new ArrayList<>();
-            for (String str : resolutions) {
-                try {
-                    int myInt = Integer.parseInt(str);
-                    bpResolutions.add(myInt);
-                } catch (NumberFormatException exception) {
-                    System.err.println("Resolution improperly formatted. It must be in the form of a number, such as 1000000 for 1 million BP");
-                    System.err.println("Fragment resolutions are deprecated and require using an older jar.");
-                    System.exit(1);
-                }
-            }
-
-            boolean resolutionsSet = false;
-            if (bpResolutions.size() > 0) {
-                resolutionsSet = true;
-                Collections.sort(bpResolutions);
-                Collections.reverse(bpResolutions);
-                int[] bps = new int[bpResolutions.size()];
-                for (int i = 0; i < bps.length; i++) {
-                    bps[i] = bpResolutions.get(i);
-                }
-                bpBinSizes = bps;
-            } else {
-                bpBinSizes = new int[0];
-            }
-            if (!resolutionsSet) {
-                System.err.println("No valid resolutions sent in");
-                System.exit(1);
-            }
-        }
-    }
-
-    public void setAlignmentFilter(Alignment al) {
-        this.alignmentFilter = al;
+        super(outputFile, genomeId, chromosomeHandler, hicFileScalingFactor);
     }
 
     public void preprocess(final String inputFile, final String headerFile, final String footerFile,
@@ -550,49 +429,50 @@ public class Preprocessor {
         }
 
         // Vectors - Expected values
-        {
-            if (Integer.MAX_VALUE - bufferList.get(bufferList.size() - 1).bytesWritten() < 1000) {
+
+        if (Integer.MAX_VALUE - bufferList.get(bufferList.size() - 1).bytesWritten() < 1000) {
+            bufferList.add(new BufferedByteWriter());
+        }
+        bufferList.get(bufferList.size() - 1).putInt(expectedValueCalculations.size());
+        for (Map.Entry<String, ExpectedValueCalculation> entry : expectedValueCalculations.entrySet()) {
+            ExpectedValueCalculation ev = entry.getValue();
+
+            ev.computeDensity();
+
+            int binSize = ev.getGridSize();
+            HiCZoom.HiCUnit unit = HiCZoom.HiCUnit.BP;
+
+            bufferList.get(bufferList.size() - 1).putNullTerminatedString(unit.toString());
+            bufferList.get(bufferList.size() - 1).putInt(binSize);
+
+            // The density values
+            ListOfDoubleArrays expectedValues = ev.getDensityAvg();
+            // todo @Suhas to handle buffer overflow
+            bufferList.get(bufferList.size() - 1).putLong(expectedValues.getLength());
+            for (double[] expectedArray : expectedValues.getValues()) {
+                bufferList.add(new BufferedByteWriter());
+                for (double value : expectedArray) {
+                    if (Integer.MAX_VALUE - bufferList.get(bufferList.size() - 1).bytesWritten() < 1000000) {
+                        bufferList.add(new BufferedByteWriter());
+                    }
+                    bufferList.get(bufferList.size() - 1).putFloat((float) value);
+                }
+            }
+
+            // Map of chromosome index -> normalization factor
+            Map<Integer, Double> normalizationFactors = ev.getChrScaleFactors();
+            if (Integer.MAX_VALUE - bufferList.get(bufferList.size() - 1).bytesWritten() < 1000000) {
                 bufferList.add(new BufferedByteWriter());
             }
-            bufferList.get(bufferList.size() - 1).putInt(expectedValueCalculations.size());
-            for (Map.Entry<String, ExpectedValueCalculation> entry : expectedValueCalculations.entrySet()) {
-                ExpectedValueCalculation ev = entry.getValue();
-
-                ev.computeDensity();
-
-                int binSize = ev.getGridSize();
-                HiCZoom.HiCUnit unit = HiCZoom.HiCUnit.BP;
-
-                bufferList.get(bufferList.size()-1).putNullTerminatedString(unit.toString());
-                bufferList.get(bufferList.size()-1).putInt(binSize);
-    
-                // The density values
-                ListOfDoubleArrays expectedValues = ev.getDensityAvg();
-                // todo @Suhas to handle buffer overflow
-                bufferList.get(bufferList.size()-1).putLong(expectedValues.getLength());
-                for (double[] expectedArray : expectedValues.getValues()) {
-                    bufferList.add(new BufferedByteWriter());
-                    for (double value : expectedArray) {
-                        if (Integer.MAX_VALUE - bufferList.get(bufferList.size()-1).bytesWritten() < 1000000) {
-                            bufferList.add(new BufferedByteWriter());
-                        }
-                        bufferList.get(bufferList.size()-1).putFloat( (float) value);
-                    }
-                }
-    
-                // Map of chromosome index -> normalization factor
-                Map<Integer, Double> normalizationFactors = ev.getChrScaleFactors();
-                if (Integer.MAX_VALUE - bufferList.get(bufferList.size()-1).bytesWritten() < 1000000) {
-                    bufferList.add(new BufferedByteWriter());
-                }
-                bufferList.get(bufferList.size()-1).putInt(normalizationFactors.size());
-                for (Map.Entry<Integer, Double> normFactor : normalizationFactors.entrySet()) {
-                    bufferList.get(bufferList.size()-1).putInt(normFactor.getKey());
-                    bufferList.get(bufferList.size()-1).putFloat(normFactor.getValue().floatValue());
-                    //System.out.println(normFactor.getKey() + "  " + normFactor.getValue());
-                }
+            bufferList.get(bufferList.size() - 1).putInt(normalizationFactors.size());
+            for (Map.Entry<Integer, Double> normFactor : normalizationFactors.entrySet()) {
+                bufferList.get(bufferList.size() - 1).putInt(normFactor.getKey());
+                bufferList.get(bufferList.size() - 1).putFloat(normFactor.getValue().floatValue());
+                //System.out.println(normFactor.getKey() + "  " + normFactor.getValue());
             }
         }
+
+
         long nBytesV5 = 0;
         for (int i = 0; i < bufferList.size(); i++) {
             nBytesV5 += bufferList.get(i).getBytes().length;
@@ -600,7 +480,7 @@ public class Preprocessor {
         System.out.println("nBytesV5: " + nBytesV5);
 
         los[0].writeLong(nBytesV5);
-        for (int i = 0; i<bufferList.size(); i++) {
+        for (int i = 0; i < bufferList.size(); i++) {
             los[0].write(bufferList.get(i).getBytes());
         }
     }
@@ -692,20 +572,5 @@ public class Preprocessor {
             losArray[0] = new LittleEndianOutputStream(new BufferedOutputStream(fos, HiCGlobals.bufferSize));
             losArray[0].setWrittenCount(losPos);
         }
-    }
-
-    public void setTmpdir(String tmpDirName) {
-        if (tmpDirName != null) {
-            this.tmpDir = new File(tmpDirName);
-            if (!tmpDir.exists()) {
-                System.err.println("Tmp directory does not exist: " + tmpDirName);
-                if (outputFile != null) outputFile.deleteOnExit();
-                System.exit(59);
-            }
-        }
-    }
-
-    public void setStatisticsFile(String statsOption) {
-        statsFileName = statsOption;
     }
 }
