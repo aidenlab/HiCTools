@@ -34,7 +34,7 @@ import java.util.List;
 
 public class BigListOfByteWriters {
 
-    List<BufferedByteWriter> bufferList = new ArrayList<>();
+    final List<BufferedByteWriter> bufferList = new ArrayList<>();
 
     public BigListOfByteWriters() {
         expandBuffer();

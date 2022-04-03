@@ -52,32 +52,32 @@ public class StatisticsContainer {
     private final List<Integer> convergenceIndices = new ArrayList<>();
 
     public long unique = 0;
-    public long[] intraFragment = new long[2];
-    public long[] threePrimeEnd = new long[2];
-    public long[] fivePrimeEnd = new long[2];
-    public long[] dangling = new long[2];
-    public long[] ligation = new long[2];
-    public long[] inner = new long[2];
-    public long[] outer = new long[2];
-    public long[] left = new long[2];
-    public long[] right = new long[2];
-    public long[] intra = new long[2];
-    public long[] inter = new long[2];
+    public final long[] intraFragment = new long[2];
+    public final long[] threePrimeEnd = new long[2];
+    public final long[] fivePrimeEnd = new long[2];
+    public final long[] dangling = new long[2];
+    public final long[] ligation = new long[2];
+    public final long[] inner = new long[2];
+    public final long[] outer = new long[2];
+    public final long[] left = new long[2];
+    public final long[] right = new long[2];
+    public final long[] intra = new long[2];
+    public final long[] inter = new long[2];
 
-    public long[] interDangling = new long[2];
-    public long[] trueDanglingIntraSmall = new long[2];
-    public long[] trueDanglingIntraLarge = new long[2];
-    public long[] trueDanglingInter = new long[2];
-    public long[] totalCurrent = new long[2];
-    public long[] underMapQ = new long[2];
-    public long[] fiveHundredBPRes = new long[2];
-    public long[] fiveHundredBPResDangling = new long[2];
-    public long[] fiveKBRes = new long[2];
-    public long[] fiveKBResDangling = new long[2];
-    public long[] twentyKBRes = new long[2];
-    public long[] twentyKBResDangling = new long[2];
-    public long[] large = new long[2];
-    public long[] largeDangling = new long[2];
+    public final long[] interDangling = new long[2];
+    public final long[] trueDanglingIntraSmall = new long[2];
+    public final long[] trueDanglingIntraLarge = new long[2];
+    public final long[] trueDanglingInter = new long[2];
+    public final long[] totalCurrent = new long[2];
+    public final long[] underMapQ = new long[2];
+    public final long[] fiveHundredBPRes = new long[2];
+    public final long[] fiveHundredBPResDangling = new long[2];
+    public final long[] fiveKBRes = new long[2];
+    public final long[] fiveKBResDangling = new long[2];
+    public final long[] twentyKBRes = new long[2];
+    public final long[] twentyKBResDangling = new long[2];
+    public final long[] large = new long[2];
+    public final long[] largeDangling = new long[2];
 
     private static final long[] bins = {10, 12, 15, 19, 23, 28, 35, 43, 53, 66, 81, 100, 123, 152, 187, 231, 285, 351, 433, 534, 658, 811, 1000, 1233, 1520, 1874, 2310, 2848, 3511, 4329, 5337, 6579, 8111, 10000, 12328, 15199, 18738, 23101, 28480, 35112, 43288, 53367, 65793, 81113, 100000, 123285, 151991, 187382, 231013, 284804, 351119, 432876, 533670, 657933, 811131, 1000000, 1232847, 1519911, 1873817, 2310130, 2848036, 3511192, 4328761, 5336699, 6579332, 8111308, 10000000, 12328467, 15199111, 18738174, 23101297, 28480359, 35111917, 43287613, 53366992, 65793322, 81113083, 100000000, 123284674, 151991108, 187381742, 231012970, 284803587, 351119173, 432876128, 533669923, 657933225, 811130831, 1000000000, 1232846739, 1519911083, 1873817423, 2310129700L, 2848035868L, 3511191734L, 4328761281L, 5336699231L, 6579332247L, 8111308308L, 10000000000L};
 

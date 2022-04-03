@@ -82,16 +82,6 @@ public class MatrixPP {
         }
     }
 
-    private int getNumColumnsFromNumBins(int nBins, int binSize, int cutoff) {
-        int nColumns = nBins / Preprocessor.BLOCK_SIZE + 1;
-        if (binSize < cutoff) {
-            long numerator = (long) nBins * binSize;
-            long denominator = (long) Preprocessor.BLOCK_SIZE * cutoff;
-            nColumns = (int) (numerator / denominator) + 1;
-        }
-        return Math.min(nColumns, MAX_SQRT - 1);
-    }
-
     /**
      * Constructor for creating a matrix with a single zoom level at a specified bin size.  This is provided
      * primarily for constructing a whole-genome view.
@@ -108,6 +98,16 @@ public class MatrixPP {
         zoomData[0] = new MatrixZoomDataPP(chromosomeHandler.getChromosomeFromIndex(chr1Idx), chromosomeHandler.getChromosomeFromIndex(chr2Idx),
                 binSize, blockColumnCount, 0, countThreshold, v9DepthBase);
 
+    }
+
+    private int getNumColumnsFromNumBins(int nBins, int binSize, int cutoff) {
+        int nColumns = nBins / Preprocessor.BLOCK_SIZE + 1;
+        if (binSize < cutoff) {
+            long numerator = (long) nBins * binSize;
+            long denominator = (long) Preprocessor.BLOCK_SIZE * cutoff;
+            nColumns = (int) (numerator / denominator) + 1;
+        }
+        return Math.min(nColumns, MAX_SQRT - 1);
     }
 
 

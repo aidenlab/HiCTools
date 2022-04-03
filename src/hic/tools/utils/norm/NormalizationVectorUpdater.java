@@ -52,13 +52,13 @@ import java.util.*;
  */
 public class NormalizationVectorUpdater extends NormVectorUpdater {
 
-    protected BigListOfByteWriters normVectorBuffers = new BigListOfByteWriters();
-    protected List<NormalizationVectorIndexEntry> normVectorIndices = new ArrayList<>();
-    protected List<ExpectedValueCalculation> expectedValueCalculations = new ArrayList<>();
+    protected final BigListOfByteWriters normVectorBuffers = new BigListOfByteWriters();
+    protected final List<NormalizationVectorIndexEntry> normVectorIndices = new ArrayList<>();
+    protected final List<ExpectedValueCalculation> expectedValueCalculations = new ArrayList<>();
 
     // Keep track of chromosomes that fail to converge, so we don't try them at higher resolutions.
-    protected Set<Chromosome> scaleBPFailChroms = new HashSet<>();
-    protected Set<Chromosome> scaleFragFailChroms = new HashSet<>();
+    protected final Set<Chromosome> scaleBPFailChroms = new HashSet<>();
+    protected final Set<Chromosome> scaleFragFailChroms = new HashSet<>();
 
     // norms to build; gets overwritten
     protected boolean weShouldBuildVC = true;

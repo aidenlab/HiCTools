@@ -45,7 +45,7 @@ abstract public class HiCFileBuilder {
     protected int v9DepthBase = 2;
     protected Map<String, Integer> chromosomeIndexes = new Hashtable<>();
     protected String genomeId;
-    protected LittleEndianOutputStream[] losArray = new LittleEndianOutputStream[1];
+    protected final LittleEndianOutputStream[] losArray = new LittleEndianOutputStream[1];
     protected long masterIndexPosition;
     protected int countThreshold = 0;
     protected int mapqThreshold = 0;

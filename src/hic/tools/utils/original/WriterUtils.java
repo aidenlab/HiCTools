@@ -25,6 +25,7 @@
 package hic.tools.utils.original;
 
 import htsjdk.tribble.util.LittleEndianOutputStream;
+import javastraw.reader.type.HiCZoom;
 
 import java.io.IOException;
 import java.util.zip.Deflater;
@@ -38,7 +39,7 @@ public class WriterUtils {
 
     public static void writeZoomHeader(MatrixZoomDataPP zd, LittleEndianOutputStream los) throws IOException {
         int numberOfBlocks = zd.blockNumbers.size();
-        los.writeString(zd.getUnit().toString());  // Unit
+        los.writeString(HiCZoom.HiCUnit.BP.toString());  // Unit only BP; FRAG decremented
         los.writeInt(zd.getZoom());     // zoom index,  lowest res is zero
         los.writeFloat((float) zd.getSum());      // sum
         los.writeFloat((float) zd.getOccupiedCellCount());

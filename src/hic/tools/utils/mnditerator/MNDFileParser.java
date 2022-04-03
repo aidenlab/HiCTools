@@ -31,7 +31,7 @@ import java.io.IOException;
 public class MNDFileParser {
 
     protected static final int dcicF1 = 0, dcicF2 = 1, dcicM1 = 2, dcicM2 = 3;
-    public static String[] dcicCategories = new String[]{"frag1", "frag2", "mapq1", "mapq2"};
+    public static final String[] dcicCategories = new String[]{"frag1", "frag2", "mapq1", "mapq2"};
     protected final int[] dcicIndices = new int[]{-1, -1, -1, -1};
     private final MNDLineParser pg;
     private Format format = null;

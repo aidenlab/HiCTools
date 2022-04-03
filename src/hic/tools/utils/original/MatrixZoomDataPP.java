@@ -29,7 +29,6 @@ import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.block.ContactRecord;
 import javastraw.reader.depth.V9Depth;
-import javastraw.reader.type.HiCZoom;
 import javastraw.tools.ParallelizationTools;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.broad.igv.tdf.BufferedByteWriter;
@@ -123,10 +122,6 @@ public class MatrixZoomDataPP {
         blockBinCount = nBinsX / blockColumnCount + 1;
         blocks = new LinkedHashMap<>(blockColumnCount);
         v9Depth = V9Depth.setDepthMethod(v9BaseDepth, blockBinCount);
-    }
-
-    HiCZoom.HiCUnit getUnit() {
-        return HiCZoom.HiCUnit.BP;
     }
 
     double getSum() {

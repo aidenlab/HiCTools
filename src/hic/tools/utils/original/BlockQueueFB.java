@@ -33,7 +33,7 @@ class BlockQueueFB implements BlockQueue {
     final File file;
     BlockPP block;
     long filePosition;
-    long fileLength;
+    final long fileLength;
 
     BlockQueueFB(File file) {
         this.file = file;
