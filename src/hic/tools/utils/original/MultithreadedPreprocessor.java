@@ -267,7 +267,7 @@ public class MultithreadedPreprocessor extends Preprocessor {
                         currentChunk = threadSpecificChrPairMatrices.get(currentChrPair).get(threadNum).getFirst().getFirst();
                         int currentAvailableThreads = chrPairAvailableThreads.get(currentChrPair).incrementAndGet();
                         if (completedChunksPerChrPair.get(currentChrPair).get() == numChunksPerChrPair.get(currentChrPair)) {
-                            WriteIndividualMatrix(currentChrPair, currentAvailableThreads);
+                            writeIndividualMatrix(currentChrPair, currentAvailableThreads);
                             finalChrMatrices.remove(currentChrPair);
                             threadSpecificChrPairMatrices.remove(currentChrPair);
                             chrPairCompleted.get(currentChrPair).getAndIncrement();
@@ -338,11 +338,9 @@ public class MultithreadedPreprocessor extends Preprocessor {
         }
 
         masterIndexPosition = currentPosition;
-
-
     }
 
-    void WriteIndividualMatrix(Integer chromosomePair, int numOfNeededThreads) throws IOException {
+    private void writeIndividualMatrix(Integer chromosomePair, int numOfNeededThreads) throws IOException {
         int chr1 = chromosomePairIndex1.get(chromosomePair);
         int chr2 = chromosomePairIndex2.get(chromosomePair);
         if (includedChromosomes != null) {
