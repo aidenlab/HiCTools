@@ -62,7 +62,6 @@ public class CommandLineParser extends CmdLineParser {
     private final Option statsOption = addStringOption('s', "statistics");
     private final Option graphOption = addStringOption('g', "graphs");
     private final Option genomeIDOption = addStringOption('y', "genomeid");
-    private final Option expectedVectorOption = addStringOption('e', "expected-vector-file");
     protected final Option normalizationTypeOption = addStringOption('k', "normalization");
     private final Option mndIndexOption = addStringOption('i', "mndindex");
     private final Option ligationOption = addStringOption("ligation");
@@ -173,10 +172,6 @@ public class CommandLineParser extends CmdLineParser {
 
     public String getTmpdirOption() {
         return optionToString(tmpDirOption);
-    }
-
-    public String getExpectedVectorOption() {
-        return optionToString(expectedVectorOption);
     }
 
     public String getMndIndexOption() {

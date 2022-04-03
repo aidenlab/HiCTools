@@ -68,25 +68,18 @@ public class Preprocessor {
     protected boolean diagonalsOnly = false;
     protected String statsFileName = null;
     protected String graphFileName = null;
-    protected String expectedVectorFile = null;
-    protected Set<String> randomizeFragMapFiles = null;
     protected Set<String> includedChromosomes;
     protected Alignment alignmentFilter;
     public static int BLOCK_CAPACITY = 1000;
     
     // Base-pair resolutions
     protected int[] bpBinSizes = {2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000};
-    
-    // Fragment resolutions
-    protected int[] fragBinSizes = {500, 200, 100, 50, 20, 5, 2, 1};
 
     // number of resolutions
-    protected int numResolutions = bpBinSizes.length + fragBinSizes.length;
+    protected int numResolutions;
 
     // hic scaling factor value
     protected double hicFileScalingFactor = 1;
-    
-    protected Long normVectorIndex = 0L, normVectorLength = 0L;
     
     /**
      * The position of the field containing the masterIndex position
@@ -145,10 +138,6 @@ public class Preprocessor {
         }
     }
 
-    public void setExpectedVectorFile(String expectedVectorFile) {
-        this.expectedVectorFile = expectedVectorFile;
-    }
-
     public void setGraphFile(String graphFileName) {
         this.graphFileName = graphFileName;
     }
@@ -161,42 +150,19 @@ public class Preprocessor {
 
     public void setResolutions(List<String> resolutions) {
         if (resolutions != null) {
-            ArrayList<Integer> fragResolutions = new ArrayList<>();
             ArrayList<Integer> bpResolutions = new ArrayList<>();
-
             for (String str : resolutions) {
-                boolean fragment = false;
-                int index = str.indexOf("f");
-                if (index != -1) {
-                    str = str.substring(0, index);
-                    fragment = true;
-                }
-                Integer myInt = null;
                 try {
-                    myInt = Integer.valueOf(str);
+                    int myInt = Integer.parseInt(str);
+                    bpResolutions.add(myInt);
                 } catch (NumberFormatException exception) {
-                    System.err.println("Resolution improperly formatted.  It must be in the form of a number, such as 1000000 for 1M bp,");
-                    System.err.println("or a number followed by 'f', such as 25f for 25 fragment");
+                    System.err.println("Resolution improperly formatted. It must be in the form of a number, such as 1000000 for 1 million BP");
+                    System.err.println("Fragment resolutions are deprecated and require using an older jar.");
                     System.exit(1);
                 }
-                if (fragment) fragResolutions.add(myInt);
-                else          bpResolutions.add(myInt);
             }
 
             boolean resolutionsSet = false;
-            if (fragResolutions.size() > 0) {
-                resolutionsSet = true;
-                Collections.sort(fragResolutions);
-                Collections.reverse(fragResolutions);
-                int[] frags = new int[fragResolutions.size()];
-                for (int i=0; i<frags.length; i++){
-                    frags[i] = fragResolutions.get(i);
-                }
-                fragBinSizes = frags;
-            }
-            else {
-                fragBinSizes = new int[0];
-            }
             if (bpResolutions.size() > 0) {
                 resolutionsSet = true;
                 Collections.sort(bpResolutions);
@@ -206,8 +172,7 @@ public class Preprocessor {
                     bps[i] = bpResolutions.get(i);
                 }
                 bpBinSizes = bps;
-            }
-            else {
+            } else {
                 bpBinSizes = new int[0];
             }
             if (!resolutionsSet) {
@@ -262,13 +227,11 @@ public class Preprocessor {
                 }
             }
 
-            if (expectedVectorFile == null) {
-                expectedValueCalculations = Collections.synchronizedMap(new LinkedHashMap<>());
-                for (int bBinSize : bpBinSizes) {
-                    ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, bBinSize, NormalizationHandler.NONE);
-                    String key = "BP_" + bBinSize;
-                    expectedValueCalculations.put(key, calc);
-                }
+            expectedValueCalculations = Collections.synchronizedMap(new LinkedHashMap<>());
+            for (int bBinSize : bpBinSizes) {
+                ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, bBinSize, NormalizationHandler.NONE);
+                String key = "BP_" + bBinSize;
+                expectedValueCalculations.put(key, calc);
             }
 
             LittleEndianOutputStream[] losFooter = new LittleEndianOutputStream[1];
@@ -385,10 +348,9 @@ public class Preprocessor {
         }
 
         // deprecate fragment resolutions
-        int nFragRes = 0;
-        los.writeInt(nFragRes);
+        los.writeInt(0);
 
-        numResolutions = nBpRes + nFragRes;
+        numResolutions = nBpRes;
     }
 
     protected MatrixPP getInitialGenomeWideMatrixPP(ChromosomeHandler chromosomeHandler) {
@@ -414,7 +376,6 @@ public class Preprocessor {
     /**
      * @param file List of files to read
      * @return Matrix with counts in each bin
-     * @throws IOException
      */
     private MatrixPP computeWholeGenomeMatrix(String file) throws IOException {
 
@@ -422,11 +383,11 @@ public class Preprocessor {
 
         PairIterator iter = null;
 
-        //int belowMapq = 0;
-        //int intraFrag = 0;
-        int totalRead = 0;
-        int contig = 0;
-        int hicContact = 0;
+        // int belowMapq = 0;
+        // int intraFrag = 0;
+        // int totalRead = 0;
+        // int contig = 0;
+        // int hicContact = 0;
 
         // Create an index the first time through
         try {
@@ -434,11 +395,9 @@ public class Preprocessor {
             //ContactFilter filter = getContactFilter();
 
             while (iter.hasNext()) {
-                totalRead++;
+                // totalRead++;
                 AlignmentPair pair = iter.next();
-                if (pair.isContigPair()) {
-                    contig++;
-                } else {
+                if (!pair.isContigPair()) {
                     int bp1 = pair.getPos1();
                     int bp2 = pair.getPos2();
                     int chr1 = pair.getChr1();
@@ -449,7 +408,7 @@ public class Preprocessor {
                     pos1 = ContactCleaner.getWholeGenomePosition(chr1, bp1, chromosomeHandler);
                     pos2 = ContactCleaner.getWholeGenomePosition(chr2, bp2, chromosomeHandler);
                     matrix.incrementCount(pos1, pos2, pos1, pos2, pair.getScore(), expectedValueCalculations, tmpDir);
-                    hicContact++;
+                    // hicContact++;
                 }
             }
         } finally {
@@ -582,24 +541,23 @@ public class Preprocessor {
         bufferList.add(new BufferedByteWriter());
         bufferList.get(0).putInt(matrixPositions.size());
         for (Map.Entry<String, IndexEntry> entry : matrixPositions.entrySet()) {
-            if (Integer.MAX_VALUE - bufferList.get(bufferList.size()-1).bytesWritten() < 1000) {
+            if (Integer.MAX_VALUE - bufferList.get(bufferList.size() - 1).bytesWritten() < 1000) {
                 bufferList.add(new BufferedByteWriter());
             }
-            bufferList.get(bufferList.size()-1).putNullTerminatedString(entry.getKey());
-            bufferList.get(bufferList.size()-1).putLong(entry.getValue().position);
-            bufferList.get(bufferList.size()-1).putInt(entry.getValue().size);
+            bufferList.get(bufferList.size() - 1).putNullTerminatedString(entry.getKey());
+            bufferList.get(bufferList.size() - 1).putLong(entry.getValue().position);
+            bufferList.get(bufferList.size() - 1).putInt(entry.getValue().size);
         }
 
-        // Vectors  (Expected values,  other).
-        /***  NEVA ***/
-        if (expectedVectorFile == null) {
-            if (Integer.MAX_VALUE - bufferList.get(bufferList.size()-1).bytesWritten() < 1000) {
+        // Vectors - Expected values
+        {
+            if (Integer.MAX_VALUE - bufferList.get(bufferList.size() - 1).bytesWritten() < 1000) {
                 bufferList.add(new BufferedByteWriter());
             }
-            bufferList.get(bufferList.size()-1).putInt(expectedValueCalculations.size());
+            bufferList.get(bufferList.size() - 1).putInt(expectedValueCalculations.size());
             for (Map.Entry<String, ExpectedValueCalculation> entry : expectedValueCalculations.entrySet()) {
                 ExpectedValueCalculation ev = entry.getValue();
-    
+
                 ev.computeDensity();
 
                 int binSize = ev.getGridSize();
@@ -635,43 +593,8 @@ public class Preprocessor {
                 }
             }
         }
-        else {
-            // read in expected vector file. to get # of resolutions, might have to read twice.
-
-            int count=0;
-            try (Reader reader = new FileReader(expectedVectorFile);
-                 BufferedReader bufferedReader = new BufferedReader(reader)) {
-
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    if (line.startsWith("fixedStep"))
-                        count++;
-                    if (line.startsWith("variableStep")) {
-                        System.err.println("Expected vector file must be in wiggle fixedStep format");
-                        System.exit(19);
-                    }
-                }
-            }
-            bufferList.get(bufferList.size()-1).putInt(count);
-            try (Reader reader = new FileReader(expectedVectorFile);
-                 BufferedReader bufferedReader = new BufferedReader(reader)) {
-
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    if (line.startsWith("fixedStep")) {
-                        String[] words = line.split("\\s+");
-                        for (String str:words){
-                            if (str.contains("chrom")){
-                                String[] chrs = str.split("=");
-
-                            }
-                        }
-                    }
-                }
-            }
-        }
         long nBytesV5 = 0;
-        for (int i = 0; i<bufferList.size(); i++) {
+        for (int i = 0; i < bufferList.size(); i++) {
             nBytesV5 += bufferList.get(i).getBytes().length;
         }
         System.out.println("nBytesV5: " + nBytesV5);
@@ -719,7 +642,7 @@ public class Preprocessor {
         for (int i = 0; i < matrix.getZoomData().length; i++) {
             MatrixZoomDataPP zd = matrix.getZoomData()[i];
             if (zd != null) {
-                List<IndexEntry> blockIndex = null;
+                List<IndexEntry> blockIndex;
                 if (doMultiThreadedBehavior) {
                     if (losArray.length > 1) {
                         blockIndex = zd.mergeAndWriteBlocks(losArray, i, matrix.getZoomData().length);
@@ -748,13 +671,10 @@ public class Preprocessor {
             losArray[0].close();
         }
 
-        RandomAccessFile raf = null;
-        try {
-            raf = new RandomAccessFile(outputFile, "rw");
+        try (RandomAccessFile raf = new RandomAccessFile(outputFile, "rw")) {
 
             // Block indices
-            long pos = blockIndexPosition;
-            raf.getChannel().position(pos);
+            raf.getChannel().position(blockIndexPosition);
 
             // Write as little endian
             BufferedByteWriter buffer = new BufferedByteWriter();
@@ -765,8 +685,6 @@ public class Preprocessor {
             }
             raf.write(buffer.getBytes());
 
-        } finally {
-            if (raf != null) raf.close();
         }
         if (doRestore) {
             FileOutputStream fos = new FileOutputStream(outputFile, true);

@@ -239,14 +239,11 @@ public class MultithreadedPreprocessor extends Preprocessor {
             Runnable worker = () -> {
                 try {
                     int currentChunk = chunkCounter.getAndIncrement();
-                    Map<String, ExpectedValueCalculation> localExpectedValueCalculations = null;
-                    if (expectedVectorFile == null) {
-                        localExpectedValueCalculations = new LinkedHashMap<>();
-                        for (int bBinSize : bpBinSizes) {
-                            ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, bBinSize, NormalizationHandler.NONE);
-                            String key = "BP_" + bBinSize;
-                            localExpectedValueCalculations.put(key, calc);
-                        }
+                    Map<String, ExpectedValueCalculation> localExpectedValueCalculations = new LinkedHashMap<>();
+                    for (int bBinSize : bpBinSizes) {
+                        ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, bBinSize, NormalizationHandler.NONE);
+                        String key = "BP_" + bBinSize;
+                        localExpectedValueCalculations.put(key, calc);
                     }
                     while (currentChunk < totalChunks) {
                         int currentChrPair = chunkCounterToChrPairMap.get(currentChunk);
@@ -302,13 +299,10 @@ public class MultithreadedPreprocessor extends Preprocessor {
             }
         }
 
-
-        if (expectedVectorFile == null) {
-            for (int i = 0; i < numCPUThreads; i++) {
-                if (allLocalExpectedValueCalculations.get(i) != null) {
-                    for (Map.Entry<String, ExpectedValueCalculation> entry : allLocalExpectedValueCalculations.get(i).entrySet()) {
-                        expectedValueCalculations.get(entry.getKey()).merge(entry.getValue());
-                    }
+        for (int i = 0; i < numCPUThreads; i++) {
+            if (allLocalExpectedValueCalculations.get(i) != null) {
+                for (Map.Entry<String, ExpectedValueCalculation> entry : allLocalExpectedValueCalculations.get(i).entrySet()) {
+                    expectedValueCalculations.get(entry.getKey()).merge(entry.getValue());
                 }
             }
         }

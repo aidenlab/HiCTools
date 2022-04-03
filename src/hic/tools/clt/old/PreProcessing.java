@@ -124,7 +124,6 @@ public class PreProcessing extends JuiceboxCLT {
         preprocessor.setV9DepthBase(parser.getV9DepthBase());
         preprocessor.setMapqThreshold(parser.getMapqThresholdOption());
         preprocessor.setDiagonalsOnly(parser.getDiagonalsOption());
-        preprocessor.setExpectedVectorFile(parser.getExpectedVectorOption());
         preprocessor.setTmpdir(tmpDir);
         preprocessor.setStatisticsFile(parser.getStatsOption());
         preprocessor.setGraphFile(parser.getGraphOption());
