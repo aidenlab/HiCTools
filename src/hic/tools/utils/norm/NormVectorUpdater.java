@@ -24,6 +24,7 @@
 
 package hic.tools.utils.norm;
 
+import hic.HiCGlobals;
 import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.DatasetReaderV2;
@@ -93,17 +94,6 @@ public class NormVectorUpdater {
         bufferList.writeToRAF(raf);
     }
 
-    private static void handleVersionSix(RandomAccessFile raf, int version) throws IOException {
-        if (version < 6) {
-            // Update version
-            // Master index
-            raf.getChannel().position(4);
-            BufferedByteWriter buffer = new BufferedByteWriter();
-            buffer.putInt(6);
-            raf.write(buffer.getBytes());
-        }
-    }
-
     /**
      * Compute the size of the index in bytes.  This is needed to set offsets for the actual index entries.  The
      * easiest way to do this is to write it to a buffer and check the size
@@ -128,13 +118,12 @@ public class NormVectorUpdater {
                                        Map<String, ExpectedValueFunction> expectedValueFunctionMap,
                                        List<NormalizationVectorIndexEntry> normVectorIndices,
                                        BigListOfByteWriters normVectorBuffers, String message) throws IOException {
-        int version = reader.getVersion();
+        HiCGlobals.verifySupportedHiCFileWritingVersion(reader.getVersion());
         long filePosition = reader.getNormFilePosition();
         long nviHeaderPosition = reader.getNviHeaderPosition();
 
 
         try (RandomAccessFile raf = new RandomAccessFile(path, "rw")) {
-            handleVersionSix(raf, version);
             BigListOfByteWriters bufferList = new BigListOfByteWriters();
 
             if (useCalcNotFunc) {

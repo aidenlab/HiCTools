@@ -32,7 +32,7 @@ import javastraw.reader.mzd.MatrixZoomData;
  */
 public class HiCGlobals {
 
-    public static final String versionNum = "3.08.08";
+    public static final String versionNum = "3.08.09";
     public static final int writingVersion = 9;
     public static final int bufferSize = 2097152;
     public static int MAX_PEARSON_ZOOM = 50000;
@@ -47,15 +47,17 @@ public class HiCGlobals {
 
     public static void verifySupportedHiCFileVersion(int version) throws RuntimeException {
         if (version != writingVersion) {
-            throw new RuntimeException("This file is version " + version +
+            System.err.println("This file is version " + version +
                     ". Only version " + writingVersion + " files are supported with this jar.");
+            System.exit(3);
         }
     }
 
     public static void verifySupportedHiCFileWritingVersion(int version) throws RuntimeException {
         if (version != writingVersion) {
-            throw new RuntimeException("This file is version " + version +
+            System.err.println("This file is version " + version +
                     ". Only version " + writingVersion + " files can be edited using this jar.");
+            System.exit(2);
         }
     }
 
