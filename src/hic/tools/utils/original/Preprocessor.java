@@ -402,9 +402,7 @@ public class Preprocessor extends HiCFileBuilder {
         bufferList.putInt(expectedValueCalculations.size());
         for (Map.Entry<String, ExpectedValueCalculation> entry : expectedValueCalculations.entrySet()) {
             ExpectedValueCalculation ev = entry.getValue();
-
             ev.computeDensity();
-
             int binSize = ev.getGridSize();
             HiCZoom.HiCUnit unit = HiCZoom.HiCUnit.BP;
 
@@ -413,7 +411,6 @@ public class Preprocessor extends HiCFileBuilder {
 
             // The density values
             ListOfDoubleArrays expectedValues = ev.getDensityAvg();
-            // todo @Suhas to handle buffer overflow
             bufferList.putLong(expectedValues.getLength());
             for (double[] expectedArray : expectedValues.getValues()) {
                 bufferList.expandBuffer();
@@ -435,7 +432,7 @@ public class Preprocessor extends HiCFileBuilder {
         }
 
 
-        long nBytesV5 = bufferList.getTotalBytes();
+        long nBytesV5 = bufferList.getBytesWritten();
         System.out.println("nBytesV5: " + nBytesV5);
 
         los[0].writeLong(nBytesV5);

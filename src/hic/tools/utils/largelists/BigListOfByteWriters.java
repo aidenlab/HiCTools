@@ -35,6 +35,7 @@ import java.util.List;
 public class BigListOfByteWriters {
 
     final List<BufferedByteWriter> bufferList = new ArrayList<>();
+    private int internalCounter = 1;
 
     public BigListOfByteWriters() {
         expandBuffer();
@@ -59,6 +60,15 @@ public class BigListOfByteWriters {
     public void expandBufferIfNeeded(int buffer) {
         if (Integer.MAX_VALUE - bufferList.get(index()).bytesWritten() < buffer) {
             bufferList.add(new BufferedByteWriter());
+        }
+    }
+
+    public void expandBufferIfNeededPerCounter(int buffer, int divisor) {
+        if (++internalCounter % divisor == 0) {
+            if (Integer.MAX_VALUE - bufferList.get(index()).bytesWritten() < buffer) {
+                bufferList.add(new BufferedByteWriter());
+            }
+            internalCounter = 1;
         }
     }
 

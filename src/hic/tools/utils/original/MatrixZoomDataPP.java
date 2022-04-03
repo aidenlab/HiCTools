@@ -303,12 +303,11 @@ public class MatrixZoomDataPP {
             }
         }
 
-        List<IndexEntry> indexEntries = new ArrayList<>();
-
         if (activeList.size() == 0) {
             throw new RuntimeException("No reads in Hi-C contact matrices. This could be because the MAPQ filter is set too high (-q) or because all reads map to the same fragment.");
         }
 
+        List<IndexEntry> indexEntries = new ArrayList<>();
         do {
             activeList.sort(Comparator.comparingInt(o -> o.getBlock().getNumber()));
 
