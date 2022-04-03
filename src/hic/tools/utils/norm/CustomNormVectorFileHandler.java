@@ -25,6 +25,7 @@
 package hic.tools.utils.norm;
 
 import hic.HiCGlobals;
+import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.Dataset;
 import javastraw.reader.DatasetReaderV2;
@@ -38,7 +39,6 @@ import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
 import javastraw.tools.HiCFileTools;
-import org.broad.igv.tdf.BufferedByteWriter;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -70,7 +70,7 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
         Map<String, Integer> fragCountMap = ds.getFragmentCounts();
         List<HiCZoom> resolutions = ds.getAllPossibleResolutions();
 
-        List<BufferedByteWriter> normVectorBuffers = new ArrayList<>();
+        BigListOfByteWriters normVectorBuffers = new BigListOfByteWriters();
         List<NormalizationVectorIndexEntry> normVectorIndices = new ArrayList<>();
         Map<String, ExpectedValueFunction> expectedValueFunctionMap = ds.getExpectedValueFunctionMap();
 
@@ -83,17 +83,9 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
                     for (Chromosome chr : chromosomeHandler.getChromosomeArrayWithoutAllByAll()) {
                         NormalizationVector existingNorm = ds.getNormalizationVector(chr.getIndex(), zoom, type);
                         if (existingNorm != null) {
-                            long position = 0;
-                            for (int i=0; i < normVectorBuffers.size(); i++) {
-                                position += normVectorBuffers.get(i).bytesWritten();
-                            }
-                            // todo @suhas
+                            long position = normVectorBuffers.getBytesWritten();
                             putFloatArraysIntoBufferList(normVectorBuffers, existingNorm.getData().convertToFloats().getValues());
-
-                            long newPos = 0;
-                            for (int i=0; i < normVectorBuffers.size(); i++) {
-                                newPos += normVectorBuffers.get(i).bytesWritten();
-                            }
+                            long newPos = normVectorBuffers.getBytesWritten();
                             int sizeInBytes = (int) (newPos - position);
                             normVectorIndices.add(new NormalizationVectorIndexEntry(
                                     type.toString(), chr.getIndex(), zoom.getUnit().toString(), zoom.getBinSize(), position, sizeInBytes));
@@ -140,7 +132,7 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
     }
 
     private static void handleLoadedVector(NormalizationType customNormType, final int chrIndx, HiCZoom zoom, Map<String, NormalizationVector> normVectors,
-                                           List<BufferedByteWriter> normVectorBuffers, List<NormalizationVectorIndexEntry> normVectorIndex,
+                                           BigListOfByteWriters normVectorBuffers, List<NormalizationVectorIndexEntry> normVectorIndex,
                                            MatrixZoomData zd, ExpectedValueCalculation evLoaded) throws IOException {
 
         String key = NormalizationVector.getKey(customNormType, chrIndx, zoom.getUnit().toString(), zoom.getBinSize());
@@ -148,17 +140,10 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
             NormalizationVector vector = normVectors.get(key);
             if (vector == null || vector.getData() == null) return;
             // Write custom norm
-            long position = 0;
-            for (int i=0; i < normVectorBuffers.size(); i++) {
-                position += normVectorBuffers.get(i).bytesWritten();
-            }
-            // todo @suhas
+            long position = normVectorBuffers.getBytesWritten();
             putFloatArraysIntoBufferList(normVectorBuffers, vector.getData().convertToFloats().getValues());
 
-            long newPos = 0;
-            for (int i=0; i < normVectorBuffers.size(); i++) {
-                newPos += normVectorBuffers.get(i).bytesWritten();
-            }
+            long newPos = normVectorBuffers.getBytesWritten();
 
             int sizeInBytes = (int) (newPos - position);
             normVectorIndex.add(new NormalizationVectorIndexEntry(

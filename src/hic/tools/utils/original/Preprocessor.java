@@ -29,6 +29,7 @@ package hic.tools.utils.original;
 import hic.HiCGlobals;
 import hic.tools.clt.CommandLineParser.Alignment;
 import hic.tools.utils.cleaner.ContactCleaner;
+import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.mnditerator.AlignmentPair;
 import hic.tools.utils.mnditerator.PairIterator;
 import htsjdk.tribble.util.LittleEndianOutputStream;
@@ -416,7 +417,7 @@ public class Preprocessor extends HiCFileBuilder {
     protected void writeFooter(LittleEndianOutputStream[] los) throws IOException {
 
         // Index
-        ListOfBufferedByteWriters bufferList = new ListOfBufferedByteWriters();
+        BigListOfByteWriters bufferList = new BigListOfByteWriters();
 
         bufferList.putInt(matrixPositions.size());
         for (Map.Entry<String, IndexEntry> entry : matrixPositions.entrySet()) {

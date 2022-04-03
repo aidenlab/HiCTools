@@ -22,20 +22,21 @@
  *  THE SOFTWARE.
  */
 
-package hic.tools.utils.original;
+package hic.tools.utils.largelists;
 
-import htsjdk.tribble.util.LittleEndianOutputStream;
 import org.broad.igv.tdf.BufferedByteWriter;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ListOfBufferedByteWriters {
+public class BigListOfByteWriters {
 
     List<BufferedByteWriter> bufferList = new ArrayList<>();
 
-    ListOfBufferedByteWriters() {
+    public BigListOfByteWriters() {
         expandBuffer();
     }
 
@@ -77,9 +78,23 @@ public class ListOfBufferedByteWriters {
         return total;
     }
 
-    public void writeToOutput(LittleEndianOutputStream los) throws IOException {
+    public long getBytesWritten() {
+        long total = 0;
+        for (BufferedByteWriter bufferedByteWriter : bufferList) {
+            total += bufferedByteWriter.bytesWritten();
+        }
+        return total;
+    }
+
+    public void writeToOutput(OutputStream los) throws IOException {
         for (BufferedByteWriter writer : bufferList) {
             los.write(writer.getBytes());
+        }
+    }
+
+    public void writeToRAF(RandomAccessFile raf) throws IOException {
+        for (BufferedByteWriter writer : bufferList) {
+            raf.write(writer.getBytes());
         }
     }
 }

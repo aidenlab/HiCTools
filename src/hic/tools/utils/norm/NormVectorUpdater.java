@@ -24,6 +24,7 @@
 
 package hic.tools.utils.norm;
 
+import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.DatasetReaderV2;
 import javastraw.reader.datastructures.ListOfDoubleArrays;
@@ -43,65 +44,53 @@ import java.util.Map;
 
 public class NormVectorUpdater {
 
-    static void updateNormVectorIndexWithVector(List<NormalizationVectorIndexEntry> normVectorIndex, List<BufferedByteWriter> normVectorBufferList, ListOfFloatArrays vec,
+    static void updateNormVectorIndexWithVector(List<NormalizationVectorIndexEntry> normVectorIndex,
+                                                BigListOfByteWriters bufferList, ListOfFloatArrays vec,
                                                 int chrIdx, NormalizationType type, HiCZoom zoom) throws IOException {
-        long position = 0;
-        for (int i=0; i < normVectorBufferList.size(); i++) {
-            position += normVectorBufferList.get(i).bytesWritten();
-        }
+        long position = bufferList.getBytesWritten();
 
-        putFloatArraysIntoBufferList(normVectorBufferList, vec.getValues());
+        putFloatArraysIntoBufferList(bufferList, vec.getValues());
 
-        long newPos = 0;
-        for (int i=0; i < normVectorBufferList.size(); i++) {
-            newPos += normVectorBufferList.get(i).bytesWritten();
-        }
+        long newPos = bufferList.getBytesWritten();
         int sizeInBytes = (int) (newPos - position);
-        normVectorIndex.add(new NormalizationVectorIndexEntry(type.toString(), chrIdx, zoom.getUnit().toString(), zoom.getBinSize(), position, sizeInBytes));
+        normVectorIndex.add(new NormalizationVectorIndexEntry(type.toString(), chrIdx, zoom.getUnit().toString(),
+                zoom.getBinSize(), position, sizeInBytes));
     }
 
-    public static boolean isValidNormValue(float v) {
-        return v > 0;
-    }
+    static void putFloatArraysIntoBufferList(BigListOfByteWriters bufferList,
+                                             List<float[]> arrays) throws IOException {
 
-    static void putFloatArraysIntoBufferList(List<BufferedByteWriter> bufferList, List<float[]> arrays) throws IOException {
-
-        BufferedByteWriter buffer = getBufferWithEnoughSpace(bufferList, 8);
+        bufferList.expandBufferIfNeeded(8);
         long vectorLength = 0;
         for (float[] array : arrays) {
             vectorLength += array.length;
         }
-        buffer.putLong(vectorLength);
+        bufferList.putLong(vectorLength);
 
         for (float[] array : arrays) {
-            buffer = getBufferWithEnoughSpace(bufferList, 4 * array.length);
+            bufferList.expandBufferIfNeeded(4 * array.length);
             for (float val : array) {
-                buffer.putFloat(val);
+                bufferList.putFloat(val);
             }
         }
     }
 
-    private static void putMapValuesIntoBuffer(List<BufferedByteWriter> bufferList, Map<Integer, Double> hashmap) throws IOException {
+    private static void putMapValuesIntoBuffer(BigListOfByteWriters bufferList, Map<Integer, Double> hashmap) throws IOException {
         int bytesNeeded = 4 + (8 * hashmap.size());
-        BufferedByteWriter buffer = getBufferWithEnoughSpace(bufferList, bytesNeeded);
-
-        buffer.putInt(hashmap.size());
-
+        bufferList.expandBufferIfNeeded(bytesNeeded);
+        bufferList.putInt(hashmap.size());
         List<Integer> keys = new ArrayList<>(hashmap.keySet());
         Collections.sort(keys);
-
         for (Integer key : keys) {
-            buffer.putInt(key);
-            buffer.putFloat(hashmap.get(key).floatValue());
+            bufferList.putInt(key);
+            bufferList.putFloat(hashmap.get(key).floatValue());
         }
     }
 
-    private static void writeExpectedToBuffer(RandomAccessFile raf, List<BufferedByteWriter> expectedBuffers, long filePosition) throws IOException {
+    private static void writeExpectedToBuffer(RandomAccessFile raf,
+                                              BigListOfByteWriters bufferList, long filePosition) throws IOException {
         raf.getChannel().position(filePosition);
-        for (int i = 0; i < expectedBuffers.size(); i++) {
-            byte[] evBytes = expectedBuffers.get(i).getBytes();
-            raf.write(evBytes);
-        }
+        bufferList.writeToRAF(raf);
     }
 
     private static void handleVersionSix(RandomAccessFile raf, int version) throws IOException {
@@ -138,7 +127,7 @@ public class NormVectorUpdater {
                                        List<ExpectedValueCalculation> expectedValueCalculations,
                                        Map<String, ExpectedValueFunction> expectedValueFunctionMap,
                                        List<NormalizationVectorIndexEntry> normVectorIndices,
-                                       List<BufferedByteWriter> normVectorBuffers, String message) throws IOException {
+                                       BigListOfByteWriters normVectorBuffers, String message) throws IOException {
         int version = reader.getVersion();
         long filePosition = reader.getNormFilePosition();
         long nviHeaderPosition = reader.getNviHeaderPosition();
@@ -146,49 +135,49 @@ public class NormVectorUpdater {
 
         try (RandomAccessFile raf = new RandomAccessFile(path, "rw")) {
             handleVersionSix(raf, version);
-            List<BufferedByteWriter> expectedBuffers = new ArrayList<>();
-            expectedBuffers.add(new BufferedByteWriter());
+            BigListOfByteWriters bufferList = new BigListOfByteWriters();
 
             if (useCalcNotFunc) {
-                writeExpectedValues(expectedBuffers, expectedValueCalculations);
+                writeExpectedValues(bufferList, expectedValueCalculations);
             } else {
-                writeExpectedValues(expectedBuffers, expectedValueFunctionMap);
+                writeExpectedValues(bufferList, expectedValueFunctionMap);
             }
 
-            writeExpectedToBuffer(raf, expectedBuffers, filePosition);
+            writeExpectedToBuffer(raf, bufferList, filePosition);
             writeNormsToBuffer(raf, normVectorIndices, normVectorBuffers, nviHeaderPosition);
         }
 
         System.out.println(message);
     }
 
-    private static void writeExpectedValues(List<BufferedByteWriter> expectedBuffers, List<ExpectedValueCalculation> expectedValueCalculations) throws IOException {
-        BufferedByteWriter buffer = getBufferWithEnoughSpace(expectedBuffers, 4);
-        buffer.putInt(expectedValueCalculations.size());
+    private static void writeExpectedValues(BigListOfByteWriters bufferList,
+                                            List<ExpectedValueCalculation> expectedValueCalculations) throws IOException {
+        bufferList.expandBufferIfNeeded(4);
+        bufferList.putInt(expectedValueCalculations.size());
 
         for (ExpectedValueCalculation ev : expectedValueCalculations) {
             ev.computeDensity();
             HiCZoom.HiCUnit unit = HiCZoom.HiCUnit.BP;
-            appendExpectedValuesToBuffer(expectedBuffers, ev.getType(),
+            appendExpectedValuesToBuffer(bufferList, ev.getType(),
                     unit, ev.getGridSize(), ev.getDensityAvg(),
                     ev.getChrScaleFactors());
         }
     }
 
-    private static void writeExpectedValues(List<BufferedByteWriter> expectedBuffers, Map<String, ExpectedValueFunction> expectedValueFunctionMap) throws IOException {
+    private static void writeExpectedValues(BigListOfByteWriters bufferList, Map<String, ExpectedValueFunction> expectedValueFunctionMap) throws IOException {
 
-        BufferedByteWriter buffer = getBufferWithEnoughSpace(expectedBuffers, 4);
-        buffer.putInt(expectedValueFunctionMap.size());
+        bufferList.expandBufferIfNeeded(4);
+        bufferList.putInt(expectedValueFunctionMap.size());
 
         for (ExpectedValueFunction function : expectedValueFunctionMap.values()) {
-            appendExpectedValuesToBuffer(expectedBuffers, function.getNormalizationType(),
+            appendExpectedValuesToBuffer(bufferList, function.getNormalizationType(),
                     function.getUnit(), function.getBinSize(),
                     function.getExpectedValuesNoNormalization(),
                     ((ExpectedValueFunctionImpl) function).getNormFactors());
         }
     }
 
-    private static void appendExpectedValuesToBuffer(List<BufferedByteWriter> expectedBuffers,
+    private static void appendExpectedValuesToBuffer(BigListOfByteWriters bufferList,
                                                      NormalizationType normalizationType,
                                                      HiCZoom.HiCUnit unit, int binSize,
                                                      ListOfDoubleArrays expectedValuesNoNormalization,
@@ -198,30 +187,19 @@ public class NormVectorUpdater {
         bytesNeeded += unit.toString().length() + 1;
         bytesNeeded += 4;
 
-        BufferedByteWriter buffer = getBufferWithEnoughSpace(expectedBuffers, bytesNeeded);
-        buffer.putNullTerminatedString(normalizationType.toString());
-        buffer.putNullTerminatedString(unit.toString());
-        buffer.putInt(binSize);
+        bufferList.expandBufferIfNeeded(bytesNeeded);
+        bufferList.putNullTerminatedString(normalizationType.toString());
+        bufferList.putNullTerminatedString(unit.toString());
+        bufferList.putInt(binSize);
 
-        putFloatArraysIntoBufferList(expectedBuffers,
+        putFloatArraysIntoBufferList(bufferList,
                 expectedValuesNoNormalization.convertToFloats().getValues());
 
-        putMapValuesIntoBuffer(expectedBuffers, normFactors);
-    }
-
-    private static BufferedByteWriter getBufferWithEnoughSpace(List<BufferedByteWriter> expectedBuffers, int bytesNeeded) {
-        BufferedByteWriter buffer = expectedBuffers.get(expectedBuffers.size() - 1);
-        int freeBytes = Integer.MAX_VALUE - 10 - buffer.bytesWritten();
-
-        if (bytesNeeded >= freeBytes) {
-            expectedBuffers.add(new BufferedByteWriter());
-            return expectedBuffers.get(expectedBuffers.size() - 1);
-        }
-        return buffer;
+        putMapValuesIntoBuffer(bufferList, normFactors);
     }
 
     private static void writeNormsToBuffer(RandomAccessFile raf, List<NormalizationVectorIndexEntry> normVectorIndex,
-                                           List<BufferedByteWriter> normVectorBuffers, long nviHeaderPosition) throws IOException {
+                                           BigListOfByteWriters normVectorBuffers, long nviHeaderPosition) throws IOException {
         // Get the size of the index in bytes, to compute an offset for the actual entries.
         BufferedByteWriter buffer = new BufferedByteWriter();
         writeNormIndex(buffer, normVectorIndex);
@@ -249,8 +227,6 @@ public class NormVectorUpdater {
         writeNormIndex(buffer, normVectorIndex);
         raf.write(buffer.getBytes());
         // Finally the norm vectors
-        for (int i = 0; i < normVectorBuffers.size(); i++) {
-            raf.write(normVectorBuffers.get(i).getBytes());
-        }
+        normVectorBuffers.writeToRAF(raf);
     }
 }

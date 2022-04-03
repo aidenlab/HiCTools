@@ -27,6 +27,7 @@ package hic.tools.utils.norm;
 import hic.HiCGlobals;
 import hic.tools.utils.bigarray.BigContactArray;
 import hic.tools.utils.bigarray.BigContactArrayCreator;
+import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.Dataset;
 import javastraw.reader.DatasetReaderV2;
@@ -39,7 +40,6 @@ import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
 import javastraw.tools.HiCFileTools;
-import org.broad.igv.tdf.BufferedByteWriter;
 
 import java.io.IOException;
 import java.util.*;
@@ -52,7 +52,7 @@ import java.util.*;
  */
 public class NormalizationVectorUpdater extends NormVectorUpdater {
 
-    protected List<BufferedByteWriter> normVectorBuffers = new ArrayList<>();
+    protected BigListOfByteWriters normVectorBuffers = new BigListOfByteWriters();
     protected List<NormalizationVectorIndexEntry> normVectorIndices = new ArrayList<>();
     protected List<ExpectedValueCalculation> expectedValueCalculations = new ArrayList<>();
 
@@ -71,8 +71,12 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
         }
     }
 
-    protected static void updateExpectedValueCalculationForChr(final int chrIdx, NormalizationCalculations nc, ListOfFloatArrays vec, NormalizationType type, HiCZoom zoom, MatrixZoomData zd,
-                                                               ExpectedValueCalculation ev, List<BufferedByteWriter> normVectorBuffers, List<NormalizationVectorIndexEntry> normVectorIndex) throws IOException {
+    protected static void updateExpectedValueCalculationForChr(final int chrIdx, NormalizationCalculations nc,
+                                                               ListOfFloatArrays vec, NormalizationType type,
+                                                               HiCZoom zoom, MatrixZoomData zd,
+                                                               ExpectedValueCalculation ev,
+                                                               BigListOfByteWriters normVectorBuffers,
+                                                               List<NormalizationVectorIndexEntry> normVectorIndex) throws IOException {
         double factor = nc.getSumFactor(vec);
         vec.multiplyEverythingBy(factor);
         updateNormVectorIndexWithVector(normVectorIndex, normVectorBuffers, vec, chrIdx, type, zoom);
@@ -107,7 +111,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
         reEvaluateWhichIntraNormsToBuild(normalizationsToBuild);
 
-        normVectorBuffers.add(new BufferedByteWriter());
+        normVectorBuffers.expandBuffer();
         for (HiCZoom zoom : resolutions) {
             if (zoom.getBinSize() < minResolution) {
                 System.out.println("skipping zoom" + zoom);

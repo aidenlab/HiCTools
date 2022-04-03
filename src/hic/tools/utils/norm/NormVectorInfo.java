@@ -24,22 +24,23 @@
 
 package hic.tools.utils.norm;
 
+import hic.tools.utils.largelists.BigListOfByteWriters;
 import javastraw.reader.expected.ExpectedValueFunction;
 import javastraw.reader.norm.NormalizationVector;
 import javastraw.reader.type.NormalizationType;
-import org.broad.igv.tdf.BufferedByteWriter;
 
 import java.util.List;
 import java.util.Map;
 
 class NormVectorInfo {
 
-    private final List<BufferedByteWriter> normVectorBuffers;
+    private final BigListOfByteWriters normVectorBuffers;
     private final List<NormalizationVectorIndexEntry> normVectorIndices;
     private final Map<String, ExpectedValueFunction> expectedValueFunctionMap;
     private final Map<NormalizationType, Map<String, NormalizationVector>> normalizationVectorsMap;
 
-    NormVectorInfo(Map<NormalizationType, Map<String, NormalizationVector>> normalizationVectorsMap, List<BufferedByteWriter> normVectorBuffers, List<NormalizationVectorIndexEntry> normVectorIndices,
+    NormVectorInfo(Map<NormalizationType, Map<String, NormalizationVector>> normalizationVectorsMap,
+                   BigListOfByteWriters normVectorBuffers, List<NormalizationVectorIndexEntry> normVectorIndices,
                    Map<String, ExpectedValueFunction> expectedValueFunctionMap) {
         this.normalizationVectorsMap = normalizationVectorsMap;
         this.normVectorBuffers = normVectorBuffers;
@@ -47,7 +48,7 @@ class NormVectorInfo {
         this.expectedValueFunctionMap = expectedValueFunctionMap;
     }
 
-    public List<BufferedByteWriter> getNormVectorBuffers() {
+    public BigListOfByteWriters getNormVectorBuffers() {
         return normVectorBuffers;
     }
 
