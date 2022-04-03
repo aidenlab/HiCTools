@@ -143,7 +143,9 @@ abstract public class HiCFileBuilder {
     }
 
     public void setFilter(ReadPairFilter.Type type) {
-        this.filter = new ReadPairFilter(type);
+        if (type != null) {
+            this.filter = new ReadPairFilter(type);
+        }
     }
 
 

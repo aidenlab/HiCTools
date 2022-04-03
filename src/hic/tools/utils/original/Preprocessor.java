@@ -139,7 +139,7 @@ public class Preprocessor extends HiCFileBuilder {
             System.out.println("Writing footer");
             writeFooter(losFooter);
 
-            if (losFooter != null && losFooter[0] != null) {
+            if (losFooter[0] != null) {
                 losFooter[0].close();
             }
 
