@@ -25,9 +25,6 @@
 
 package hic.tools.utils.mnditerator;
 
-//import htsjdk.tribble.util.LittleEndianOutputStream;
-//import java.io.IOException;
-
 public class AlignmentPair {
 
     private boolean strand1 = true;  // true if forward strand
@@ -41,7 +38,7 @@ public class AlignmentPair {
     private int mapq1 = 1000;
     private int mapq2 = 1000;
     private float score = 1.0f;  // The score (or count)
-    private boolean isContigPair;
+    private boolean isNotContigPair;
     private boolean isValidForStats = true;
 
     public AlignmentPair(boolean strand1, int chr1, int pos1, int frag1, int mapq1, boolean strand2, int chr2, int pos2, int frag2, int mapq2) {
@@ -55,18 +52,18 @@ public class AlignmentPair {
         this.pos2 = pos2;
         this.frag2 = frag2;
         this.mapq2 = mapq2;
-        isContigPair = false;
+        isNotContigPair = true;
     }
 
     public AlignmentPair() {
         this(false, -1, -1, -1, -1, false, -1, -1, -1, -1);
-        isContigPair = true;
+        isNotContigPair = false;
         isValidForStats = false;
     }
 
     public AlignmentPair(boolean ignore) {
         this();
-        isContigPair = false;
+        isNotContigPair = true;
         isValidForStats = false;
     }
 
@@ -75,7 +72,7 @@ public class AlignmentPair {
         this.pos1 = pos1;
         this.chr2 = chr2;
         this.pos2 = pos2;
-        isContigPair = false;
+        isNotContigPair = true;
     }
 
     public AlignmentPair(boolean strand1, int chr1, int pos1, int frag1, boolean strand2, int chr2, int pos2, int frag2) {
@@ -87,7 +84,7 @@ public class AlignmentPair {
         this.chr2 = chr2;
         this.pos2 = pos2;
         this.frag2 = frag2;
-        isContigPair = false;
+        isNotContigPair = true;
     }
 
     public int getChr1() {
@@ -153,8 +150,8 @@ public class AlignmentPair {
                 str2 + "\t" + chr2 + "\t" + pos2 + "\t" + frag2 + "\t" + mapq2 + "\t" + score;
     }
 
-    public boolean isContigPair() {
-        return this.isContigPair;
+    public boolean isNotContigPair() {
+        return isNotContigPair;
     }
 
     public boolean isValid() {

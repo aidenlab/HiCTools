@@ -277,7 +277,7 @@ public class Preprocessor extends HiCFileBuilder {
             while (iter.hasNext()) {
                 // totalRead++;
                 AlignmentPair pair = iter.next();
-                if (!pair.isContigPair()) {
+                if (pair.isNotContigPair()) {
                     int bp1 = pair.getPos1();
                     int bp2 = pair.getPos2();
                     int chr1 = pair.getChr1();
@@ -339,7 +339,7 @@ public class Preprocessor extends HiCFileBuilder {
         while (iter.hasNext()) {
             AlignmentPair pair = iter.next();
             // skip pairs that mapped to contigs
-            if (!pair.isContigPair()) {
+            if (pair.isNotContigPair()) {
                 if (shouldSkipContact(pair)) continue;
                 // Flip pair if needed so chr1 < chr2
                 cleaner.updateLatestContact(pair);

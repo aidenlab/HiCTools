@@ -26,10 +26,7 @@ package hic.tools.utils.original;
 
 import htsjdk.tribble.util.LittleEndianInputStream;
 
-import java.awt.*;
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
 
 class BlockQueueFB implements BlockQueue {
 
@@ -67,19 +64,7 @@ class BlockQueueFB implements BlockQueue {
             byte[] bytes = new byte[nRecords * 12];
             readFully(bytes, fis);
 
-            ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-            lis = new LittleEndianInputStream(bis);
-
-
-            Map<Point, ContactCount> contactRecordMap = new HashMap<>(nRecords);
-            for (int i = 0; i < nRecords; i++) {
-                int x = lis.readInt();
-                int y = lis.readInt();
-                float v = lis.readFloat();
-                ContactCount rec = new ContactCount(v);
-                contactRecordMap.put(new Point(x, y), rec);
-            }
-            block = new BlockPP(blockNumber, contactRecordMap);
+            block = new BlockPP(blockNumber, MatrixZoomDataPP.readContactRecordsToMap(nRecords, bytes));
 
             // Update file position based on # of bytes read, for next block
             filePosition = fis.getChannel().position();

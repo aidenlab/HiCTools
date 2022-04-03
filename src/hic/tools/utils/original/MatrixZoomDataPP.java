@@ -485,6 +485,27 @@ public class MatrixZoomDataPP {
         }
     }
 
+    static Map<Point, ContactCount> readContactRecordsToMap(int nRecords, byte[] bytes) throws IOException {
+        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+        LittleEndianInputStream lis = new LittleEndianInputStream(bis);
+
+        Map<Point, ContactCount> contactRecordMap = new HashMap<>(nRecords);
+        for (int i = 0; i < nRecords; i++) {
+            int x = lis.readInt();
+            int y = lis.readInt();
+            float v = lis.readFloat();
+            ContactCount rec = new ContactCount(v);
+            contactRecordMap.put(new Point(x, y), rec);
+        }
+        try {
+            lis.close();
+            bis.close();
+        } catch (Exception e) {
+            System.err.println("Error cleanup contact record to map = " + e.getLocalizedMessage());
+        }
+        return contactRecordMap;
+    }
+
     private BlockPP readTmpBlock(File file, long filePosition) throws IOException {
         if (filePosition >= file.length()) {
             return null;
@@ -507,18 +528,7 @@ public class MatrixZoomDataPP {
                 n += count;
             }
 
-            ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-            lis = new LittleEndianInputStream(bis);
-
-            Map<Point, ContactCount> contactRecordMap = new HashMap<>(nRecords);
-            for (int i = 0; i < nRecords; i++) {
-                int x = lis.readInt();
-                int y = lis.readInt();
-                float v = lis.readFloat();
-                ContactCount rec = new ContactCount(v);
-                contactRecordMap.put(new Point(x, y), rec);
-            }
-            return new BlockPP(blockNumber, contactRecordMap);
+            return new BlockPP(blockNumber, readContactRecordsToMap(nRecords, bytes));
         }
     }
 

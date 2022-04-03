@@ -165,7 +165,7 @@ public class MultithreadedPreprocessor extends Preprocessor {
             while (iter.hasNext()) {
                 AlignmentPair pair = iter.next();
                 // skip pairs that mapped to contigs
-                if (!pair.isContigPair()) {
+                if (pair.isNotContigPair()) {
                     if (shouldSkipContact(pair)) continue;
                     // Flip pair if needed so chr1 < chr2
                     cleaner.updateLatestContact(pair);
