@@ -27,7 +27,6 @@ package hic.tools.utils.original;
 //import juicebox.MainWindow;
 
 import hic.HiCGlobals;
-import hic.tools.clt.CommandLineParser.Alignment;
 import hic.tools.utils.cleaner.ContactCleaner;
 import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.mnditerator.AlignmentPair;
@@ -242,17 +241,6 @@ public class Preprocessor extends HiCFileBuilder {
         return new MatrixPP(0, 0, binSize, nBlockColumns, chromosomeHandler, countThreshold, v9DepthBase);
     }
 
-    protected boolean alignmentsAreEqual(Alignment alignment, Alignment alignmentStandard) {
-        if (alignment == alignmentStandard) {
-            return true;
-        }
-        if (alignmentStandard == Alignment.TANDEM) {
-            return alignment == Alignment.LL || alignment == Alignment.RR;
-        }
-
-        return false;
-    }
-
     /**
      * @param file List of files to read
      * @return Matrix with counts in each bin
@@ -298,28 +286,7 @@ public class Preprocessor extends HiCFileBuilder {
         return matrix;
     }
 
-    protected static Alignment calculateAlignment(AlignmentPair pair) {
 
-        if (pair.getStrand1() == pair.getStrand2()) {
-            if (pair.getStrand1()) {
-                return Alignment.RR;
-            } else {
-                return Alignment.LL;
-            }
-        } else if (pair.getStrand1()) {
-            if (pair.getPos1() < pair.getPos2()) {
-                return Alignment.INNER;
-            } else {
-                return Alignment.OUTER;
-            }
-        } else {
-            if (pair.getPos1() < pair.getPos2()) {
-                return Alignment.OUTER;
-            } else {
-                return Alignment.INNER;
-            }
-        }
-    }
 
     protected void writeBody(String inputFile, Map<Integer, List<Chunk>> mndIndex) throws IOException {
 
@@ -396,8 +363,10 @@ public class Preprocessor extends HiCFileBuilder {
                 return true;
             }
         }
-        if (alignmentFilter != null && !alignmentsAreEqual(calculateAlignment(pair), alignmentFilter)) {
-            return true;
+        if (filter != null) {
+            if (!filter.pairTypesAreEqual(pair)) {
+                return true;
+            }
         }
         int mapq = Math.min(pair.getMapq1(), pair.getMapq2());
         return mapq < mapqThreshold;

@@ -24,6 +24,7 @@
 
 package hic.tools.clt;
 
+import hic.tools.utils.mnditerator.ReadPairFilter;
 import jargs.gnu.CmdLineParser;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
@@ -73,7 +74,7 @@ public class CommandLineParser extends CmdLineParser {
     private final Option mapqOption = addIntegerOption('q', "mapq");
     private final Option genomeWideOption = addIntegerOption('w', "genomewide");
     private final Option nearDiagonalOption = addIntegerOption("diagonal-cutoff");
-    private final Option alignmentFilterOption = addIntegerOption('a', "alignment");
+    private final Option alignmentFilterOption = addIntegerOption("alignment");
     private final Option threadNumOption = addIntegerOption('j', "threads");
     private final Option matrixThreadNumOption = addIntegerOption("mthreads");
     private final Option v9DepthBaseOption = addIntegerOption("v9-depth-base");
@@ -186,22 +187,22 @@ public class CommandLineParser extends CmdLineParser {
         return optionToString(shellOption);
     }
 
-    public Alignment getAlignmentOption() {
+    public ReadPairFilter.Type getAlignmentOption() {
         int alignmentInt = optionToInt(alignmentFilterOption);
 
         if (alignmentInt == 0) {
             return null;
         }
         if (alignmentInt == 1) {
-            return Alignment.INNER;
+            return ReadPairFilter.Type.INNER;
         } else if (alignmentInt == 2) {
-            return Alignment.OUTER;
+            return ReadPairFilter.Type.OUTER;
         } else if (alignmentInt == 3) {
-            return Alignment.LL;
+            return ReadPairFilter.Type.LL;
         } else if (alignmentInt == 4) {
-            return Alignment.RR;
+            return ReadPairFilter.Type.RR;
         } else if (alignmentInt == 5) {
-            return Alignment.TANDEM;
+            return ReadPairFilter.Type.TANDEM;
         } else {
             throw new IllegalArgumentException(String.format("alignment option %d not supported", alignmentInt));
         }
@@ -243,8 +244,6 @@ public class CommandLineParser extends CmdLineParser {
     public long getRandomPositionSeedOption() {
         return optionToLong(randomSeedOption);
     }
-
-    public enum Alignment {INNER, OUTER, LL, RR, TANDEM}
 
     public int getNumThreads() {
         return optionToInt(threadNumOption);

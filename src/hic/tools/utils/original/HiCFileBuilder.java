@@ -24,7 +24,7 @@
 
 package hic.tools.utils.original;
 
-import hic.tools.clt.CommandLineParser;
+import hic.tools.utils.mnditerator.ReadPairFilter;
 import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.tools.UNIXTools;
@@ -53,7 +53,7 @@ abstract public class HiCFileBuilder {
     protected String statsFileName = null;
     protected String graphFileName = null;
     protected Set<String> includedChromosomes;
-    protected CommandLineParser.Alignment alignmentFilter;
+    protected ReadPairFilter filter = null;
     protected int[] bpBinSizes = {2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000};
     protected int numResolutions;
     protected double hicFileScalingFactor = 1;
@@ -142,8 +142,8 @@ abstract public class HiCFileBuilder {
         }
     }
 
-    public void setAlignmentFilter(CommandLineParser.Alignment al) {
-        this.alignmentFilter = al;
+    public void setFilter(ReadPairFilter.Type type) {
+        this.filter = new ReadPairFilter(type);
     }
 
 

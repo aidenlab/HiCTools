@@ -129,7 +129,7 @@ public class PreProcessing extends JuiceboxCLT {
         preprocessor.setGraphFile(parser.getGraphOption());
         preprocessor.setGenome(parser.getGenomeOption());
         preprocessor.setResolutions(parser.getResolutionOption());
-        preprocessor.setAlignmentFilter(parser.getAlignmentOption());
+        preprocessor.setFilter(parser.getAlignmentOption());
         int blockCapacity = parser.getBlockCapacityOption();
         if (blockCapacity > 10) {
             Preprocessor.BLOCK_CAPACITY = blockCapacity;
