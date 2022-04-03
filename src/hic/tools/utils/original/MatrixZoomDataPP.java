@@ -30,6 +30,7 @@ import javastraw.reader.basics.Chromosome;
 import javastraw.reader.block.ContactRecord;
 import javastraw.reader.depth.V9Depth;
 import javastraw.reader.type.HiCZoom;
+import javastraw.tools.ParallelizationTools;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.broad.igv.tdf.BufferedByteWriter;
 import org.broad.igv.util.collections.DownsampledDoubleArrayList;
@@ -407,25 +408,18 @@ public class MatrixZoomDataPP {
             };
             executor.execute(worker);
         }
-        executor.shutdown();
-        // Wait until all threads finish
-        while (!executor.isTerminated()) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                System.err.println(e.getLocalizedMessage());
-            }
-        }
+
+        ParallelizationTools.shutDownAndWaitUntilDone(executor, 1000);
 
         long adjust = 0;
         for (int i = 0; i < losArray.length; i++) {
             blockChunkSizes.put(i, losArray[i].getWrittenCount());
-            if (i < numCPUThreads*whichZoom) {
+            if (i < numCPUThreads * whichZoom) {
                 adjust += blockChunkSizes.get(i);
             }
         }
         List<IndexEntry> finalIndexEntries = new ArrayList<>();
-        for (int i = numCPUThreads*whichZoom ; i < numCPUThreads * (whichZoom + 1); i++) {
+        for (int i = numCPUThreads * whichZoom; i < numCPUThreads * (whichZoom + 1); i++) {
             adjust += blockChunkSizes.get(i);
             if (chunkBlockIndexes.get(i) != null) {
                 for (int j = 0; j < chunkBlockIndexes.get(i).size(); j++) {

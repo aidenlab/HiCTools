@@ -32,6 +32,7 @@ import hic.tools.utils.mnditerator.PairIterator;
 import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.type.NormalizationHandler;
+import javastraw.tools.ParallelizationTools;
 import org.broad.igv.util.Pair;
 
 import java.io.*;
@@ -288,16 +289,8 @@ public class MultithreadedPreprocessor extends Preprocessor {
             };
             executor.execute(worker);
         }
-        executor.shutdown();
 
-        // Wait until all threads finish
-        while (!executor.isTerminated()) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                System.err.println(e.getLocalizedMessage());
-            }
-        }
+        ParallelizationTools.shutDownAndWaitUntilDone(executor, 1000);
 
         for (int i = 0; i < numCPUThreads; i++) {
             if (allLocalExpectedValueCalculations.get(i) != null) {
