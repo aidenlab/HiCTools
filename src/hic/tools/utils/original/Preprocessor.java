@@ -416,24 +416,20 @@ public class Preprocessor extends HiCFileBuilder {
     protected void writeFooter(LittleEndianOutputStream[] los) throws IOException {
 
         // Index
-        List<BufferedByteWriter> bufferList = new ArrayList<>();
-        bufferList.add(new BufferedByteWriter());
-        bufferList.get(0).putInt(matrixPositions.size());
+        ListOfBufferedByteWriters bufferList = new ListOfBufferedByteWriters();
+
+        bufferList.putInt(matrixPositions.size());
         for (Map.Entry<String, IndexEntry> entry : matrixPositions.entrySet()) {
-            if (Integer.MAX_VALUE - bufferList.get(bufferList.size() - 1).bytesWritten() < 1000) {
-                bufferList.add(new BufferedByteWriter());
-            }
-            bufferList.get(bufferList.size() - 1).putNullTerminatedString(entry.getKey());
-            bufferList.get(bufferList.size() - 1).putLong(entry.getValue().position);
-            bufferList.get(bufferList.size() - 1).putInt(entry.getValue().size);
+            bufferList.expandBufferIfNeeded(1000);
+            bufferList.putNullTerminatedString(entry.getKey());
+            bufferList.putLong(entry.getValue().position);
+            bufferList.putInt(entry.getValue().size);
         }
 
         // Vectors - Expected values
 
-        if (Integer.MAX_VALUE - bufferList.get(bufferList.size() - 1).bytesWritten() < 1000) {
-            bufferList.add(new BufferedByteWriter());
-        }
-        bufferList.get(bufferList.size() - 1).putInt(expectedValueCalculations.size());
+        bufferList.expandBufferIfNeeded(1000);
+        bufferList.putInt(expectedValueCalculations.size());
         for (Map.Entry<String, ExpectedValueCalculation> entry : expectedValueCalculations.entrySet()) {
             ExpectedValueCalculation ev = entry.getValue();
 
@@ -442,47 +438,38 @@ public class Preprocessor extends HiCFileBuilder {
             int binSize = ev.getGridSize();
             HiCZoom.HiCUnit unit = HiCZoom.HiCUnit.BP;
 
-            bufferList.get(bufferList.size() - 1).putNullTerminatedString(unit.toString());
-            bufferList.get(bufferList.size() - 1).putInt(binSize);
+            bufferList.putNullTerminatedString(unit.toString());
+            bufferList.putInt(binSize);
 
             // The density values
             ListOfDoubleArrays expectedValues = ev.getDensityAvg();
             // todo @Suhas to handle buffer overflow
-            bufferList.get(bufferList.size() - 1).putLong(expectedValues.getLength());
+            bufferList.putLong(expectedValues.getLength());
             for (double[] expectedArray : expectedValues.getValues()) {
-                bufferList.add(new BufferedByteWriter());
+                bufferList.expandBuffer();
                 for (double value : expectedArray) {
-                    if (Integer.MAX_VALUE - bufferList.get(bufferList.size() - 1).bytesWritten() < 1000000) {
-                        bufferList.add(new BufferedByteWriter());
-                    }
-                    bufferList.get(bufferList.size() - 1).putFloat((float) value);
+                    bufferList.expandBufferIfNeeded(1000000);
+                    bufferList.putFloat((float) value);
                 }
             }
 
             // Map of chromosome index -> normalization factor
             Map<Integer, Double> normalizationFactors = ev.getChrScaleFactors();
-            if (Integer.MAX_VALUE - bufferList.get(bufferList.size() - 1).bytesWritten() < 1000000) {
-                bufferList.add(new BufferedByteWriter());
-            }
-            bufferList.get(bufferList.size() - 1).putInt(normalizationFactors.size());
+            bufferList.expandBufferIfNeeded(1000000);
+            bufferList.putInt(normalizationFactors.size());
             for (Map.Entry<Integer, Double> normFactor : normalizationFactors.entrySet()) {
-                bufferList.get(bufferList.size() - 1).putInt(normFactor.getKey());
-                bufferList.get(bufferList.size() - 1).putFloat(normFactor.getValue().floatValue());
+                bufferList.putInt(normFactor.getKey());
+                bufferList.putFloat(normFactor.getValue().floatValue());
                 //System.out.println(normFactor.getKey() + "  " + normFactor.getValue());
             }
         }
 
 
-        long nBytesV5 = 0;
-        for (int i = 0; i < bufferList.size(); i++) {
-            nBytesV5 += bufferList.get(i).getBytes().length;
-        }
+        long nBytesV5 = bufferList.getTotalBytes();
         System.out.println("nBytesV5: " + nBytesV5);
 
         los[0].writeLong(nBytesV5);
-        for (int i = 0; i < bufferList.size(); i++) {
-            los[0].write(bufferList.get(i).getBytes());
-        }
+        bufferList.writeToOutput(los[0]);
     }
 
     protected Pair<Map<Long, List<IndexEntry>>, Long> writeMatrix(MatrixPP matrix, LittleEndianOutputStream[] losArray,
