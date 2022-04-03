@@ -80,14 +80,6 @@ public class BigListOfByteWriters {
         bufferList.add(new BufferedByteWriter());
     }
 
-    public long getTotalBytes() {
-        long total = 0;
-        for (BufferedByteWriter writer : bufferList) {
-            total += writer.getBytes().length;
-        }
-        return total;
-    }
-
     public long getBytesWritten() {
         long total = 0;
         for (BufferedByteWriter bufferedByteWriter : bufferList) {

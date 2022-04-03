@@ -154,7 +154,7 @@ public class ExpectedValueCalculation {
         }
         dist = Math.abs(bin1 - bin2);
 
-        actualDistances[dist] += Math.log(1 + weight);
+        actualDistances[dist] += weight; // Math.log(1 + weight);
     }
 
     public void merge(ExpectedValueCalculation otherEVCalc) {
@@ -219,7 +219,7 @@ public class ExpectedValueCalculation {
 		densityAvg = new ListOfDoubleArrays(maxNumBins);
 	
 		// Smoothing.  Keep pointers to window size.  When read counts drops below 400 (= 5% shot noise), smooth
-        double shotNoiseMinimum = Math.log(1 + 400);
+        double shotNoiseMinimum = 400; //Math.log(1 + 400);
 	
 		double numSum = actualDistances[0];
 		double denSum = possibleDistances[0];
@@ -242,7 +242,7 @@ public class ExpectedValueCalculation {
                     bound2--;
                 }
             }
-            densityAvg.set(ii, Math.expm1(numSum / denSum));
+            densityAvg.set(ii, numSum / denSum); // Math.expm1(numSum / denSum)
             // Default case - bump the window size up by 2 to keep it centered for the next iteration
             if (bound2 + 2 < maxNumBins) {
                 numSum += actualDistances[bound2 + 1] + actualDistances[bound2 + 2];
