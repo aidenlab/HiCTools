@@ -161,9 +161,8 @@ public class MatrixZoomDataPP {
      */
     void incrementCount(int pos1, int pos2, float score, Map<String, ExpectedValueCalculation> expectedValueCalculations,
                         File tmpDir) throws IOException {
-        sum += score;
-        // Convert to proper units,  fragments or base-pairs
         if (pos1 < 0 || pos2 < 0) return;
+        sum += score;
         int xBin = pos1 / binSize;
         int yBin = pos2 / binSize;
         commonIncrementCount(xBin, yBin, score, expectedValueCalculations, tmpDir);
