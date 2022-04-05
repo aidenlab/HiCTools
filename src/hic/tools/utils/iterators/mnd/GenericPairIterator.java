@@ -22,7 +22,7 @@
  *  THE SOFTWARE.
  */
 
-package hic.tools.utils.mnditerator;
+package hic.tools.utils.iterators.mnd;
 
 import java.io.BufferedReader;
 import java.io.IOException;

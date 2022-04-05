@@ -24,7 +24,7 @@
 
 package hic.tools.clt;
 
-import hic.tools.utils.mnditerator.ReadPairFilter;
+import hic.tools.utils.iterators.mnd.ReadPairFilter;
 import jargs.gnu.CmdLineParser;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;

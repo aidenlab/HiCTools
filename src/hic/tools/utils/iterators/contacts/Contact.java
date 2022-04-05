@@ -22,51 +22,44 @@
  *  THE SOFTWARE.
  */
 
-package hic.tools.utils.mnditerator;
+package hic.tools.utils.iterators.contacts;
 
-public class ReadPairFilter {
-    private final Type type;
+import javastraw.reader.block.ContactRecord;
 
-    public ReadPairFilter(Type type) {
-        this.type = type;
+public class Contact {
+
+    private final int chr1;
+    private final int pos1;
+    private final int chr2;
+    private final int pos2;
+    private float score = 1.0f;  // The score (or count)
+
+    public Contact(int chr1Index, int chr2Index, ContactRecord record, int resolution) {
+        this.chr1 = chr1Index;
+        this.chr2 = chr2Index;
+        this.pos1 = record.getBinX() * resolution;
+        this.pos2 = record.getBinY() * resolution;
+        this.score = record.getCounts();
     }
 
-    protected static Type calculateType(AlignmentPair pair) {
-        if (pair.getStrand1() == pair.getStrand2()) {
-            if (pair.getStrand1()) {
-                return Type.RR;
-            } else {
-                return Type.LL;
-            }
-        } else if (pair.getStrand1()) {
-            if (pair.getPos1() < pair.getPos2()) { // todo is this correct??
-                return Type.INNER;
-            } else {
-                return Type.OUTER;
-            }
-        } else {
-            if (pair.getPos1() < pair.getPos2()) {
-                return Type.OUTER;
-            } else {
-                return Type.INNER;
-            }
-        }
+
+    public int getChr1() {
+        return chr1;
     }
 
-    public boolean pairTypesAreEqual(AlignmentPair pair) {
-        return pairTypesAreEqual(calculateType(pair));
+    public int getPos1() {
+        return pos1;
     }
 
-    protected boolean pairTypesAreEqual(Type pairType) {
-        if (this.type == pairType) {
-            return true;
-        }
-        if (this.type == Type.TANDEM) {
-            return pairType == Type.LL || pairType == Type.RR;
-        }
-
-        return false;
+    public int getChr2() {
+        return chr2;
     }
 
-    public enum Type {INNER, OUTER, LL, RR, TANDEM}
+    public int getPos2() {
+        return pos2;
+    }
+
+    public float getScore() {
+        return score;
+    }
 }

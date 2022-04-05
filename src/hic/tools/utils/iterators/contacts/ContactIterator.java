@@ -23,42 +23,21 @@
  */
 
 
-package hic.tools.utils.mnditerator;
+package hic.tools.utils.iterators.contacts;
 
 import javastraw.reader.Dataset;
-import javastraw.reader.basics.ChromosomeHandler;
 
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
-/**
- * @author Jim Robinson
- * @since 9/24/11
- */
-public interface PairIterator extends Iterator<AlignmentPair> {
+public interface ContactIterator extends Iterator<Contact> {
+
+    static ContactIterator getAllByAllIterator(List<Dataset> inputDS) throws IOException {
+        return new AllByAllContactsIterator(inputDS);
+    }
 
     boolean hasNext();
 
-    AlignmentPair next();
-
-    void remove();
-
-    void close();
-
-    static PairIterator getIterator(String file, Map<String, Integer> chromosomeIndexes,
-                                    ChromosomeHandler chromosomeHandler) throws IOException {
-        if (file.endsWith(".bin")) {
-            return new BinPairIterator(file);
-        } else if (file.endsWith(".bn")) {
-            return new ShortBinPairIterator(file);
-        } else {
-            return new AsciiPairIterator(file, chromosomeIndexes, chromosomeHandler, false);
-        }
-    }
-
-    static PairIterator getAllByAllIterator(List<Dataset> inputDS) throws IOException {
-        return new AllByAllDatasetPairIterator(inputDS);
-    }
+    Contact next();
 }

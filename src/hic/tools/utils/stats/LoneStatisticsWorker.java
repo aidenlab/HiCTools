@@ -24,7 +24,7 @@
 
 package hic.tools.utils.stats;
 
-import hic.tools.utils.mnditerator.SimpleAsciiPairIterator;
+import hic.tools.utils.iterators.mnd.SimpleAsciiPairIterator;
 
 import java.io.IOException;
 import java.util.List;

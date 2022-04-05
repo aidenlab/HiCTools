@@ -24,8 +24,8 @@
 
 package hic.tools.utils.stats;
 
-import hic.tools.utils.mnditerator.AlignmentPairLong;
-import hic.tools.utils.mnditerator.AsciiPairIterator;
+import hic.tools.utils.iterators.mnd.AlignmentPairLong;
+import hic.tools.utils.iterators.mnd.AsciiPairIterator;
 import hic.tools.utils.original.Chunk;
 import javastraw.reader.basics.ChromosomeHandler;
 

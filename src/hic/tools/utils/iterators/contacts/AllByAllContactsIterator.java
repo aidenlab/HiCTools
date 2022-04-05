@@ -22,7 +22,7 @@
  *  THE SOFTWARE.
  */
 
-package hic.tools.utils.mnditerator;
+package hic.tools.utils.iterators.contacts;
 
 import javastraw.reader.Dataset;
 import javastraw.reader.Matrix;
@@ -34,26 +34,20 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-/**
- * @author Jim Robinson
- * @since 4/7/12
- */
-public class AllByAllDatasetPairIterator implements PairIterator {
+public class AllByAllContactsIterator implements ContactIterator {
 
     private final List<Dataset> datasets;
     private int currentIndex = -1;
     private Iterator<ContactRecord> iterator;
     private int resolution;
 
-    public AllByAllDatasetPairIterator(List<Dataset> datasets) throws IOException {
+    public AllByAllContactsIterator(List<Dataset> datasets) throws IOException {
         this.datasets = datasets;
         advanceIterator();
     }
 
-    private static AlignmentPair makeAlignmentPairFromRecord(ContactRecord record, int resolution) {
-        AlignmentPair pair = new AlignmentPair(0, resolution * record.getBinX(),
-                0, resolution * record.getBinY());
-        pair.setScore(record.getCounts());
+    private static Contact makeAlignmentPairFromRecord(ContactRecord record, int resolution) {
+        Contact pair = new Contact(0, 0, record, resolution);
         return pair;
     }
 
@@ -85,14 +79,8 @@ public class AllByAllDatasetPairIterator implements PairIterator {
         }
     }
 
-    public AlignmentPair next() {
+    public Contact next() {
         ContactRecord record = iterator.next();
         return makeAlignmentPairFromRecord(record, resolution);
-    }
-
-    public void remove() {
-    }
-
-    public void close() {
     }
 }

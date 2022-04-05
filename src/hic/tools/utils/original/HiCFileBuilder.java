@@ -25,8 +25,8 @@
 package hic.tools.utils.original;
 
 import hic.HiCGlobals;
+import hic.tools.utils.iterators.mnd.ReadPairFilter;
 import hic.tools.utils.largelists.BigListOfByteWriters;
-import hic.tools.utils.mnditerator.ReadPairFilter;
 import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.Dataset;
 import javastraw.reader.basics.Chromosome;

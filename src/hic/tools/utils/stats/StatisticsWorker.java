@@ -24,8 +24,8 @@
 
 package hic.tools.utils.stats;
 
-import hic.tools.utils.mnditerator.AlignmentPair;
-import hic.tools.utils.mnditerator.AlignmentPairLong;
+import hic.tools.utils.iterators.mnd.AlignmentPair;
+import hic.tools.utils.iterators.mnd.AlignmentPairLong;
 
 import java.util.List;
 import java.util.Map;

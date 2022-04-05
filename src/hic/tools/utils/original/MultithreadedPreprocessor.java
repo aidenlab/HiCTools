@@ -26,9 +26,9 @@ package hic.tools.utils.original;
 
 import hic.HiCGlobals;
 import hic.tools.utils.cleaner.ContactCleaner;
-import hic.tools.utils.mnditerator.AlignmentPair;
-import hic.tools.utils.mnditerator.AsciiPairIterator;
-import hic.tools.utils.mnditerator.PairIterator;
+import hic.tools.utils.iterators.mnd.AlignmentPair;
+import hic.tools.utils.iterators.mnd.AsciiPairIterator;
+import hic.tools.utils.iterators.mnd.PairIterator;
 import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.type.NormalizationHandler;

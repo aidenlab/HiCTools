@@ -24,9 +24,9 @@
 
 package hic.tools.utils.original;
 
+import hic.tools.utils.iterators.contacts.Contact;
+import hic.tools.utils.iterators.contacts.ContactIterator;
 import hic.tools.utils.merge.HiCMergeTools;
-import hic.tools.utils.mnditerator.AlignmentPair;
-import hic.tools.utils.mnditerator.PairIterator;
 import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.Dataset;
 import javastraw.reader.basics.Chromosome;
@@ -66,15 +66,16 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
 
     private MatrixPP computeWholeGenomeMatrix(List<Dataset> inputDS) throws IOException {
         MatrixPP matrix = getInitialGenomeWideMatrixPP(chromosomeHandler);
-        PairIterator iter = null;
+        ContactIterator iter = null;
         try {
-            iter = PairIterator.getAllByAllIterator(inputDS);
+            iter = ContactIterator.getAllByAllIterator(inputDS);
             while (iter.hasNext()) {
-                AlignmentPair pair = iter.next();
-                matrix.incrementCount(pair.getPos1(), pair.getPos2(), pair.getScore(), expectedValueCalculations, tmpDir);
+                Contact contact = iter.next();
+                matrix.incrementCount(contact.getPos1(), contact.getPos2(), contact.getScore(), expectedValueCalculations, tmpDir);
             }
-        } finally {
-            if (iter != null) iter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(98);
         }
         matrix.parsingComplete();
         return matrix;

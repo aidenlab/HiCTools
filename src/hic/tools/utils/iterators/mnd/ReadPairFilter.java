@@ -22,36 +22,51 @@
  *  THE SOFTWARE.
  */
 
-package hic.tools.clt.old;
+package hic.tools.utils.iterators.mnd;
 
-import hic.tools.clt.CommandLineParser;
-import hic.tools.clt.JuiceboxCLT;
-import hic.tools.utils.iterators.mnd.AsciiToBinConverter;
+public class ReadPairFilter {
+    private final Type type;
 
-
-public class BinToPairs extends JuiceboxCLT {
-
-    private String ifile, ofile;
-
-    public BinToPairs() {
-        super("binToPairs <input_HiC_file> <output_HiC_file>");
+    public ReadPairFilter(Type type) {
+        this.type = type;
     }
 
-    @Override
-    public void readArguments(String[] args, CommandLineParser parser) {
-        if (args.length != 3) {
-            printUsageAndExit();
-        }
-        ifile = args[1];
-        ofile = args[2];
-    }
-
-    @Override
-    public void run() {
-        try {
-            AsciiToBinConverter.convertBack(ifile, ofile);
-        } catch (Exception e) {
-            e.printStackTrace();
+    protected static Type calculateType(AlignmentPair pair) {
+        if (pair.getStrand1() == pair.getStrand2()) {
+            if (pair.getStrand1()) {
+                return Type.RR;
+            } else {
+                return Type.LL;
+            }
+        } else if (pair.getStrand1()) {
+            if (pair.getPos1() < pair.getPos2()) { // todo is this correct??
+                return Type.INNER;
+            } else {
+                return Type.OUTER;
+            }
+        } else {
+            if (pair.getPos1() < pair.getPos2()) {
+                return Type.OUTER;
+            } else {
+                return Type.INNER;
+            }
         }
     }
+
+    public boolean pairTypesAreEqual(AlignmentPair pair) {
+        return pairTypesAreEqual(calculateType(pair));
+    }
+
+    protected boolean pairTypesAreEqual(Type pairType) {
+        if (this.type == pairType) {
+            return true;
+        }
+        if (this.type == Type.TANDEM) {
+            return pairType == Type.LL || pairType == Type.RR;
+        }
+
+        return false;
+    }
+
+    public enum Type {INNER, OUTER, LL, RR, TANDEM}
 }

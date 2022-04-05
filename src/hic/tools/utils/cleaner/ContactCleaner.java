@@ -24,7 +24,7 @@
 
 package hic.tools.utils.cleaner;
 
-import hic.tools.utils.mnditerator.AlignmentPair;
+import hic.tools.utils.iterators.mnd.AlignmentPair;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import hic.tools.utils.original.MatrixPP;
 import javastraw.reader.basics.ChromosomeHandler;

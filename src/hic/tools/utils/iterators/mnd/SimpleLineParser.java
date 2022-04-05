@@ -22,30 +22,39 @@
  *  THE SOFTWARE.
  */
 
-package hic.tools.utils.mnditerator;
+package hic.tools.utils.iterators.mnd;
 
-import hic.HiCGlobals;
-import org.broad.igv.util.ParsingUtils;
+import java.util.HashMap;
+import java.util.Map;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.util.zip.GZIPInputStream;
+public class SimpleLineParser extends MNDLineParser {
 
-public class SimpleAsciiPairIterator extends GenericPairIterator implements PairIterator {
+    private final Map<String, Integer> chrNameToIndex = new HashMap<>();
+    private final Map<Integer, String> chrIndexToName = new HashMap<>();
+    private int nextChromIndex = 1;
 
-    public SimpleAsciiPairIterator(String path) throws IOException {
-        super(new MNDFileParser(new SimpleLineParser()));
-        if (path.endsWith(".gz")) {
-            InputStream gzipStream = new GZIPInputStream(new FileInputStream(path));
-            Reader decoder = new InputStreamReader(gzipStream, StandardCharsets.UTF_8);
-            this.reader = new BufferedReader(decoder, 4194304);
-        } else {
-            this.reader = new BufferedReader(new InputStreamReader(ParsingUtils.openInputStream(path)), HiCGlobals.bufferSize);
+    @Override
+    protected int getChromosomeOrdinal(String chrom) {
+        if (!chrNameToIndex.containsKey(chrom)) {
+            chrNameToIndex.put(chrom, nextChromIndex);
+            chrNameToIndex.put(chrom.toLowerCase(), nextChromIndex);
+            chrNameToIndex.put(chrom.toUpperCase(), nextChromIndex);
+            chrIndexToName.put(nextChromIndex, chrom);
+            nextChromIndex++;
         }
-        advance();
+
+        return chrNameToIndex.get(chrom);
     }
 
+    @Override
+    public AlignmentPair generateBasicPair(String[] tokens, int chrom1Index, int chrom2Index, int pos1Index, int pos2Index) {
+        String chrom1 = getInternedString(tokens[chrom1Index]);
+        String chrom2 = getInternedString(tokens[chrom2Index]);
+        return createPair(tokens, chrom1, chrom2, pos1Index, pos2Index);
+    }
+
+    @Override
     public String getChromosomeNameFromIndex(int chrIndex) {
-        return mndFileParser.getChromosomeNameFromIndex(chrIndex);
+        return chrIndexToName.get(chrIndex);
     }
 }
