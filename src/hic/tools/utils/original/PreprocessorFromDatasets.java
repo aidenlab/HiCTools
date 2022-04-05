@@ -98,7 +98,8 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         masterIndexPosition = losArray[0].getWrittenCount();
     }
 
-    private void writeChromosomeRegionMatrix(Chromosome chromosome1, Chromosome chromosome2, List<Dataset> inputDS) throws IOException {
+    private void writeChromosomeRegionMatrix(Chromosome chromosome1, Chromosome chromosome2,
+                                             List<Dataset> inputDS) throws IOException {
         int newBlockCapacity = (int) (Math.sqrt(inputDS.size()) * BLOCK_CAPACITY);
         final MatrixPP mergedMatrix = new MatrixPP(chromosome1.getIndex(), chromosome2.getIndex(), chromosomeHandler,
                 bpBinSizes, countThreshold, v9DepthBase, newBlockCapacity);
