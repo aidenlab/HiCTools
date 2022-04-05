@@ -31,10 +31,12 @@ import hic.tools.utils.merge.HiCMergeTools;
 import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.Dataset;
 import javastraw.reader.basics.Chromosome;
+import javastraw.reader.type.HiCZoom;
 import javastraw.tools.ParallelizationTools;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.Deflater;
@@ -44,10 +46,22 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
 
     private static final Object key = new Object();
     private final Dataset[] datasets;
+    private final int highestResolution;
 
     public PreprocessorFromDatasets(File outputFile, Dataset[] datasets, double hicFileScalingFactor) {
         super(outputFile, datasets[0].getGenomeId(), datasets[0].getChromosomeHandler(), hicFileScalingFactor);
         this.datasets = datasets;
+        highestResolution = getMin(datasets[0].getAllPossibleResolutions());
+    }
+
+    private int getMin(List<HiCZoom> zooms) {
+        int minValue = zooms.get(0).getBinSize();
+        for (HiCZoom zoom : zooms) {
+            if (zoom.getBinSize() < minValue) {
+                minValue = zoom.getBinSize();
+            }
+        }
+        return minValue;
     }
 
     public void preprocess() throws IOException {
@@ -113,7 +127,9 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
             while (i < datasets.length) {
 
                 try {
-                    ContactIterator iter = new ChromosomeContactsIterator(datasets[i], chromosome1, chromosome2);
+                    ChromosomeContactsIterator iter = new ChromosomeContactsIterator(datasets[i],
+                            chromosome1, chromosome2, highestResolution);
+                    if (iter.isNull()) continue;
                     while (iter.hasNext()) {
                         matrixPP.incrementCount(iter.next(), expectedValueCalculations, tmpDir);
                     }
