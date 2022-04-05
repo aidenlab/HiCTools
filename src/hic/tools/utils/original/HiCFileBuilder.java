@@ -24,16 +24,31 @@
 
 package hic.tools.utils.original;
 
+import hic.HiCGlobals;
+import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.mnditerator.ReadPairFilter;
 import htsjdk.tribble.util.LittleEndianOutputStream;
+import javastraw.reader.Dataset;
+import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.datastructures.ListOfDoubleArrays;
+import javastraw.reader.type.HiCZoom;
+import javastraw.reader.type.NormalizationHandler;
 import javastraw.tools.UNIXTools;
+import org.broad.igv.tdf.BufferedByteWriter;
+import org.broad.igv.util.Pair;
 
-import java.io.File;
+import java.io.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.Deflater;
 
 abstract public class HiCFileBuilder {
+
+    protected long masterIndexPositionPosition;
+    protected long normVectorIndexPosition;
+    protected long normVectorLengthPosition;
+    protected Map<String, ExpectedValueCalculation> expectedValueCalculations = Collections.synchronizedMap(new LinkedHashMap<>());
 
     protected static final int VERSION = 9;
     protected static final int BLOCK_SIZE = 1000;
@@ -68,6 +83,13 @@ abstract public class HiCFileBuilder {
         }
         if (hicFileScalingFactor > 0) {
             this.hicFileScalingFactor = hicFileScalingFactor;
+        }
+        initializeExpectedVectorCalculations();
+    }
+
+    protected static void closeLosArray(LittleEndianOutputStream[] los) throws IOException {
+        if (los != null && los[0] != null) {
+            los[0].close();
         }
     }
 
@@ -108,6 +130,70 @@ abstract public class HiCFileBuilder {
         }
     }
 
+    protected static void updateIndexPositions(List<IndexEntry> blockIndex, LittleEndianOutputStream[] losArray, boolean doRestore,
+                                               File outputFile, long currentPosition, long blockIndexPosition) throws IOException {
+
+        // Temporarily close output stream.  Remember position
+        long losPos = 0;
+        if (doRestore) {
+            losPos = losArray[0].getWrittenCount();
+            losArray[0].close();
+        }
+
+        try (RandomAccessFile raf = new RandomAccessFile(outputFile, "rw")) {
+
+            // Block indices
+            raf.getChannel().position(blockIndexPosition);
+
+            // Write as little endian
+            BufferedByteWriter buffer = new BufferedByteWriter();
+            for (IndexEntry aBlockIndex : blockIndex) {
+                buffer.putInt(aBlockIndex.id);
+                buffer.putLong(aBlockIndex.position + currentPosition);
+                buffer.putInt(aBlockIndex.size);
+            }
+            raf.write(buffer.getBytes());
+
+        }
+        if (doRestore) {
+            FileOutputStream fos = new FileOutputStream(outputFile, true);
+            fos.getChannel().position(losPos);
+            losArray[0] = new LittleEndianOutputStream(new BufferedOutputStream(fos, HiCGlobals.bufferSize));
+            losArray[0].setWrittenCount(losPos);
+        }
+    }
+
+    public void setFilter(ReadPairFilter.Type type) {
+        if (type != null) {
+            this.filter = new ReadPairFilter(type);
+        }
+    }
+
+
+    public void setTmpdir(String tmpDirName) {
+        if (tmpDirName != null) {
+            this.tmpDir = new File(tmpDirName);
+            if (!tmpDir.exists()) {
+                System.err.println("Tmp directory does not exist: " + tmpDirName);
+                if (outputFile != null) outputFile.deleteOnExit();
+                System.exit(59);
+            }
+        }
+    }
+
+    public void setStatisticsFile(String statsOption) {
+        statsFileName = statsOption;
+    }
+
+    private void initializeExpectedVectorCalculations() {
+        expectedValueCalculations.clear();
+        for (int bBinSize : bpBinSizes) {
+            ExpectedValueCalculation calc = new ExpectedValueCalculation(chromosomeHandler, bBinSize, NormalizationHandler.NONE);
+            String key = "BP_" + bBinSize;
+            expectedValueCalculations.put(key, calc);
+        }
+    }
+
     public void setResolutions(List<String> resolutions) {
         if (resolutions != null) {
             ArrayList<Integer> bpResolutions = new ArrayList<>();
@@ -132,6 +218,8 @@ abstract public class HiCFileBuilder {
                     bps[i] = bpResolutions.get(i);
                 }
                 bpBinSizes = bps;
+                // reset expected vectors based on new resolutions
+                initializeExpectedVectorCalculations();
             } else {
                 bpBinSizes = new int[0];
             }
@@ -142,25 +230,254 @@ abstract public class HiCFileBuilder {
         }
     }
 
-    public void setFilter(ReadPairFilter.Type type) {
-        if (type != null) {
-            this.filter = new ReadPairFilter(type);
+    protected LittleEndianOutputStream[] initializeLosArrays(String headerFile, String footerFile) {
+        try {
+            losArray[0] = new LittleEndianOutputStream(new BufferedOutputStream(new FileOutputStream(headerFile), HiCGlobals.bufferSize));
+            if (footerFile.equalsIgnoreCase(headerFile)) {
+                return losArray;
+            } else {
+                LittleEndianOutputStream[] losFooter = new LittleEndianOutputStream[1];
+                losFooter[0] = new LittleEndianOutputStream(new BufferedOutputStream(new FileOutputStream(footerFile), HiCGlobals.bufferSize));
+                return losFooter;
+            }
+        } catch (Exception e) {
+            System.err.println("Unable to write to " + outputFile);
+            System.exit(70);
         }
+        return null;
     }
 
-
-    public void setTmpdir(String tmpDirName) {
-        if (tmpDirName != null) {
-            this.tmpDir = new File(tmpDirName);
-            if (!tmpDir.exists()) {
-                System.err.println("Tmp directory does not exist: " + tmpDirName);
-                if (outputFile != null) outputFile.deleteOnExit();
-                System.exit(59);
+    protected StringBuilder readFileIntoString(String fileName, String description) {
+        if (fileName != null) {
+            try (FileInputStream is = new FileInputStream(fileName)) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is), HiCGlobals.bufferSize);
+                StringBuilder sb = new StringBuilder();
+                String nextLine;
+                while ((nextLine = reader.readLine()) != null) {
+                    sb.append(nextLine).append("\n");
+                }
+                return sb;
+            } catch (IOException e) {
+                System.err.println("Error while reading " + description + " file: " + e);
+                return null;
             }
         }
+        return null;
     }
 
-    public void setStatisticsFile(String statsOption) {
-        statsFileName = statsOption;
+    protected MatrixPP getInitialGenomeWideMatrixPP(ChromosomeHandler chromosomeHandler) {
+        long genomeLength = chromosomeHandler.getChromosomeFromIndex(0).getLength();  // <= whole genome in KB
+        int binSize = (int) (genomeLength / 500); // todo
+        if (binSize == 0) binSize = 1;
+        int nBinsX = (int) (genomeLength / binSize + 1); // todo
+        int nBlockColumns = nBinsX / BLOCK_SIZE + 1;
+        return new MatrixPP(0, 0, binSize, nBlockColumns, chromosomeHandler, countThreshold, v9DepthBase);
+    }
+
+    protected void writeHeader() throws IOException {
+        System.out.println("Start preprocess");
+        System.out.println("Writing header");
+        // Magic number
+        byte[] magicBytes = "HIC".getBytes();
+        LittleEndianOutputStream los = losArray[0];
+        los.write(magicBytes[0]);
+        los.write(magicBytes[1]);
+        los.write(magicBytes[2]);
+        los.write(0);
+
+        // VERSION
+        los.writeInt(VERSION);
+
+        // Placeholder for master index position, replaced with actual position after all contents are written
+        masterIndexPositionPosition = los.getWrittenCount();
+        los.writeLong(0L);
+
+        // Genome ID
+        los.writeString(genomeId);
+
+        // Add NVI info
+        //los.writeString(NVI_INDEX);
+        normVectorIndexPosition = los.getWrittenCount();
+        los.writeLong(0L);
+
+        //los.writeString(NVI_LENGTH);
+        normVectorLengthPosition = los.getWrittenCount();
+        los.writeLong(0L);
+
+        StringBuilder stats = readFileIntoString(statsFileName, "stats");
+        StringBuilder graphs = readFileIntoString(graphFileName, "graphs");
+        StringBuilder hicFileScaling = new StringBuilder().append(hicFileScalingFactor);
+
+        // Attribute dictionary
+        int nAttributes = 2;
+        if (stats != null) nAttributes += 1;
+        if (graphs != null) nAttributes += 1;
+        if (v9DepthBase != 2) nAttributes += 1;
+
+        los.writeInt(nAttributes);
+        los.writeString(Dataset.SOFTWARE);
+        los.writeString("Juicer Tools Version " + HiCGlobals.versionNum);
+        if (stats != null) {
+            los.writeString(Dataset.STATISTICS);
+            los.writeString(stats.toString());
+        }
+        if (graphs != null) {
+            los.writeString(Dataset.GRAPHS);
+            los.writeString(graphs.toString());
+        }
+        { // hicFileScaling always written
+            los.writeString(Dataset.HIC_FILE_SCALING);
+            los.writeString(hicFileScaling.toString());
+        }
+        if (v9DepthBase != 2) {
+            los.writeString(Dataset.V9_DEPTH_BASE);
+            los.writeString("" + v9DepthBase);
+        }
+
+
+        // Sequence dictionary
+        int nChrs = chromosomeHandler.size();
+        los.writeInt(nChrs);
+        for (Chromosome chromosome : chromosomeHandler.getChromosomeArray()) {
+            los.writeString(chromosome.getName());
+            los.writeLong(chromosome.getLength());
+        }
+
+        //BP resolution levels
+        int nBpRes = bpBinSizes.length;
+        los.writeInt(nBpRes);
+        for (int bpBinSize : bpBinSizes) {
+            los.writeInt(bpBinSize);
+        }
+
+        // deprecate fragment resolutions
+        los.writeInt(0);
+
+        numResolutions = nBpRes;
+    }
+
+    protected void writeFooter(LittleEndianOutputStream[] los) throws IOException {
+        System.out.println();
+        System.out.println("Writing footer");
+        // Index
+        BigListOfByteWriters bufferList = new BigListOfByteWriters();
+
+        bufferList.putInt(matrixPositions.size());
+        for (Map.Entry<String, IndexEntry> entry : matrixPositions.entrySet()) {
+            bufferList.expandBufferIfNeeded(1000);
+            bufferList.putNullTerminatedString(entry.getKey());
+            bufferList.putLong(entry.getValue().position);
+            bufferList.putInt(entry.getValue().size);
+        }
+
+        // Vectors - Expected values
+
+        bufferList.expandBufferIfNeeded(1000);
+        bufferList.putInt(expectedValueCalculations.size());
+        for (Map.Entry<String, ExpectedValueCalculation> entry : expectedValueCalculations.entrySet()) {
+            ExpectedValueCalculation ev = entry.getValue();
+            ev.computeDensity();
+            int binSize = ev.getGridSize();
+            HiCZoom.HiCUnit unit = HiCZoom.HiCUnit.BP;
+
+            bufferList.putNullTerminatedString(unit.toString());
+            bufferList.putInt(binSize);
+
+            // The density values
+            ListOfDoubleArrays expectedValues = ev.getDensityAvg();
+            bufferList.putLong(expectedValues.getLength());
+            for (double[] expectedArray : expectedValues.getValues()) {
+                bufferList.expandBuffer();
+                for (double value : expectedArray) {
+                    bufferList.expandBufferIfNeeded(1000000);
+                    bufferList.putFloat((float) value);
+                }
+            }
+
+            // Map of chromosome index -> normalization factor
+            Map<Integer, Double> normalizationFactors = ev.getChrScaleFactors();
+            bufferList.expandBufferIfNeeded(1000000);
+            bufferList.putInt(normalizationFactors.size());
+            for (Map.Entry<Integer, Double> normFactor : normalizationFactors.entrySet()) {
+                bufferList.putInt(normFactor.getKey());
+                bufferList.putFloat(normFactor.getValue().floatValue());
+                //System.out.println(normFactor.getKey() + "  " + normFactor.getValue());
+            }
+        }
+
+
+        long nBytesV5 = bufferList.getBytesWritten();
+        System.out.println("nBytesV5: " + nBytesV5);
+
+        los[0].writeLong(nBytesV5);
+        bufferList.writeToOutput(los[0]);
+    }
+
+    protected Pair<Map<Long, List<IndexEntry>>, Long> writeMatrix(MatrixPP matrix, LittleEndianOutputStream[] losArray,
+                                                                  Deflater compressor, Map<String, IndexEntry> matrixPositions,
+                                                                  int chromosomePairIndex, boolean doMultiThreadedBehavior) throws IOException {
+
+        LittleEndianOutputStream los = losArray[0];
+        long position = los.getWrittenCount();
+
+        los.writeInt(matrix.getChr1Idx());
+        los.writeInt(matrix.getChr2Idx());
+        int numResolutions = 0;
+
+        for (MatrixZoomDataPP zd : matrix.getZoomData()) {
+            if (zd != null) {
+                numResolutions++;
+            }
+        }
+        los.writeInt(numResolutions);
+
+        //fos.writeInt(matrix.getZoomData().length);
+        for (int i = 0; i < matrix.getZoomData().length; i++) {
+            MatrixZoomDataPP zd = matrix.getZoomData()[i];
+            if (zd != null) {
+                WriterUtils.writeZoomHeader(zd, los);
+            }
+        }
+
+        long size = los.getWrittenCount() - position;
+        if (chromosomePairIndex > -1) {
+            matrixPositions.put("" + chromosomePairIndex, new IndexEntry(position, (int) size));
+        } else {
+            matrixPositions.put(matrix.getKey(), new IndexEntry(position, (int) size));
+        }
+
+        final Map<Long, List<IndexEntry>> localBlockIndexes = new ConcurrentHashMap<>();
+
+        for (int i = 0; i < matrix.getZoomData().length; i++) {
+            MatrixZoomDataPP zd = matrix.getZoomData()[i];
+            if (zd != null) {
+                List<IndexEntry> blockIndex;
+                if (doMultiThreadedBehavior) {
+                    if (losArray.length > 1) {
+                        blockIndex = zd.mergeAndWriteBlocks(losArray, i, matrix.getZoomData().length);
+                    } else {
+                        blockIndex = zd.mergeAndWriteBlocks(losArray[0], compressor);
+                    }
+                    localBlockIndexes.put(zd.blockIndexPosition, blockIndex);
+                } else {
+                    blockIndex = zd.mergeAndWriteBlocks(losArray[0], compressor);
+                    updateIndexPositions(blockIndex, losArray, true, outputFile, 0, zd.blockIndexPosition);
+                }
+            }
+        }
+
+        System.out.print(".");
+        return new Pair<>(localBlockIndexes, position);
+    }
+
+    protected void updateMasterIndex(String headerFile) throws IOException {
+        try (RandomAccessFile raf = new RandomAccessFile(headerFile, "rw")) {
+            // Master index
+            raf.getChannel().position(masterIndexPositionPosition);
+            BufferedByteWriter buffer = new BufferedByteWriter();
+            buffer.putLong(masterIndexPosition);
+            raf.write(buffer.getBytes());
+            System.out.println("masterIndexPosition: " + masterIndexPosition);
+        }
     }
 }

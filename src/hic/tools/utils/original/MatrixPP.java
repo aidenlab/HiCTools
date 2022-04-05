@@ -95,7 +95,8 @@ public class MatrixPP {
         this.chr1Idx = chr1Idx;
         this.chr2Idx = chr2Idx;
         zoomData = new MatrixZoomDataPP[1];
-        zoomData[0] = new MatrixZoomDataPP(chromosomeHandler.getChromosomeFromIndex(chr1Idx), chromosomeHandler.getChromosomeFromIndex(chr2Idx),
+        zoomData[0] = new MatrixZoomDataPP(chromosomeHandler.getChromosomeFromIndex(chr1Idx),
+                chromosomeHandler.getChromosomeFromIndex(chr2Idx),
                 binSize, blockColumnCount, 0, countThreshold, v9DepthBase);
 
     }
@@ -116,7 +117,7 @@ public class MatrixPP {
     }
 
 
-    public void incrementCount(int pos1, int pos2, int frag1, int frag2, float score, Map<String, ExpectedValueCalculation> expectedValueCalculations, File tmpDir) throws IOException {
+    public void incrementCount(int pos1, int pos2, float score, Map<String, ExpectedValueCalculation> expectedValueCalculations, File tmpDir) throws IOException {
         for (MatrixZoomDataPP aZoomData : zoomData) {
             aZoomData.incrementCount(pos1, pos2, score, expectedValueCalculations, tmpDir);
         }

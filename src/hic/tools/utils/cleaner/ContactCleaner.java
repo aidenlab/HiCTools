@@ -95,7 +95,7 @@ public class ContactCleaner {
     public void incrementCount(MatrixPP currentMatrix, Map<String, ExpectedValueCalculation> expectedValueCalculations,
                                File tmpDir) throws IOException {
         if (currentMatrix != null) {
-            currentMatrix.incrementCount(bp1, bp2, frag1, frag2, score, expectedValueCalculations, tmpDir);
+            currentMatrix.incrementCount(bp1, bp2, score, expectedValueCalculations, tmpDir);
         }
     }
 
@@ -114,7 +114,7 @@ public class ContactCleaner {
     public void incrementGWCount(MatrixPP wholeGenomeMatrix, Map<String, ExpectedValueCalculation> localExpectedValueCalculations, File tmpDir) throws IOException {
         int pos1 = getWholeGenomePosition(chr1, bp1, handler);
         int pos2 = getWholeGenomePosition(chr2, bp2, handler);
-        wholeGenomeMatrix.incrementCount(pos1, pos2, pos1, pos2, score, localExpectedValueCalculations, tmpDir);
+        wholeGenomeMatrix.incrementCount(pos1, pos2, score, localExpectedValueCalculations, tmpDir);
     }
 
     public String getCurrentMatrixName() {

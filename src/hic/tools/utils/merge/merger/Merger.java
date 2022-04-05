@@ -22,43 +22,14 @@
  *  THE SOFTWARE.
  */
 
+package hic.tools.utils.merge.merger;
 
-package hic.tools.utils.mnditerator;
-
-import javastraw.reader.Dataset;
-import javastraw.reader.basics.ChromosomeHandler;
-
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-/**
- * @author Jim Robinson
- * @since 9/24/11
- */
-public interface PairIterator extends Iterator<AlignmentPair> {
-
-    boolean hasNext();
-
-    AlignmentPair next();
-
-    void remove();
-
-    void close();
-
-    static PairIterator getIterator(String file, Map<String, Integer> chromosomeIndexes,
-                                    ChromosomeHandler chromosomeHandler) throws IOException {
-        if (file.endsWith(".bin")) {
-            return new BinPairIterator(file);
-        } else if (file.endsWith(".bn")) {
-            return new ShortBinPairIterator(file);
-        } else {
-            return new AsciiPairIterator(file, chromosomeIndexes, chromosomeHandler, false);
-        }
+public abstract class Merger {
+    public static boolean containsIgnoreCase(String main, String word) {
+        return main.toLowerCase().contains(word.toLowerCase());
     }
 
-    static PairIterator getAllByAllIterator(List<Dataset> inputDS) throws IOException {
-        return new AllByAllDatasetPairIterator(inputDS);
-    }
+    public abstract void parse(String s);
+
+    public abstract void printToMergedFile(String filename);
 }
