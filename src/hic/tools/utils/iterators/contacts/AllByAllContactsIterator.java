@@ -32,16 +32,15 @@ import javastraw.reader.mzd.MatrixZoomData;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 
 public class AllByAllContactsIterator implements ContactIterator {
 
-    private final List<Dataset> datasets;
+    private final Dataset[] datasets;
     private int currentIndex = -1;
     private Iterator<ContactRecord> iterator;
     private int resolution;
 
-    public AllByAllContactsIterator(List<Dataset> datasets) throws IOException {
+    public AllByAllContactsIterator(Dataset[] datasets) throws IOException {
         this.datasets = datasets;
         advanceIterator();
     }
@@ -53,9 +52,9 @@ public class AllByAllContactsIterator implements ContactIterator {
 
     private void advanceIterator() {
         currentIndex++;
-        if (currentIndex < datasets.size()) {
-            Chromosome all = datasets.get(currentIndex).getChromosomeHandler().getChromosomeFromIndex(0);
-            Matrix matrix = datasets.get(currentIndex).getMatrix(all, all);
+        if (currentIndex < datasets.length) {
+            Chromosome all = datasets[currentIndex].getChromosomeHandler().getChromosomeFromIndex(0);
+            Matrix matrix = datasets[currentIndex].getMatrix(all, all);
             MatrixZoomData zd = matrix.getFirstZoomData();
             iterator = zd.getDirectIterator();
             resolution = zd.getBinSize();
@@ -73,7 +72,7 @@ public class AllByAllContactsIterator implements ContactIterator {
             if (iterator != null && iterator.hasNext()) {
                 return true;
             }
-            if (currentIndex >= datasets.size()) {
+            if (currentIndex >= datasets.length) {
                 return false;
             }
         }

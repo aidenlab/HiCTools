@@ -61,6 +61,8 @@ public class CLTFactory {
         cmd = cmd.toLowerCase();
         if (cmd.equals("pre")) {
             return new PreProcessing();
+        } else if (cmd.startsWith("sum")) {
+            return new Sum();
         } else if (cmd.equals("addnorm")) {
             return new AddNorm();
         } else if (cmd.equals("bigwig")) {

@@ -36,7 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HiCMergeTools {
-    public static void mergeStatsAndGraphs(List<Dataset> datasets, File tempFolder,
+    public static void mergeStatsAndGraphs(Dataset[] datasets, File tempFolder,
                                            HiCFileBuilder builder) {
         List<String> statsList = new ArrayList<>();
         List<String> graphsList = new ArrayList<>();

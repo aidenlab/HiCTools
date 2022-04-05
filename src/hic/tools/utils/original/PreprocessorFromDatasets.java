@@ -31,12 +31,10 @@ import hic.tools.utils.merge.HiCMergeTools;
 import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.Dataset;
 import javastraw.reader.basics.Chromosome;
-import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.tools.ParallelizationTools;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.Deflater;
@@ -45,34 +43,36 @@ import java.util.zip.Deflater;
 public class PreprocessorFromDatasets extends HiCFileBuilder {
 
     private static final Object key = new Object();
+    private final Dataset[] datasets;
 
-    public PreprocessorFromDatasets(File outputFile, String genomeId, ChromosomeHandler chromosomeHandler,
-                                    double hicFileScalingFactor) {
-        super(outputFile, genomeId, chromosomeHandler, hicFileScalingFactor);
+    public PreprocessorFromDatasets(File outputFile, Dataset[] datasets, double hicFileScalingFactor) {
+        super(outputFile, datasets[0].getGenomeId(), datasets[0].getChromosomeHandler(), hicFileScalingFactor);
+        this.datasets = datasets;
     }
 
-    public void preprocess(List<Dataset> inputDS, final String headerFile, final String footerFile) throws IOException {
+    public void preprocess() throws IOException {
 
-        HiCMergeTools.mergeStatsAndGraphs(inputDS, tmpDir, this);
+        HiCMergeTools.mergeStatsAndGraphs(datasets, tmpDir, this);
 
         try {
-            LittleEndianOutputStream[] losFooter = initializeLosArrays(headerFile, footerFile);
+            LittleEndianOutputStream[] losFooter = initializeLosArrays(outputFile.getAbsolutePath(),
+                    outputFile.getAbsolutePath());
             writeHeader();
-            writeBody(inputDS);
+            writeBody();
             writeFooter(losFooter);
             closeLosArray(losFooter);
         } finally {
             closeLosArray(losArray);
         }
 
-        updateMasterIndex(headerFile);
+        updateMasterIndex(outputFile.getAbsolutePath());
         System.out.println("\nFinished preprocess");
     }
 
-    private MatrixPP computeWholeGenomeMatrix(List<Dataset> inputDS) {
+    private MatrixPP computeWholeGenomeMatrix(Dataset[] datasets) {
         MatrixPP matrix = getInitialGenomeWideMatrixPP(chromosomeHandler);
         try {
-            ContactIterator iter = new AllByAllContactsIterator(inputDS);
+            ContactIterator iter = new AllByAllContactsIterator(datasets);
             while (iter.hasNext()) {
                 matrix.incrementCount(iter.next(), expectedValueCalculations, tmpDir);
             }
@@ -84,14 +84,14 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         return matrix;
     }
 
-    private void writeBody(List<Dataset> inputDS) throws IOException {
+    private void writeBody() throws IOException {
         System.out.println("Writing body");
-        writeWholeGenomeMatrix(inputDS, losArray, compressor, matrixPositions);
+        writeWholeGenomeMatrix(datasets, losArray, compressor, matrixPositions);
 
         Chromosome[] chromosomes = chromosomeHandler.getChromosomeArrayWithoutAllByAll();
         for (int i = 0; i < chromosomes.length; i++) {
             for (int j = i; j < chromosomes.length; j++) {
-                writeChromosomeRegionMatrix(chromosomes[i], chromosomes[j], inputDS);
+                writeChromosomeRegionMatrix(chromosomes[i], chromosomes[j], datasets);
             }
         }
 
@@ -99,8 +99,8 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
     }
 
     private void writeChromosomeRegionMatrix(Chromosome chromosome1, Chromosome chromosome2,
-                                             List<Dataset> inputDS) throws IOException {
-        int newBlockCapacity = (int) (Math.sqrt(inputDS.size()) * BLOCK_CAPACITY);
+                                             Dataset[] datasets) throws IOException {
+        int newBlockCapacity = (int) (Math.sqrt(datasets.length) * BLOCK_CAPACITY);
         final MatrixPP mergedMatrix = new MatrixPP(chromosome1.getIndex(), chromosome2.getIndex(), chromosomeHandler,
                 bpBinSizes, countThreshold, v9DepthBase, newBlockCapacity);
 
@@ -110,10 +110,10 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
             MatrixPP matrixPP = new MatrixPP(chromosome1.getIndex(), chromosome2.getIndex(), chromosomeHandler,
                     bpBinSizes, countThreshold, v9DepthBase, newBlockCapacity);
 
-            while (i < inputDS.size()) {
+            while (i < datasets.length) {
 
                 try {
-                    ContactIterator iter = new ChromosomeContactsIterator(inputDS.get(i), chromosome1, chromosome2);
+                    ContactIterator iter = new ChromosomeContactsIterator(datasets[i], chromosome1, chromosome2);
                     while (iter.hasNext()) {
                         matrixPP.incrementCount(iter.next(), expectedValueCalculations, tmpDir);
                     }
@@ -135,9 +135,9 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         writeMatrix(mergedMatrix, losArray, compressor, matrixPositions, -1, false);
     }
 
-    private void writeWholeGenomeMatrix(List<Dataset> inputDS, LittleEndianOutputStream[] losArray, Deflater compressor,
+    private void writeWholeGenomeMatrix(Dataset[] datasets, LittleEndianOutputStream[] losArray, Deflater compressor,
                                         Map<String, IndexEntry> matrixPositions) throws IOException {
-        MatrixPP wholeGenomeMatrix = computeWholeGenomeMatrix(inputDS);
+        MatrixPP wholeGenomeMatrix = computeWholeGenomeMatrix(datasets);
         writeMatrix(wholeGenomeMatrix, losArray, compressor, matrixPositions, -1, false);
         wholeGenomeMatrix = null;
     }
