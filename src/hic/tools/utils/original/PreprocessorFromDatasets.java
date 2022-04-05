@@ -24,22 +24,27 @@
 
 package hic.tools.utils.original;
 
-import hic.tools.utils.iterators.contacts.Contact;
+import hic.tools.utils.iterators.contacts.AllByAllContactsIterator;
+import hic.tools.utils.iterators.contacts.ChromosomeContactsIterator;
 import hic.tools.utils.iterators.contacts.ContactIterator;
 import hic.tools.utils.merge.HiCMergeTools;
 import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.Dataset;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.tools.ParallelizationTools;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.Deflater;
 
 
 public class PreprocessorFromDatasets extends HiCFileBuilder {
+
+    private static final Object key = new Object();
 
     public PreprocessorFromDatasets(File outputFile, String genomeId, ChromosomeHandler chromosomeHandler,
                                     double hicFileScalingFactor) {
@@ -64,14 +69,12 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         System.out.println("\nFinished preprocess");
     }
 
-    private MatrixPP computeWholeGenomeMatrix(List<Dataset> inputDS) throws IOException {
+    private MatrixPP computeWholeGenomeMatrix(List<Dataset> inputDS) {
         MatrixPP matrix = getInitialGenomeWideMatrixPP(chromosomeHandler);
-        ContactIterator iter = null;
         try {
-            iter = ContactIterator.getAllByAllIterator(inputDS);
+            ContactIterator iter = new AllByAllContactsIterator(inputDS);
             while (iter.hasNext()) {
-                Contact contact = iter.next();
-                matrix.incrementCount(contact.getPos1(), contact.getPos2(), contact.getScore(), expectedValueCalculations, tmpDir);
+                matrix.incrementCount(iter.next(), expectedValueCalculations, tmpDir);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -88,37 +91,47 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         Chromosome[] chromosomes = chromosomeHandler.getChromosomeArrayWithoutAllByAll();
         for (int i = 0; i < chromosomes.length; i++) {
             for (int j = i; j < chromosomes.length; j++) {
-                int currentChr1 = chromosomes[i].getIndex();
-                int currentChr2 = chromosomes[j].getIndex();
-                writeChromosomeRegionMatrix(currentChr1, currentChr2, inputDS);
+                writeChromosomeRegionMatrix(chromosomes[i], chromosomes[j], inputDS);
             }
         }
 
         masterIndexPosition = losArray[0].getWrittenCount();
     }
 
-    private void writeChromosomeRegionMatrix(int chrom1Index, int chrom2Index, List<Dataset> inputDS) throws IOException {
+    private void writeChromosomeRegionMatrix(Chromosome chromosome1, Chromosome chromosome2, List<Dataset> inputDS) throws IOException {
         int newBlockCapacity = (int) (Math.sqrt(inputDS.size()) * BLOCK_CAPACITY);
-        MatrixPP mergedMatrix = new MatrixPP(chrom1Index, chrom2Index, chromosomeHandler, bpBinSizes,
-                countThreshold, v9DepthBase, newBlockCapacity);
+        final MatrixPP mergedMatrix = new MatrixPP(chromosome1.getIndex(), chromosome2.getIndex(), chromosomeHandler,
+                bpBinSizes, countThreshold, v9DepthBase, newBlockCapacity);
 
-/*
-        PairIterator iter = PairIterator.getDatasetIterator(inputDS, chromosomeHandler);
-        while (iter.hasNext()) {
-            AlignmentPair pair = iter.next();
-            mergedMatrix.incrementCount(bp1, bp2, score, expectedValueCalculations, tmpDir);
-        }
-        iter.close();
+        AtomicInteger index = new AtomicInteger();
+        ParallelizationTools.launchParallelizedCode(() -> {
+            int i = index.getAndIncrement();
+            MatrixPP matrixPP = new MatrixPP(chromosome1.getIndex(), chromosome2.getIndex(), chromosomeHandler,
+                    bpBinSizes, countThreshold, v9DepthBase, newBlockCapacity);
 
+            while (i < inputDS.size()) {
 
+                try {
+                    ContactIterator iter = new ChromosomeContactsIterator(inputDS.get(i), chromosome1, chromosome2);
+                    while (iter.hasNext()) {
+                        matrixPP.incrementCount(iter.next(), expectedValueCalculations, tmpDir);
+                    }
+                } catch (Exception e) {
+                    System.err.println("ERROR " + e.getLocalizedMessage());
+                    System.err.println("Skipping dataset " + i + " for region: " +
+                            chromosome1.getName() + "_" + chromosome2.getName());
+                }
 
-        mergedMatrix.mergeMatrices();
-
- */
+                i = index.getAndIncrement();
+            }
+            synchronized (key) {
+                mergedMatrix.mergeMatrices(matrixPP);
+            }
+            matrixPP = null;
+        });
 
         mergedMatrix.parsingComplete();
         writeMatrix(mergedMatrix, losArray, compressor, matrixPositions, -1, false);
-        mergedMatrix = null;
     }
 
     private void writeWholeGenomeMatrix(List<Dataset> inputDS, LittleEndianOutputStream[] losArray, Deflater compressor,

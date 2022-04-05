@@ -24,6 +24,7 @@
 
 package hic.tools.utils.original;
 
+import hic.tools.utils.iterators.contacts.Contact;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
 
@@ -116,8 +117,13 @@ public class MatrixPP {
         return "" + chr1Idx + "_" + chr2Idx;
     }
 
+    public void incrementCount(Contact contact, Map<String, ExpectedValueCalculation> expectedValueCalculations,
+                               File tmpDir) throws IOException {
+        incrementCount(contact.getPos1(), contact.getPos2(), contact.getScore(), expectedValueCalculations, tmpDir);
+    }
 
-    public void incrementCount(int pos1, int pos2, float score, Map<String, ExpectedValueCalculation> expectedValueCalculations, File tmpDir) throws IOException {
+    public void incrementCount(int pos1, int pos2, float score, Map<String, ExpectedValueCalculation> expectedValueCalculations,
+                               File tmpDir) throws IOException {
         for (MatrixZoomDataPP aZoomData : zoomData) {
             aZoomData.incrementCount(pos1, pos2, score, expectedValueCalculations, tmpDir);
         }
