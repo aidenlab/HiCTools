@@ -105,6 +105,7 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         Chromosome[] chromosomes = chromosomeHandler.getChromosomeArrayWithoutAllByAll();
         for (int i = 0; i < chromosomes.length; i++) {
             for (int j = i; j < chromosomes.length; j++) {
+                if (diagonalsOnly && i != j) continue;
                 writeChromosomeRegionMatrix(chromosomes[i], chromosomes[j], datasets);
             }
         }
