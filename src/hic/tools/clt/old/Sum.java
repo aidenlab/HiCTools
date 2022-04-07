@@ -35,7 +35,6 @@ import java.io.File;
 
 public class Sum extends JuiceboxCLT {
 
-    private String[] inputFiles;
     private String outputFile;
     private PreprocessorFromDatasets pfd;
 
@@ -51,10 +50,9 @@ public class Sum extends JuiceboxCLT {
     public void readArguments(String[] args, CommandLineParser parser) {
 
         outputFile = args[1];
-        inputFiles = new String[args.length - 2];
-        Dataset[] datasets = new Dataset[inputFiles.length];
-        for (int z = 0; z < inputFiles.length; z++) {
-            datasets[z] = HiCFileTools.extractDatasetForCLT(inputFiles[0], false, false);
+        Dataset[] datasets = new Dataset[args.length - 2];
+        for (int z = 2; z < args.length; z++) {
+            datasets[z - 2] = HiCFileTools.extractDatasetForCLT(args[z], false, false);
         }
 
         String tmpDir = parser.getTmpdirOption();

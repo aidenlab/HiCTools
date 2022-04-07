@@ -49,7 +49,7 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
     private final int highestResolution;
 
     public PreprocessorFromDatasets(File outputFile, Dataset[] datasets, double hicFileScalingFactor) {
-        super(outputFile, datasets[0].getGenomeId(), datasets[0].getChromosomeHandler(), hicFileScalingFactor);
+        super(outputFile, datasets[0].getGenomeId(), hicFileScalingFactor);
         this.datasets = datasets;
         highestResolution = getMin(datasets[0].getAllPossibleResolutions());
     }

@@ -31,6 +31,7 @@ import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.Dataset;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.basics.ChromosomeTools;
 import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationHandler;
@@ -74,10 +75,10 @@ abstract public class HiCFileBuilder {
     protected double hicFileScalingFactor = 1;
     protected File tmpDir = UNIXTools.makeDir(new File("temp_folder"));
 
-    public HiCFileBuilder(File outputFile, String genomeId, ChromosomeHandler chromosomeHandler, double hicFileScalingFactor) {
+    public HiCFileBuilder(File outputFile, String genomeId, double hicFileScalingFactor) {
         this.genomeId = genomeId;
         this.outputFile = outputFile;
-        this.chromosomeHandler = chromosomeHandler;
+        this.chromosomeHandler = ChromosomeTools.loadChromosomes(genomeId);
         for (int i = 0; i < chromosomeHandler.size(); i++) {
             chromosomeIndexes.put(chromosomeHandler.getChromosomeFromIndex(i).getName(), i);
         }

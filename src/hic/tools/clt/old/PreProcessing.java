@@ -30,8 +30,6 @@ import hic.tools.clt.JuiceboxCLT;
 import hic.tools.utils.ShellCommandRunner;
 import hic.tools.utils.original.MultithreadedPreprocessor;
 import hic.tools.utils.original.Preprocessor;
-import javastraw.reader.basics.ChromosomeHandler;
-import javastraw.reader.basics.ChromosomeTools;
 import javastraw.reader.type.NormalizationType;
 
 import java.io.File;
@@ -93,8 +91,6 @@ public class PreProcessing extends JuiceboxCLT {
             printUsageAndExit();
         }
 
-        ChromosomeHandler chromHandler = ChromosomeTools.loadChromosomes(genomeId);
-
         inputFile = args[1];
         outputFile = args[2];
         String tmpDir = parser.getTmpdirOption();
@@ -105,16 +101,16 @@ public class PreProcessing extends JuiceboxCLT {
         HiCGlobals.numCPUMatrixThreads = numCPUThreadsForSecondTask;
 
         if (numCPUThreads < 2) {
-            preprocessor = new Preprocessor(new File(outputFile), genomeId, chromHandler, hicFileScalingFactor);
+            preprocessor = new Preprocessor(new File(outputFile), genomeId, hicFileScalingFactor);
             usingMultiThreadedVersion = false;
         } else {
             try {
-                preprocessor = new MultithreadedPreprocessor(new File(outputFile), genomeId, chromHandler,
+                preprocessor = new MultithreadedPreprocessor(new File(outputFile), genomeId,
                         hicFileScalingFactor, numCPUThreads, parser.getMndIndexOption());
                 usingMultiThreadedVersion = true;
             } catch (Exception e) {
                 System.err.println(e.getLocalizedMessage() + "\nUsing single threaded preprocessor");
-                preprocessor = new Preprocessor(new File(outputFile), genomeId, chromHandler, hicFileScalingFactor);
+                preprocessor = new Preprocessor(new File(outputFile), genomeId, hicFileScalingFactor);
                 usingMultiThreadedVersion = false;
             }
         }

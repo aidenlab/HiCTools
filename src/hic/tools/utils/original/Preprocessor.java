@@ -28,7 +28,6 @@ import hic.tools.utils.cleaner.ContactCleaner;
 import hic.tools.utils.iterators.mnd.AlignmentPair;
 import hic.tools.utils.iterators.mnd.PairIterator;
 import htsjdk.tribble.util.LittleEndianOutputStream;
-import javastraw.reader.basics.ChromosomeHandler;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,8 +36,8 @@ import java.util.*;
 public class Preprocessor extends HiCFileBuilder {
 
 
-    public Preprocessor(File outputFile, String genomeId, ChromosomeHandler chromosomeHandler, double hicFileScalingFactor) {
-        super(outputFile, genomeId, chromosomeHandler, hicFileScalingFactor);
+    public Preprocessor(File outputFile, String genomeId, double hicFileScalingFactor) {
+        super(outputFile, genomeId, hicFileScalingFactor);
     }
 
     public void preprocess(final String inputFile, final String headerFile, final String footerFile,

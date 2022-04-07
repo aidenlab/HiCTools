@@ -30,7 +30,6 @@ import hic.tools.utils.iterators.mnd.AlignmentPair;
 import hic.tools.utils.iterators.mnd.AsciiPairIterator;
 import hic.tools.utils.iterators.mnd.PairIterator;
 import htsjdk.tribble.util.LittleEndianOutputStream;
-import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.tools.ParallelizationTools;
 import org.broad.igv.util.Pair;
@@ -71,9 +70,9 @@ public class MultithreadedPreprocessor extends Preprocessor {
     private final ConcurrentHashMap<Integer, Map<Integer, Pair<Pair<Integer, Integer>, MatrixPP>>> threadSpecificChrPairMatrices = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, MatrixPP> finalChrMatrices = new ConcurrentHashMap<>();
 
-    public MultithreadedPreprocessor(File outputFile, String genomeId, ChromosomeHandler chromosomeHandler,
-                                     double hicFileScalingFactor, int numCPUThreads, String mndIndexFile) throws IOException {
-        super(outputFile, genomeId, chromosomeHandler, hicFileScalingFactor);
+    public MultithreadedPreprocessor(File outputFile, String genomeId, double hicFileScalingFactor, int numCPUThreads,
+                                     String mndIndexFile) throws IOException {
+        super(outputFile, genomeId, hicFileScalingFactor);
         MultithreadedPreprocessor.numCPUThreads = numCPUThreads;
         chromosomeIndexes = MTIndexHandler.populateChromosomeIndexes(chromosomeHandler, numCPUThreads);
         chromosomePairCounter = MTIndexHandler.populateChromosomePairIndexes(chromosomeHandler,
