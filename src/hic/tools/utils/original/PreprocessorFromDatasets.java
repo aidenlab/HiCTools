@@ -30,7 +30,9 @@ import hic.tools.utils.iterators.contacts.ContactIterator;
 import hic.tools.utils.merge.HiCMergeTools;
 import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.Dataset;
+import javastraw.reader.Matrix;
 import javastraw.reader.basics.Chromosome;
+import javastraw.reader.mzd.MatrixZoomData;
 import javastraw.reader.type.HiCZoom;
 import javastraw.tools.ParallelizationTools;
 
@@ -107,7 +109,9 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
             for (int j = i; j < chromosomes.length; j++) {
                 if (diagonalsOnly && i != j) continue;
                 writeChromosomeRegionMatrix(chromosomes[i], chromosomes[j], datasets);
+                System.out.print(".");
             }
+            System.out.println(".");
         }
 
         masterIndexPosition = losArray[0].getWrittenCount();
@@ -126,11 +130,24 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
                     bpBinSizes, countThreshold, v9DepthBase, newBlockCapacity);
 
             while (i < datasets.length) {
+                Matrix matrix = datasets[i].getMatrix(chromosome1, chromosome2, highestResolution);
+                if (matrix == null) {
+                    System.err.println("Skipping null matrix " + chromosome1.getName() + " " + chromosome2.getName());
+                    continue;
+                }
+                MatrixZoomData zd = matrix.getZoomData(new HiCZoom(highestResolution));
+                if (zd == null) {
+                    System.err.println("Skipping null zd (res=" + highestResolution + ") " +
+                            chromosome1.getName() + " " + chromosome2.getName());
+                    continue;
+                }
 
                 try {
-                    ChromosomeContactsIterator iter = new ChromosomeContactsIterator(datasets[i],
+                    ChromosomeContactsIterator iter = new ChromosomeContactsIterator(zd,
                             chromosome1, chromosome2, highestResolution);
-                    if (iter.isNull()) continue;
+                    if (!iter.hasNext()) {
+                        System.err.println("No data in dataset " + i + " for region: " + zd.getKey());
+                    }
                     while (iter.hasNext()) {
                         matrixPP.incrementCount(iter.next(), expectedValueCalculations, tmpDir);
                     }
@@ -138,7 +155,11 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
                     System.err.println("ERROR " + e.getLocalizedMessage());
                     System.err.println("Skipping dataset " + i + " for region: " +
                             chromosome1.getName() + "_" + chromosome2.getName());
+                    e.printStackTrace();
+                    System.exit(90);
                 }
+
+                zd.clearCache();
 
                 i = index.getAndIncrement();
             }

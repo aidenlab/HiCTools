@@ -24,44 +24,32 @@
 
 package hic.tools.utils.iterators.contacts;
 
-import javastraw.reader.Dataset;
-import javastraw.reader.Matrix;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.block.ContactRecord;
 import javastraw.reader.mzd.MatrixZoomData;
-import javastraw.reader.type.HiCZoom;
 
 import java.util.Iterator;
 
 public class ChromosomeContactsIterator implements ContactIterator {
 
     private final int chr1, chr2;
-    private Iterator<ContactRecord> iterator = null;
+    private final Iterator<ContactRecord> iterator;
     private final int resolution;
 
-    public ChromosomeContactsIterator(Dataset dataset, Chromosome chromosome1, Chromosome chromosome2,
+    public ChromosomeContactsIterator(MatrixZoomData zd, Chromosome chromosome1, Chromosome chromosome2,
                                       int resolution) {
         chr1 = chromosome1.getIndex();
         chr2 = chromosome2.getIndex();
         this.resolution = resolution;
-        Matrix matrix = dataset.getMatrix(chromosome1, chromosome2);
-        if (matrix != null) {
-            MatrixZoomData zd = matrix.getZoomData(new HiCZoom(resolution));
-            if (zd != null) {
-                iterator = zd.getDirectIterator();
-            }
-        }
+        iterator = zd.getDirectIterator();
     }
 
     public boolean hasNext() {
+        if (iterator == null) return false;
         return iterator.hasNext();
     }
 
     public Contact next() {
         return new Contact(chr1, chr2, iterator.next(), resolution);
-    }
-
-    public boolean isNull() {
-        return iterator == null;
     }
 }
