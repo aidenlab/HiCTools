@@ -38,6 +38,7 @@ import javastraw.tools.ParallelizationTools;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -48,19 +49,28 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
 
     private static final Object key = new Object();
     private final Dataset[] datasets;
-    private final int highestResolution;
+    private int highestResolution;
 
     public PreprocessorFromDatasets(File outputFile, Dataset[] datasets, double hicFileScalingFactor) {
         super(outputFile, datasets[0].getGenomeId(), hicFileScalingFactor);
         this.datasets = datasets;
-        highestResolution = getMin(datasets[0].getAllPossibleResolutions());
+        updateResolutionsToBuild(datasets[0].getAllPossibleResolutions());
+        highestResolution = getMin(bpBinSizes);
     }
 
-    private int getMin(List<HiCZoom> zooms) {
-        int minValue = zooms.get(0).getBinSize();
+    private void updateResolutionsToBuild(List<HiCZoom> zooms) {
+        List<Integer> resolutions = new ArrayList<>();
         for (HiCZoom zoom : zooms) {
-            if (zoom.getBinSize() < minValue) {
-                minValue = zoom.getBinSize();
+            resolutions.add(zoom.getBinSize());
+        }
+        setResolutionsWithInts(resolutions);
+    }
+
+    private int getMin(int[] zooms) {
+        int minValue = zooms[0];
+        for (int zoom : zooms) {
+            if (zoom < minValue) {
+                minValue = zoom;
             }
         }
         return minValue;
@@ -179,4 +189,16 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         writeMatrix(wholeGenomeMatrix, losArray, compressor, matrixPositions, -1, false);
         wholeGenomeMatrix = null;
     }
+
+    public void setHighestResolution(List<String> resolutions) {
+        if (resolutions != null && resolutions.size() > 0) {
+            try {
+                highestResolution = Integer.parseInt(resolutions.get(0));
+            } catch (Exception e) {
+                System.err.println("Unable to parse resolution " + resolutions.get(0));
+            }
+        }
+    }
+
+
 }

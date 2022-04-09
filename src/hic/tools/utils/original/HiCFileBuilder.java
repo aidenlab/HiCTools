@@ -195,8 +195,22 @@ abstract public class HiCFileBuilder {
         }
     }
 
+    public void setResolutionsWithInts(List<Integer> resolutions) {
+        if (resolutions != null && resolutions.size() > 0) {
+            Collections.sort(resolutions);
+            Collections.reverse(resolutions);
+            int[] bps = new int[resolutions.size()];
+            for (int i = 0; i < bps.length; i++) {
+                bps[i] = resolutions.get(i);
+            }
+            bpBinSizes = bps;
+            // reset expected vectors based on new resolutions
+            initializeExpectedVectorCalculations();
+        }
+    }
+
     public void setResolutions(List<String> resolutions) {
-        if (resolutions != null) {
+        if (resolutions != null && resolutions.size() > 0) {
             ArrayList<Integer> bpResolutions = new ArrayList<>();
             for (String str : resolutions) {
                 try {
@@ -208,26 +222,7 @@ abstract public class HiCFileBuilder {
                     System.exit(1);
                 }
             }
-
-            boolean resolutionsSet = false;
-            if (bpResolutions.size() > 0) {
-                resolutionsSet = true;
-                Collections.sort(bpResolutions);
-                Collections.reverse(bpResolutions);
-                int[] bps = new int[bpResolutions.size()];
-                for (int i = 0; i < bps.length; i++) {
-                    bps[i] = bpResolutions.get(i);
-                }
-                bpBinSizes = bps;
-                // reset expected vectors based on new resolutions
-                initializeExpectedVectorCalculations();
-            } else {
-                bpBinSizes = new int[0];
-            }
-            if (!resolutionsSet) {
-                System.err.println("No valid resolutions sent in");
-                System.exit(1);
-            }
+            setResolutionsWithInts(bpResolutions);
         }
     }
 

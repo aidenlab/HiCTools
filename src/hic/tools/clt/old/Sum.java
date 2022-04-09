@@ -61,7 +61,7 @@ public class Sum extends JuiceboxCLT {
 
         pfd = new PreprocessorFromDatasets(new File(outputFile), datasets, hicFileScalingFactor);
         pfd.setTmpdir(tmpDir);
-        pfd.setResolutions(parser.getResolutionOption());
+        pfd.setHighestResolution(parser.getResolutionOption());
         pfd.setDiagonalsOnly(parser.getDiagonalsOption());
         int blockCapacity = parser.getBlockCapacityOption();
         if (blockCapacity > 10) {
