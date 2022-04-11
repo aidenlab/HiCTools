@@ -51,8 +51,7 @@ public class PreProcessing extends JuiceboxCLT {
 
     public PreProcessing() {
         super(getBasicUsage() + "\n"
-                + "           : -d only calculate intra chromosome (diagonal) [false]\n"
-                + "           : -f <restriction site file> calculate fragment map\n"
+                + "           : --intra only calculate intra chromosomal maps [false]\n"
                 + "           : -m <int> only write cells with count above threshold m [0]\n"
                 + "           : -q <int> filter by MAPQ score greater than or equal to q [not set]\n"
                 + "           : -c <chromosome ID> only calculate map on specific chromosome [not set]\n"
@@ -63,9 +62,7 @@ public class PreProcessing extends JuiceboxCLT {
                 + "           : -n Don't normalize the matrices\n"
                 + "           : -z <double> scale factor for hic file\n"
                 + "           : -a <1, 2, 3, 4, 5> filter based on inner, outer, left-left, right-right, tandem pairs respectively\n"
-                + "           : --randomize_position randomize positions between fragment sites\n"
                 + "           : --random_seed <long> for seeding random number generator\n"
-                + "           : --frag_site_maps <fragment site files> for randomization\n"
                 + "           : -k normalizations to include\n"
                 + "           : -j number of CPU threads to use\n"
                 + "           : --threads <int> number of threads \n"
@@ -119,7 +116,7 @@ public class PreProcessing extends JuiceboxCLT {
         preprocessor.setCountThreshold(parser.getCountThresholdOption());
         preprocessor.setV9DepthBase(parser.getV9DepthBase());
         preprocessor.setMapqThreshold(parser.getMapqThresholdOption());
-        preprocessor.setDiagonalsOnly(parser.getDiagonalsOption());
+        preprocessor.setIntraChromosomalOnly(parser.getDiagonalsOption());
         preprocessor.setTmpdir(tmpDir);
         preprocessor.setStatisticsFile(parser.getStatsOption());
         preprocessor.setGraphFile(parser.getGraphOption());

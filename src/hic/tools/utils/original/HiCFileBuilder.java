@@ -50,7 +50,7 @@ abstract public class HiCFileBuilder {
     protected long normVectorIndexPosition;
     protected long normVectorLengthPosition;
     protected Map<String, ExpectedValueCalculation> expectedValueCalculations = Collections.synchronizedMap(new LinkedHashMap<>());
-
+    private static final int TEN_MB = 10000000;
     protected static final int VERSION = 9;
     protected static final int BLOCK_SIZE = 1000;
     public static int BLOCK_CAPACITY = 1000;
@@ -65,7 +65,8 @@ abstract public class HiCFileBuilder {
     protected long masterIndexPosition;
     protected int countThreshold = 0;
     protected int mapqThreshold = 0;
-    protected boolean diagonalsOnly = false;
+    protected boolean intraChromosomalOnly = false;
+    protected boolean onlyNearDiagonalContacts = false;
     protected String statsFileName = null;
     protected String graphFileName = null;
     protected Set<String> includedChromosomes;
@@ -108,8 +109,20 @@ abstract public class HiCFileBuilder {
         this.mapqThreshold = mapqThreshold;
     }
 
-    public void setDiagonalsOnly(boolean diagonalsOnly) {
-        this.diagonalsOnly = diagonalsOnly;
+    protected static boolean tooFarFromDiagonal(int pos1, int pos2) {
+        return Math.abs(pos1 - pos2) > TEN_MB;
+    }
+
+    protected static boolean tooFarFromDiagonal(long pos1, long pos2) {
+        return Math.abs(pos1 - pos2) > TEN_MB;
+    }
+
+    public void setIntraChromosomalOnly(boolean intraChromosomalOnly) {
+        this.intraChromosomalOnly = intraChromosomalOnly;
+    }
+
+    public void setOnlyNearDiagonalsOnly(boolean getOnlyNearDiagonal) {
+        this.onlyNearDiagonalContacts = getOnlyNearDiagonal;
     }
 
     public void setIncludedChromosomes(Set<String> includedChromosomes) {

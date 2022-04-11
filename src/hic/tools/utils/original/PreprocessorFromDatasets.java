@@ -26,6 +26,7 @@ package hic.tools.utils.original;
 
 import hic.tools.utils.iterators.contacts.AllByAllContactsIterator;
 import hic.tools.utils.iterators.contacts.ChromosomeContactsIterator;
+import hic.tools.utils.iterators.contacts.Contact;
 import hic.tools.utils.iterators.contacts.ContactIterator;
 import hic.tools.utils.merge.HiCMergeTools;
 import htsjdk.tribble.util.LittleEndianOutputStream;
@@ -114,35 +115,8 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         return matrix;
     }
 
-    private void writeBody() throws IOException {
-        System.out.println("Writing body");
-        writeWholeGenomeMatrix(datasets, losArray, compressor, matrixPositions);
-
-        LinkedList<MatrixPP> queue = new LinkedList<>();
-        AtomicBoolean stillHaveRegionsToProcess = new AtomicBoolean(true);
-
-        ExecutorService writingExecutor = Executors.newFixedThreadPool(1);
-
-        Runnable dataWritingWorker = getDataWritingWorker(queue, losArray, compressor, matrixPositions,
-                stillHaveRegionsToProcess);
-        writingExecutor.execute(dataWritingWorker);
-
-        Chromosome[] chromosomes = chromosomeHandler.getChromosomeArrayWithoutAllByAll();
-        for (int i = 0; i < chromosomes.length; i++) {
-            for (int j = i; j < chromosomes.length; j++) {
-                if (diagonalsOnly && i != j) continue;
-                writeChromosomeRegionMatrix(chromosomes[i], chromosomes[j], datasets, queue);
-                System.out.print("*" + queue.size() + "*");
-            }
-            System.out.println("*");
-        }
-        stillHaveRegionsToProcess.set(false);
-
-        writingExecutor.shutdown();
-        while (!writingExecutor.isTerminated()) {
-        }
-
-        masterIndexPosition = losArray[0].getWrittenCount();
+    private static boolean tooFarFromDiagonal(Contact contact) {
+        return tooFarFromDiagonal(contact.getPos1(), contact.getPos2());
     }
 
     private Runnable getDataWritingWorker(LinkedList<MatrixPP> queue, LittleEndianOutputStream[] losArray, Deflater compressor,
@@ -171,8 +145,39 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         };
     }
 
-    private void writeChromosomeRegionMatrix(Chromosome chromosome1, Chromosome chromosome2,
-                                             Dataset[] datasets, LinkedList<MatrixPP> queue) {
+    private void writeBody() throws IOException {
+        System.out.println("Writing body");
+        writeWholeGenomeMatrix(datasets, losArray, compressor, matrixPositions);
+
+        LinkedList<MatrixPP> queue = new LinkedList<>();
+        AtomicBoolean stillHaveRegionsToProcess = new AtomicBoolean(true);
+
+        ExecutorService writingExecutor = Executors.newFixedThreadPool(1);
+
+        Runnable dataWritingWorker = getDataWritingWorker(queue, losArray, compressor, matrixPositions,
+                stillHaveRegionsToProcess);
+        writingExecutor.execute(dataWritingWorker);
+
+        Chromosome[] chromosomes = chromosomeHandler.getChromosomeArrayWithoutAllByAll();
+        for (int i = 0; i < chromosomes.length; i++) {
+            for (int j = i; j < chromosomes.length; j++) {
+                if (intraChromosomalOnly && i != j) continue;
+                readInChromosomeRegionMatrix(chromosomes[i], chromosomes[j], datasets, queue);
+                System.out.print("*" + queue.size() + "*");
+            }
+            System.out.println("*");
+        }
+        stillHaveRegionsToProcess.set(false);
+
+        writingExecutor.shutdown();
+        while (!writingExecutor.isTerminated()) {
+        }
+
+        masterIndexPosition = losArray[0].getWrittenCount();
+    }
+
+    private void readInChromosomeRegionMatrix(Chromosome chromosome1, Chromosome chromosome2,
+                                              Dataset[] datasets, LinkedList<MatrixPP> queue) {
         int newBlockCapacity = (int) (Math.sqrt(datasets.length) * BLOCK_CAPACITY);
         final MatrixPP mergedMatrix = new MatrixPP(chromosome1.getIndex(), chromosome2.getIndex(), chromosomeHandler,
                 bpBinSizes, countThreshold, v9DepthBase, newBlockCapacity);
@@ -196,6 +201,23 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
 
         mergedMatrix.parsingComplete();
         queue.add(mergedMatrix);
+    }
+
+    private void writeWholeGenomeMatrix(Dataset[] datasets, LittleEndianOutputStream[] losArray, Deflater compressor,
+                                        Map<String, IndexEntry> matrixPositions) throws IOException {
+        MatrixPP wholeGenomeMatrix = computeWholeGenomeMatrix(datasets);
+        writeMatrix(wholeGenomeMatrix, losArray, compressor, matrixPositions, -1, false);
+        wholeGenomeMatrix = null;
+    }
+
+    public void setHighestResolution(List<String> resolutions) {
+        if (resolutions != null && resolutions.size() > 0) {
+            try {
+                highestResolution = Integer.parseInt(resolutions.get(0));
+            } catch (Exception e) {
+                System.err.println("Unable to parse resolution " + resolutions.get(0));
+            }
+        }
     }
 
     private Runnable getDataReadingWorker(AtomicInteger index, Chromosome chromosome1, Chromosome chromosome2,
@@ -229,7 +251,9 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
                         System.err.println("No data in dataset " + i + " for region: " + zd.getKey());
                     }
                     while (iter.hasNext()) {
-                        matrixPP.incrementCount(iter.next(), expectedValueCalculations, tmpDir);
+                        Contact contact = iter.next();
+                        if (onlyNearDiagonalContacts && tooFarFromDiagonal(contact)) continue;
+                        matrixPP.incrementCount(contact, expectedValueCalculations, tmpDir);
                     }
                 } catch (Exception e) {
                     System.err.println("ERROR " + e.getLocalizedMessage());
@@ -249,23 +273,4 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
             matrixPP = null;
         };
     }
-
-    private void writeWholeGenomeMatrix(Dataset[] datasets, LittleEndianOutputStream[] losArray, Deflater compressor,
-                                        Map<String, IndexEntry> matrixPositions) throws IOException {
-        MatrixPP wholeGenomeMatrix = computeWholeGenomeMatrix(datasets);
-        writeMatrix(wholeGenomeMatrix, losArray, compressor, matrixPositions, -1, false);
-        wholeGenomeMatrix = null;
-    }
-
-    public void setHighestResolution(List<String> resolutions) {
-        if (resolutions != null && resolutions.size() > 0) {
-            try {
-                highestResolution = Integer.parseInt(resolutions.get(0));
-            } catch (Exception e) {
-                System.err.println("Unable to parse resolution " + resolutions.get(0));
-            }
-        }
-    }
-
-
 }

@@ -176,7 +176,8 @@ public class Preprocessor extends HiCFileBuilder {
     protected boolean shouldSkipContact(AlignmentPair pair) { // static
         int chr1 = pair.getChr1();
         int chr2 = pair.getChr2();
-        if (diagonalsOnly && chr1 != chr2) return true;
+        if (intraChromosomalOnly && chr1 != chr2) return true;
+        if (onlyNearDiagonalContacts && tooFarFromDiagonal(pair.getPos1(), pair.getPos2())) return true;
         if (includedChromosomes != null && chr1 != 0) {
             String c1Name = chromosomeHandler.getChromosomeFromIndex(chr1).getName();
             String c2Name = chromosomeHandler.getChromosomeFromIndex(chr2).getName();

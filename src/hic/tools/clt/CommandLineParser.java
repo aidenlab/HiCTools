@@ -47,7 +47,8 @@ public class CommandLineParser extends CmdLineParser {
     protected final Option versionOption = addBooleanOption('V', "version");
 
     // boolean
-    private final Option diagonalsOption = addBooleanOption('d', "diagonals");
+    private final Option diagonalsOption = addBooleanOption("intra");
+    private final Option onlyNearDiagonalsOption = addBooleanOption("near-diagonal");
     private final Option removeCacheMemoryOption = addBooleanOption('x', "remove-memory-cache");
     private final Option noNormOption = addBooleanOption('n', "no_normalization");
     private final Option allPearsonsOption = addBooleanOption('p', "pearsons-all-resolutions");
@@ -105,10 +106,16 @@ public class CommandLineParser extends CmdLineParser {
         return opt != null && (Boolean) opt;
     }
 
-    public boolean getHelpOption() { return optionToBoolean(helpOption);}
+    public boolean getHelpOption() {
+        return optionToBoolean(helpOption);
+    }
 
     public boolean getDiagonalsOption() {
         return optionToBoolean(diagonalsOption);
+    }
+
+    public boolean getOnlyNearDiagonalOption() {
+        return optionToBoolean(onlyNearDiagonalsOption);
     }
 
     public boolean useCacheMemory() {
@@ -119,7 +126,9 @@ public class CommandLineParser extends CmdLineParser {
         return optionToBoolean(verboseOption);
     }
 
-    public boolean getNoNormOption() { return optionToBoolean(noNormOption); }
+    public boolean getNoNormOption() {
+        return optionToBoolean(noNormOption);
+    }
 
     public boolean getAllPearsonsOption() {
         return optionToBoolean(allPearsonsOption);
@@ -343,5 +352,4 @@ public class CommandLineParser extends CmdLineParser {
         }
         return null;
     }
-
 }

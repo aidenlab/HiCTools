@@ -43,7 +43,7 @@ public class Sum extends JuiceboxCLT {
     }
 
     public static String getBasicUsage() {
-        return "sum [--diagonals] <outfile.hic> <infile1.hic> <infile2.hic> ... <infileN.hic>";
+        return "sum [--intra] [--near-diagonal] <outfile.hic> <infile1.hic> <infile2.hic> ... <infileN.hic>";
     }
 
     @Override
@@ -62,7 +62,9 @@ public class Sum extends JuiceboxCLT {
         pfd = new PreprocessorFromDatasets(new File(outputFile), datasets, hicFileScalingFactor);
         pfd.setTmpdir(tmpDir);
         pfd.setHighestResolution(parser.getResolutionOption());
-        pfd.setDiagonalsOnly(parser.getDiagonalsOption());
+        boolean getOnlyNearDiagonal = parser.getOnlyNearDiagonalOption();
+        pfd.setIntraChromosomalOnly(parser.getDiagonalsOption() || getOnlyNearDiagonal);
+        pfd.setOnlyNearDiagonalsOnly(getOnlyNearDiagonal);
         int blockCapacity = parser.getBlockCapacityOption();
         if (blockCapacity > 10) {
             Preprocessor.BLOCK_CAPACITY = blockCapacity;
