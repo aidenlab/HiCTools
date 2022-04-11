@@ -32,7 +32,7 @@ import javastraw.reader.mzd.MatrixZoomData;
  */
 public class HiCGlobals {
 
-    public static final String versionNum = "3.10.06";
+    public static final String versionNum = "3.11.01";
     public static final int writingVersion = 9;
     public static final int bufferSize = 2097152;
     public static int MAX_PEARSON_ZOOM = 50000;

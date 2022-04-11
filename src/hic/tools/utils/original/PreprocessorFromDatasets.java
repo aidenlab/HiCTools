@@ -32,15 +32,19 @@ import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.Dataset;
 import javastraw.reader.Matrix;
 import javastraw.reader.basics.Chromosome;
+import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.mzd.MatrixZoomData;
 import javastraw.reader.type.HiCZoom;
-import javastraw.tools.ParallelizationTools;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.Deflater;
 
@@ -114,27 +118,93 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         System.out.println("Writing body");
         writeWholeGenomeMatrix(datasets, losArray, compressor, matrixPositions);
 
+        LinkedList<MatrixPP> queue = new LinkedList<>();
+        AtomicBoolean stillHaveRegionsToProcess = new AtomicBoolean(true);
+
+        ExecutorService writingExecutor = Executors.newFixedThreadPool(1);
+
+        Runnable dataWritingWorker = getDataWritingWorker(queue, losArray, compressor, matrixPositions,
+                stillHaveRegionsToProcess);
+        writingExecutor.execute(dataWritingWorker);
+
         Chromosome[] chromosomes = chromosomeHandler.getChromosomeArrayWithoutAllByAll();
         for (int i = 0; i < chromosomes.length; i++) {
             for (int j = i; j < chromosomes.length; j++) {
                 if (diagonalsOnly && i != j) continue;
-                writeChromosomeRegionMatrix(chromosomes[i], chromosomes[j], datasets);
-                System.out.print(".");
+                writeChromosomeRegionMatrix(chromosomes[i], chromosomes[j], datasets, queue);
+                System.out.print("*" + queue.size() + "*");
             }
-            System.out.println(".");
+            System.out.println("*");
+        }
+        stillHaveRegionsToProcess.set(false);
+
+        writingExecutor.shutdown();
+        while (!writingExecutor.isTerminated()) {
         }
 
         masterIndexPosition = losArray[0].getWrittenCount();
     }
 
+    private Runnable getDataWritingWorker(LinkedList<MatrixPP> queue, LittleEndianOutputStream[] losArray, Deflater compressor,
+                                          Map<String, IndexEntry> matrixPositions, AtomicBoolean stillHaveRegionsToProcess) {
+        return () -> {
+            while (queue.size() > 0 || stillHaveRegionsToProcess.get()) {
+                if (queue.size() > 0) {
+                    MatrixPP mergedMatrix = queue.pop();
+                    try {
+                        writeMatrix(mergedMatrix, losArray, compressor, matrixPositions,
+                                -1, false);
+                    } catch (IOException e) {
+                        System.err.println("Unable to write matrix data to hic file");
+                        e.printStackTrace();
+                        System.exit(89);
+                    }
+                    mergedMatrix = null;
+                } else {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        System.err.println("Thread sleeping error: " + e.getLocalizedMessage());
+                    }
+                }
+            }
+        };
+    }
+
     private void writeChromosomeRegionMatrix(Chromosome chromosome1, Chromosome chromosome2,
-                                             Dataset[] datasets) throws IOException {
+                                             Dataset[] datasets, LinkedList<MatrixPP> queue) {
         int newBlockCapacity = (int) (Math.sqrt(datasets.length) * BLOCK_CAPACITY);
         final MatrixPP mergedMatrix = new MatrixPP(chromosome1.getIndex(), chromosome2.getIndex(), chromosomeHandler,
                 bpBinSizes, countThreshold, v9DepthBase, newBlockCapacity);
 
         AtomicInteger index = new AtomicInteger();
-        ParallelizationTools.launchParallelizedCode(() -> {
+
+        int numCPUThreads = 4;
+        ExecutorService executor = Executors.newFixedThreadPool(numCPUThreads);
+
+        Runnable dataReadingWorker = getDataReadingWorker(index, chromosome1, chromosome2, chromosomeHandler,
+                bpBinSizes, countThreshold, v9DepthBase, newBlockCapacity, datasets, highestResolution,
+                expectedValueCalculations, tmpDir, mergedMatrix);
+
+        for (int l = 0; l < numCPUThreads; ++l) {
+            executor.execute(dataReadingWorker);
+        }
+
+        executor.shutdown();
+        while (!executor.isTerminated()) {
+        }
+
+        mergedMatrix.parsingComplete();
+        queue.add(mergedMatrix);
+    }
+
+    private Runnable getDataReadingWorker(AtomicInteger index, Chromosome chromosome1, Chromosome chromosome2,
+                                          ChromosomeHandler chromosomeHandler, int[] bpBinSizes, int countThreshold,
+                                          int v9DepthBase, int newBlockCapacity, Dataset[] datasets,
+                                          int highestResolution,
+                                          Map<String, ExpectedValueCalculation> expectedValueCalculations,
+                                          File tmpDir, MatrixPP mergedMatrix) {
+        return () -> {
             int i = index.getAndIncrement();
             MatrixPP matrixPP = new MatrixPP(chromosome1.getIndex(), chromosome2.getIndex(), chromosomeHandler,
                     bpBinSizes, countThreshold, v9DepthBase, newBlockCapacity);
@@ -177,10 +247,7 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
                 mergedMatrix.mergeMatrices(matrixPP);
             }
             matrixPP = null;
-        });
-
-        mergedMatrix.parsingComplete();
-        writeMatrix(mergedMatrix, losArray, compressor, matrixPositions, -1, false);
+        };
     }
 
     private void writeWholeGenomeMatrix(Dataset[] datasets, LittleEndianOutputStream[] losArray, Deflater compressor,
