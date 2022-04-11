@@ -39,11 +39,16 @@ public class Sum extends JuiceboxCLT {
     private PreprocessorFromDatasets pfd;
 
     public Sum() {
-        super(getBasicUsage());
+        super(getBasicUsage() + "\n"
+                + " : [--intra]             only calculate intra chromosomal maps       [default: false]\n"
+                + " : [--near-diagonal]     only retain reads within 10MB of diagonal   [default: false]\n"
+                + " : [-t <string>]         set a temporary directory for writing       [default: temp_folder]\n"
+                + " : [-r <int>]            set the highest resolution to build to      [default: highest available]\n"
+                + " : [--block-size <int>]  scale factor to increase block capacity by  [default: 1]");
     }
 
     public static String getBasicUsage() {
-        return "sum [--intra] [--near-diagonal] <outfile.hic> <infile1.hic> <infile2.hic> ... <infileN.hic>";
+        return "sum [options] <outfile.hic> <infile1.hic> <infile2.hic> ... <infileN.hic";
     }
 
     @Override
@@ -66,8 +71,8 @@ public class Sum extends JuiceboxCLT {
         pfd.setIntraChromosomalOnly(parser.getDiagonalsOption() || getOnlyNearDiagonal);
         pfd.setOnlyNearDiagonalsOnly(getOnlyNearDiagonal);
         int blockCapacity = parser.getBlockCapacityOption();
-        if (blockCapacity > 10) {
-            Preprocessor.BLOCK_CAPACITY = blockCapacity;
+        if (blockCapacity > 1) {
+            Preprocessor.BLOCK_CAPACITY *= blockCapacity;
         }
     }
 

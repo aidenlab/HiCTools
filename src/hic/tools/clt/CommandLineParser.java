@@ -70,7 +70,7 @@ public class CommandLineParser extends CmdLineParser {
     private final Option shellOption = addStringOption("shell");
 
     // ints
-    private final Option blockCapacityOption = addIntegerOption("block-capacity");
+    private final Option blockCapacityOption = addIntegerOption("block-size");
     private final Option countThresholdOption = addIntegerOption('m', "min-count");
     private final Option mapqOption = addIntegerOption('q', "mapq");
     private final Option genomeWideOption = addIntegerOption('w', "genomewide");

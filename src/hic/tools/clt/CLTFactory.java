@@ -42,6 +42,7 @@ public class CLTFactory {
             AddNorm.getBasicUsage(),
             Pearsons.getBasicUsage(),
             Eigenvector.getUsage(),
+            Sum.getBasicUsage()
     };
 
     public static void generalUsage() {

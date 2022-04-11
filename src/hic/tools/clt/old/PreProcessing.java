@@ -52,6 +52,8 @@ public class PreProcessing extends JuiceboxCLT {
     public PreProcessing() {
         super(getBasicUsage() + "\n"
                 + "           : --intra only calculate intra chromosomal maps [false]\n"
+                + "           : --near-diagonal only retain reads within 10MB of diagonal [false]\n"
+                + "           : --block-size <int> set block capacity [1000]\n"
                 + "           : -m <int> only write cells with count above threshold m [0]\n"
                 + "           : -q <int> filter by MAPQ score greater than or equal to q [not set]\n"
                 + "           : -c <chromosome ID> only calculate map on specific chromosome [not set]\n"
