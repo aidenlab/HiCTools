@@ -134,12 +134,6 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
                         System.exit(89);
                     }
                     mergedMatrix = null;
-                } else {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        System.err.println("Thread sleeping error: " + e.getLocalizedMessage());
-                    }
                 }
             }
         };
@@ -162,6 +156,10 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         for (int i = 0; i < chromosomes.length; i++) {
             for (int j = i; j < chromosomes.length; j++) {
                 if (intraChromosomalOnly && i != j) continue;
+                tryToSleep(100);
+                while (queue.size() > 4) {
+                    tryToSleep(5000);
+                }
                 readInChromosomeRegionMatrix(chromosomes[i], chromosomes[j], datasets, queue);
                 System.out.print("*" + queue.size() + "*");
             }
@@ -174,6 +172,14 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         }
 
         masterIndexPosition = losArray[0].getWrittenCount();
+    }
+
+    private void tryToSleep(long time) {
+        try {
+            Thread.sleep(time);
+        } catch (InterruptedException e) {
+            System.err.println("Thread sleeping error " + e.getLocalizedMessage());
+        }
     }
 
     private void readInChromosomeRegionMatrix(Chromosome chromosome1, Chromosome chromosome2,
