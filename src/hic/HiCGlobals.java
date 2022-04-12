@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@ import javastraw.reader.mzd.MatrixZoomData;
  * @since 11/25/14
  */
 public class HiCGlobals {
-    public static final String versionNum = "3.11.07";
+    public static final String versionNum = "3.11.09";
     public static final int writingVersion = 9;
     public static final int bufferSize = 2097152;
     public static int MAX_PEARSON_ZOOM = 50000;
