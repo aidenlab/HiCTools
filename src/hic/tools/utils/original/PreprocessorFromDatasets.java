@@ -59,14 +59,16 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
     public PreprocessorFromDatasets(File outputFile, Dataset[] datasets, double hicFileScalingFactor) {
         super(outputFile, datasets[0].getGenomeId(), hicFileScalingFactor);
         this.datasets = datasets;
-        updateResolutionsToBuild(datasets[0].getAllPossibleResolutions());
+        updateResolutionsToBuild(datasets[0].getAllPossibleResolutions(), 0);
         highestResolution = getMin(bpBinSizes);
     }
 
-    private void updateResolutionsToBuild(List<HiCZoom> zooms) {
+    private void updateResolutionsToBuild(List<HiCZoom> zooms, int minCutoff) {
         List<Integer> resolutions = new ArrayList<>();
         for (HiCZoom zoom : zooms) {
-            resolutions.add(zoom.getBinSize());
+            if (zoom.getBinSize() >= minCutoff) {
+                resolutions.add(zoom.getBinSize());
+            }
         }
         setResolutionsWithInts(resolutions);
     }
@@ -224,6 +226,7 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
                 System.err.println("Unable to parse resolution " + resolutions.get(0));
             }
         }
+        updateResolutionsToBuild(datasets[0].getAllPossibleResolutions(), highestResolution);
     }
 
     private Runnable getDataReadingWorker(AtomicInteger index, Chromosome chromosome1, Chromosome chromosome2,
