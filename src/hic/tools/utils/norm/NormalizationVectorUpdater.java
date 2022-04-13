@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@ import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.Dataset;
 import javastraw.reader.DatasetReaderV2;
+import javastraw.reader.Matrix;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.datastructures.ListOfFloatArrays;
@@ -39,7 +40,6 @@ import javastraw.reader.norm.NormalizationVector;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
-import javastraw.tools.HiCFileTools;
 
 import java.io.IOException;
 import java.util.*;
@@ -55,10 +55,8 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
     protected final BigListOfByteWriters normVectorBuffers = new BigListOfByteWriters();
     protected final List<NormalizationVectorIndexEntry> normVectorIndices = new ArrayList<>();
     protected final List<ExpectedValueCalculation> expectedValueCalculations = new ArrayList<>();
-
     // Keep track of chromosomes that fail to converge, so we don't try them at higher resolutions.
     protected final Set<Chromosome> scaleBPFailChroms = new HashSet<>();
-    protected final Set<Chromosome> scaleFragFailChroms = new HashSet<>();
 
     // norms to build; gets overwritten
     protected boolean weShouldBuildVC = true;
@@ -114,10 +112,10 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
         normVectorBuffers.expandBuffer();
         for (HiCZoom zoom : resolutions) {
             if (zoom.getBinSize() < minResolution) {
-                System.out.println("skipping zoom" + zoom);
+                System.out.println("Skipping zoom" + zoom);
                 continue;
             }
-            if (noFrag && zoom.getUnit() == HiCZoom.HiCUnit.FRAG) continue;
+            if (zoom.getUnit() == HiCZoom.HiCUnit.FRAG) continue;
 
             System.out.println();
             System.out.print("Calculating norms for zoom " + zoom);
@@ -140,7 +138,9 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
             // Loop through chromosomes
             for (Chromosome chrom : chromosomeHandler.getChromosomeArrayWithoutAllByAll()) {
 
-                MatrixZoomData zd = HiCFileTools.getMatrixZoomData(ds, chrom, chrom, zoom);
+                Matrix matrix = ds.getMatrix(chrom, chrom, zoom.getBinSize());
+                if (matrix == null) continue;
+                MatrixZoomData zd = matrix.getZoomData(zoom);
                 if (zd == null) continue;
 
                 if (HiCGlobals.printVerboseComments) {
@@ -168,6 +168,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                 }
 
                 zd.clearCache();
+                matrix.clearCache();
                 ba.clear();
             }
 
@@ -202,12 +203,10 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
         String stem = "NORM_" + chrIdx + "_" + zoom.getBinSize();
 
         if (saveScale) {
-            Set<Chromosome> failureSet = zoom.getUnit() == HiCZoom.HiCUnit.FRAG ? scaleFragFailChroms : scaleBPFailChroms;
-
-            if (!failureSet.contains(chr)) {
+            if (!scaleBPFailChroms.contains(chr)) {
                 ListOfFloatArrays scale = nc.computeSCALE(vc, stem);
                 if (scale == null) {
-                    failureSet.add(chr);
+                    scaleBPFailChroms.add(chr);
                 } else {
                     updateExpectedValueCalculationForChr(chrIdx, nc, scale, NormalizationHandler.SCALE, zoom, zd, evSCALE, normVectorBuffers, normVectorIndices);
                 }
