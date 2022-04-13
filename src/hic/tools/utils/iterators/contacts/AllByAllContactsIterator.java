@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,8 @@ public class AllByAllContactsIterator implements ContactIterator {
 
     private final Dataset[] datasets;
     private int currentIndex = -1;
-    private Iterator<ContactRecord> iterator;
+    private MatrixZoomData zd = null;
+    private Iterator<ContactRecord> iterator = null;
     private int resolution;
 
     public AllByAllContactsIterator(Dataset[] datasets) throws IOException {
@@ -46,16 +47,22 @@ public class AllByAllContactsIterator implements ContactIterator {
     }
 
     private static Contact makeAlignmentPairFromRecord(ContactRecord record, int resolution) {
-        Contact pair = new Contact(0, 0, record, resolution);
-        return pair;
+        return new Contact(0, 0, record, resolution);
     }
 
     private void advanceIterator() {
+        if (currentIndex > -1 && zd != null) {
+            if (iterator != null) iterator = null;
+            zd.clearCache();
+            datasets[currentIndex].clearCache(false);
+        }
+
         currentIndex++;
+
         if (currentIndex < datasets.length) {
             Chromosome all = datasets[currentIndex].getChromosomeHandler().getChromosomeFromIndex(0);
             Matrix matrix = datasets[currentIndex].getMatrix(all, all);
-            MatrixZoomData zd = matrix.getFirstZoomData();
+            zd = matrix.getFirstZoomData();
             iterator = zd.getDirectIterator();
             resolution = zd.getBinSize();
         } else {

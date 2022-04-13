@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -157,7 +157,7 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
             for (int j = i; j < chromosomes.length; j++) {
                 if (intraChromosomalOnly && i != j) continue;
                 tryToSleep(100);
-                while (queue.size() > 4) {
+                while (queue.size() > 2) {
                     tryToSleep(5000);
                 }
                 readInChromosomeRegionMatrix(chromosomes[i], chromosomes[j], datasets, queue);
