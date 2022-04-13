@@ -270,6 +270,7 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
                 }
 
                 zd.clearCache();
+                datasets[i].clearCache(false);
 
                 i = index.getAndIncrement();
             }
