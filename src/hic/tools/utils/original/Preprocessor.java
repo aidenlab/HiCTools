@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -112,7 +112,8 @@ public class Preprocessor extends HiCFileBuilder {
     protected void writeBody(String inputFile, Map<Integer, List<Chunk>> mndIndex) throws IOException {
         System.out.println("Writing body");
         MatrixPP wholeGenomeMatrix = computeWholeGenomeMatrix(inputFile);
-        writeMatrix(wholeGenomeMatrix, losArray, compressor, matrixPositions, -1, false);
+        writeMatrix(wholeGenomeMatrix, losArray, compressor, matrixPositions,
+                -1, false, outputFile);
 
         PairIterator iter = PairIterator.getIterator(inputFile, chromosomeIndexes, chromosomeHandler);
 
@@ -139,7 +140,8 @@ public class Preprocessor extends HiCFileBuilder {
                     // Starting a new matrix
                     if (currentMatrix != null) {
                         currentMatrix.parsingComplete();
-                        writeMatrix(currentMatrix, losArray, compressor, matrixPositions, -1, false);
+                        writeMatrix(currentMatrix, losArray, compressor, matrixPositions,
+                                -1, false, outputFile);
                         writtenMatrices.add(currentMatrixKey);
                         currentMatrix = null;
                         System.gc();
@@ -165,7 +167,8 @@ public class Preprocessor extends HiCFileBuilder {
 
         if (currentMatrix != null) {
             currentMatrix.parsingComplete();
-            writeMatrix(currentMatrix, losArray, compressor, matrixPositions, -1, false);
+            writeMatrix(currentMatrix, losArray, compressor, matrixPositions,
+                    -1, false, outputFile);
         }
 
         iter.close();

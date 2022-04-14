@@ -121,21 +121,26 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         return tooFarFromDiagonal(contact.getPos1(), contact.getPos2());
     }
 
+    private static void writeMatrixToFile(MatrixPP mergedMatrix, LittleEndianOutputStream[] losArray, Deflater compressor,
+                                          Map<String, IndexEntry> matrixPositions, File outputFile) {
+        try {
+            writeMatrix(mergedMatrix, losArray, compressor, matrixPositions,
+                    -1, false, outputFile);
+        } catch (IOException e) {
+            System.err.println("Unable to write matrix data to hic file");
+            e.printStackTrace();
+            System.exit(89);
+        }
+        mergedMatrix = null;
+    }
+
     private Runnable getDataWritingWorker(LinkedList<MatrixPP> queue, LittleEndianOutputStream[] losArray, Deflater compressor,
                                           Map<String, IndexEntry> matrixPositions, AtomicBoolean stillHaveRegionsToProcess) {
         return () -> {
             while (queue.size() > 0 || stillHaveRegionsToProcess.get()) {
                 if (queue.size() > 0) {
-                    MatrixPP mergedMatrix = queue.pop();
-                    try {
-                        writeMatrix(mergedMatrix, losArray, compressor, matrixPositions,
-                                -1, false);
-                    } catch (IOException e) {
-                        System.err.println("Unable to write matrix data to hic file");
-                        e.printStackTrace();
-                        System.exit(89);
-                    }
-                    mergedMatrix = null;
+                    PreprocessorFromDatasets.writeMatrixToFile(queue.pop(), losArray, compressor,
+                            matrixPositions, outputFile);
                 }
             }
         };
@@ -216,7 +221,8 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
     private void writeWholeGenomeMatrix(Dataset[] datasets, LittleEndianOutputStream[] losArray, Deflater compressor,
                                         Map<String, IndexEntry> matrixPositions) throws IOException {
         MatrixPP wholeGenomeMatrix = computeWholeGenomeMatrix(datasets);
-        writeMatrix(wholeGenomeMatrix, losArray, compressor, matrixPositions, -1, false);
+        writeMatrix(wholeGenomeMatrix, losArray, compressor, matrixPositions,
+                -1, false, outputFile);
         wholeGenomeMatrix = null;
     }
 

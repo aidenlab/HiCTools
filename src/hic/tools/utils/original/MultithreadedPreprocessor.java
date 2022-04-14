@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -315,7 +315,8 @@ public class MultithreadedPreprocessor extends Preprocessor {
         FileOutputStream tempFOS = new FileOutputStream(outputFile + "_" + chromosomePairIndexes.get(0));
         LittleEndianOutputStream tempLOS = new LittleEndianOutputStream(new BufferedOutputStream(tempFOS, HiCGlobals.bufferSize));
         LittleEndianOutputStream[] localLos = {tempLOS};
-        writeMatrix(wholeGenomeMatrix, localLos, WriterUtils.getDefaultCompressor(), localMatrixPositions, 0, true);
+        writeMatrix2(wholeGenomeMatrix, localLos, WriterUtils.getDefaultCompressor(), localMatrixPositions,
+                0, outputFile);
         nonemptyChromosomePairs.put(0, 1);
 
         long currentPosition = losArray[0].getWrittenCount();
@@ -364,18 +365,18 @@ public class MultithreadedPreprocessor extends Preprocessor {
             }
         }
 
-        writeMatrix(finalChrMatrices.get(chromosomePair), localLos, WriterUtils.getDefaultCompressor(), localMatrixPositions, chromosomePair, true);
+        writeMatrix2(finalChrMatrices.get(chromosomePair), localLos, WriterUtils.getDefaultCompressor(),
+                localMatrixPositions, chromosomePair, outputFile);
 
     }
 
-    @Override
     // MatrixPP matrix, LittleEndianOutputStream los, Deflater compressor
-    protected Pair<Map<Long, List<IndexEntry>>, Long> writeMatrix(MatrixPP matrix, LittleEndianOutputStream[] localLos,
-                                                                  Deflater localCompressor, Map<String, IndexEntry> localMatrixPositions,
-                                                                  int chromosomePairIndex, boolean doMultiThreadedBehavior) throws IOException {
+    protected Pair<Map<Long, List<IndexEntry>>, Long> writeMatrix2(MatrixPP matrix, LittleEndianOutputStream[] localLos,
+                                                                   Deflater localCompressor, Map<String, IndexEntry> localMatrixPositions,
+                                                                   int chromosomePairIndex, File outputFile) throws IOException {
 
-        Pair<Map<Long, List<IndexEntry>>, Long> localBlockIndexes = super.writeMatrix(matrix, localLos, localCompressor,
-                localMatrixPositions, chromosomePairIndex, true);
+        Pair<Map<Long, List<IndexEntry>>, Long> localBlockIndexes = writeMatrix(matrix, localLos, localCompressor,
+                localMatrixPositions, chromosomePairIndex, true, outputFile);
 
         chromosomePairBlockIndexes.put(chromosomePairIndex, localBlockIndexes.getFirst());
         long size = -localBlockIndexes.getSecond();
