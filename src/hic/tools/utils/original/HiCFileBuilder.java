@@ -109,7 +109,7 @@ abstract public class HiCFileBuilder {
         this.mapqThreshold = mapqThreshold;
     }
 
-    protected static boolean tooFarFromDiagonal(int pos1, int pos2) {
+    public static boolean tooFarFromDiagonal(int pos1, int pos2) {
         return Math.abs(pos1 - pos2) > TEN_MB;
     }
 
