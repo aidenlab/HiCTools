@@ -158,9 +158,11 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         for (int i = 0; i < chromosomes.length; i++) {
             for (int j = i; j < chromosomes.length; j++) {
                 if (intraChromosomalOnly && i != j) continue;
-                tryToSleep(100);
-                while (queue.size() > 2) {
-                    tryToSleep(5000);
+                if (queue.size() > 0) {
+                    tryToSleep(100);
+                    while (queue.size() > 1) {
+                        tryToSleep(5000);
+                    }
                 }
                 readInChromosomeRegionMatrix(chromosomes[i], chromosomes[j], datasets, queue);
                 System.out.print("*" + queue.size() + "*");
