@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,10 +51,7 @@ class BlockQueueFB implements BlockQueue {
             return;
         }
 
-        FileInputStream fis = null;
-
-        try {
-            fis = new FileInputStream(file);
+        try (FileInputStream fis = new FileInputStream(file)) {
             fis.getChannel().position(filePosition);
 
             LittleEndianInputStream lis = new LittleEndianInputStream(fis);
@@ -64,13 +61,11 @@ class BlockQueueFB implements BlockQueue {
             byte[] bytes = new byte[nRecords * 12];
             readFully(bytes, fis);
 
-            block = new BlockPP(blockNumber, MatrixZoomDataPP.readContactRecordsToMap(nRecords, bytes));
+            block = new BlockPP(blockNumber, RecordBlockUtils.readContactRecordsToMap(nRecords, bytes));
 
             // Update file position based on # of bytes read, for next block
             filePosition = fis.getChannel().position();
 
-        } finally {
-            if (fis != null) fis.close();
         }
     }
 

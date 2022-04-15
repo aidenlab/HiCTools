@@ -24,7 +24,7 @@
 
 package hic.tools.utils.original;
 
-import htsjdk.tribble.util.LittleEndianInputStream;
+import com.google.common.util.concurrent.AtomicDouble;
 import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.block.ContactRecord;
@@ -35,7 +35,10 @@ import org.broad.igv.tdf.BufferedByteWriter;
 import org.broad.igv.util.collections.DownsampledDoubleArrayList;
 
 import java.awt.*;
-import java.io.*;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,9 +60,9 @@ public class MatrixZoomDataPP {
     private final LinkedHashMap<Integer, BlockPP> blocks;
     private final int countThreshold;
     long blockIndexPosition;
-    private double sum = 0;
+    private final AtomicDouble sum = new AtomicDouble(0);
     private double numRecords = 0;
-    private double cellCount = 0;
+    private final AtomicDouble cellCount = new AtomicDouble(0);
     private double percent5;
     private double percent95;
     private final int blockCapacity;
@@ -98,12 +101,170 @@ public class MatrixZoomDataPP {
         v9Depth = V9Depth.setDepthMethod(v9BaseDepth, blockBinCount);
     }
 
-    double getSum() {
-        return sum;
+    /**
+     * @param block       Block to write
+     * @param sampledData Array to hold a sample of the data (to compute statistics)
+     */
+    protected static void writeBlock(BlockPP block, DownsampledDoubleArrayList sampledData,
+                                     LittleEndianOutputStream los, Deflater compressor, int countThreshold,
+                                     AtomicDouble cellCount, AtomicDouble sum) throws IOException {
+
+        final Map<Point, Float> records = block.getContactRecordMap();
+        int nRecords = RecordBlockUtils.getNumberOfRecords(records, countThreshold);
+        BufferedByteWriter buffer = new BufferedByteWriter(nRecords * 12);
+        buffer.putInt(nRecords);
+        cellCount.addAndGet(nRecords);
+
+        int binXOffset = Integer.MAX_VALUE;
+        int binYOffset = Integer.MAX_VALUE;
+        int binXMax = 0;
+        int binYMax = 0;
+        for (Map.Entry<Point, Float> entry : records.entrySet()) {
+            Point point = entry.getKey();
+            binXOffset = Math.min(binXOffset, point.x);
+            binYOffset = Math.min(binYOffset, point.y);
+            binXMax = Math.max(binXMax, point.x);
+            binYMax = Math.max(binYMax, point.y);
+        }
+
+        buffer.putInt(binXOffset);
+        buffer.putInt(binYOffset);
+
+        // Sort keys in row-major order
+        List<Point> keys = new ArrayList<>(records.keySet());
+        keys.sort((o1, o2) -> {
+            if (o1.y != o2.y) {
+                return o1.y - o2.y;
+            } else {
+                return o1.x - o2.x;
+            }
+        });
+        Point lastPoint = keys.get(keys.size() - 1);
+        final short w = (short) (binXMax - binXOffset + 1);
+        final int w1 = binXMax - binXOffset + 1;
+        final int w2 = binYMax - binYOffset + 1;
+
+        boolean isInteger = true;
+        float maxCounts = 0;
+
+        LinkedHashMap<Integer, List<ContactRecord>> rows = new LinkedHashMap<>();
+        for (Point point : keys) {
+            float counts = records.get(point);
+            if (counts >= countThreshold) {
+                isInteger = isInteger && (Math.floor(counts) == counts);
+                maxCounts = Math.max(counts, maxCounts);
+
+                final int px = point.x - binXOffset;
+                final int py = point.y - binYOffset;
+                if (!rows.containsKey(py)) {
+                    rows.put(py, new ArrayList<>(10));
+                }
+                List<ContactRecord> row = rows.get(py);
+                row.add(new ContactRecord(px, py, counts));
+            }
+        }
+
+        // Compute size for each representation and choose smallest
+        boolean useShort = isInteger && (maxCounts < Short.MAX_VALUE);
+        boolean useShortBinX = w1 < Short.MAX_VALUE;
+        boolean useShortBinY = w2 < Short.MAX_VALUE;
+        int valueSize = useShort ? 2 : 4;
+
+        int lorSize = 0;
+        int nDensePts = (lastPoint.y - binYOffset) * w + (lastPoint.x - binXOffset) + 1;
+
+        for (List<ContactRecord> row : rows.values()) {
+            lorSize += 4 + row.size() * valueSize;
+        }
+
+        buffer.put((byte) (useShort ? 0 : 1));
+        buffer.put((byte) (useShortBinX ? 0 : 1));
+        buffer.put((byte) (useShortBinY ? 0 : 1));
+
+        //dense calculation is incorrect for v9
+        int denseSize = Integer.MAX_VALUE;
+        if (lorSize < denseSize) {
+            buffer.put((byte) 1);  // List of rows representation
+            if (useShortBinY) {
+                buffer.putShort((short) rows.size()); // # of rows
+            } else {
+                buffer.putInt(rows.size());  // # of rows
+            }
+
+            for (Map.Entry<Integer, List<ContactRecord>> entry : rows.entrySet()) {
+
+                int py = entry.getKey();
+                List<ContactRecord> row = entry.getValue();
+                if (useShortBinY) {
+                    buffer.putShort((short) py);  // Row number
+                } else {
+                    buffer.putInt(py); // Row number
+                }
+                if (useShortBinX) {
+                    buffer.putShort((short) row.size());  // size of row
+                } else {
+                    buffer.putInt(row.size()); // size of row
+                }
+
+                for (ContactRecord contactRecord : row) {
+                    if (useShortBinX) {
+                        buffer.putShort((short) (contactRecord.getBinX()));
+                    } else {
+                        buffer.putInt(contactRecord.getBinX());
+                    }
+
+                    final float counts = contactRecord.getCounts();
+                    if (useShort) {
+                        buffer.putShort((short) counts);
+                    } else {
+                        buffer.putFloat(counts);
+                    }
+
+                    synchronized (sampledData) {
+                        sampledData.add(counts);
+                    }
+                    sum.addAndGet(counts);
+                }
+            }
+
+        } else {
+            buffer.put((byte) 2);  // Dense matrix
+
+            buffer.putInt(nDensePts);
+            buffer.putShort(w);
+
+            int lastIdx = 0;
+            for (Point p : keys) {
+                int idx = (p.y - binYOffset) * w + (p.x - binXOffset);
+                for (int i = lastIdx; i < idx; i++) {
+                    if (useShort) {
+                        buffer.putShort(Short.MIN_VALUE);
+                    } else {
+                        buffer.putFloat(Float.NaN);
+                    }
+                }
+                float counts = records.get(p);
+                if (useShort) {
+                    buffer.putShort((short) counts);
+                } else {
+                    buffer.putFloat(counts);
+                }
+                lastIdx = idx + 1;
+
+                synchronized (sampledData) {
+                    sampledData.add(counts);
+                }
+                sum.addAndGet(counts);
+            }
+        }
+
+        byte[] bytes = buffer.getBytes();
+        byte[] compressedBytes = RecordBlockUtils.compress(bytes, compressor);
+        los.write(compressedBytes);
     }
 
-    double getOccupiedCellCount() {
-        return cellCount;
+    double getSum() {
+        return sum.get();
     }
 
     double getPercent95() {
@@ -130,13 +291,17 @@ public class MatrixZoomDataPP {
         return blockColumnCount;
     }
 
+    double getOccupiedCellCount() {
+        return cellCount.get();
+    }
+
     /**
      * Increment the count for the bin represented by the GENOMIC position (pos1, pos2)
      */
     void incrementCount(int pos1, int pos2, float score, Map<String, ExpectedValueCalculation> expectedValueCalculations,
                         File tmpDir) throws IOException {
         if (pos1 < 0 || pos2 < 0) return;
-        sum += score;
+        sum.addAndGet(score);
         int xBin = pos1 / binSize;
         int yBin = pos2 / binSize;
         commonIncrementCount(xBin, yBin, score, expectedValueCalculations, tmpDir);
@@ -155,7 +320,7 @@ public class MatrixZoomDataPP {
             yBin = Math.max(xBin0, yBin0);
 
             if (xBin != yBin) {
-                sum += score;  // <= count for mirror cell.
+                sum.addAndGet(score);
             }
 
             if (expectedValueCalculations != null) {
@@ -171,7 +336,7 @@ public class MatrixZoomDataPP {
             int positionAlongDiagonal = ((xBin + yBin) / 2 / blockBinCount);
             blockNumber = depth * blockColumnCount + positionAlongDiagonal;
         } else {
-            // compute interchromosomal block number (version 9 and up, first block is zero)
+            // compute inter-chromosomal block number (version 9 and up, first block is zero)
             int blockCol = xBin0 / blockBinCount;
             int blockRow = yBin0 / blockBinCount;
             blockNumber = blockColumnCount * blockRow + blockCol;
@@ -185,137 +350,16 @@ public class MatrixZoomDataPP {
         block.incrementCount(xBin, yBin, score);
 
         if (blocks.size() > blockCapacity) {
-            File tmpfile;
+            File tmpFile;
             if (tmpDir == null) {
-                tmpfile = File.createTempFile("blocks", "bin");
+                tmpFile = File.createTempFile("blocks", "bin");
             } else {
-                tmpfile = File.createTempFile("blocks", "bin", tmpDir);
+                tmpFile = File.createTempFile("blocks", "bin", tmpDir);
             }
-            dumpBlocks(tmpfile);
-            tmpFiles.add(tmpfile);
-            tmpfile.deleteOnExit();
+            dumpBlocks(tmpFile);
+            tmpFiles.add(tmpFile);
+            tmpFile.deleteOnExit();
         }
-    }
-
-    static Map<Point, Float> readContactRecordsToMap(int nRecords, byte[] bytes) throws IOException {
-        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-        LittleEndianInputStream lis = new LittleEndianInputStream(bis);
-
-        Map<Point, Float> contactRecordMap = new HashMap<>(nRecords);
-        for (int i = 0; i < nRecords; i++) {
-            int x = lis.readInt();
-            int y = lis.readInt();
-            float v = lis.readFloat();
-            contactRecordMap.put(new Point(x, y), v);
-        }
-        try {
-            lis.close();
-            bis.close();
-        } catch (Exception e) {
-            System.err.println("Error cleanup contact record to map = " + e.getLocalizedMessage());
-        }
-        return contactRecordMap;
-    }
-
-    /**
-     * todo should this be synchronized?
-     *
-     * @param data
-     * @param compressor
-     * @return
-     */
-    private static byte[] compress(byte[] data, Deflater compressor) {
-
-        // Give the compressor the data to compress
-        compressor.reset();
-        compressor.setInput(data);
-        compressor.finish();
-
-        // Create an expandable byte array to hold the compressed data.
-        // You cannot use an array that's the same size as the orginal because
-        // there is no guarantee that the compressed data will be smaller than
-        // the uncompressed data.
-        ByteArrayOutputStream bos = new ByteArrayOutputStream(data.length);
-
-        // Compress the data
-        byte[] buf = new byte[1024];
-        while (!compressor.finished()) {
-            int count = compressor.deflate(buf);
-            bos.write(buf, 0, count);
-        }
-        try {
-            bos.close();
-        } catch (IOException e) {
-            System.err.println("Error closing ByteArrayOutputStream");
-            e.printStackTrace();
-        }
-
-        return bos.toByteArray();
-    }
-
-
-    // Merge and write out blocks one at a time.
-    protected List<IndexEntry> mergeAndWriteBlocks(LittleEndianOutputStream los, Deflater compressor) throws IOException {
-        DownsampledDoubleArrayList sampledData = new DownsampledDoubleArrayList(10000, 10000);
-
-        List<BlockQueue> activeList = new ArrayList<>();
-
-        // Initialize queues -- first whatever is left over in memory
-        if (blocks.size() > 0) {
-            BlockQueue bqInMem = new BlockQueueMem(blocks.values());
-            activeList.add(bqInMem);
-        }
-        // Now from files
-        for (File file : tmpFiles) {
-            BlockQueue bq = new BlockQueueFB(file);
-            if (bq.getBlock() != null) {
-                activeList.add(bq);
-            }
-        }
-
-        if (activeList.size() == 0) {
-            throw new RuntimeException("No reads in Hi-C contact matrices. This could be because the MAPQ filter is set too high (-q) or because all reads map to the same fragment.");
-        }
-
-        List<IndexEntry> indexEntries = new ArrayList<>();
-        do {
-            activeList.sort(Comparator.comparingInt(o -> o.getBlock().getNumber()));
-
-            BlockQueue topQueue = activeList.get(0);
-            BlockPP currentBlock = topQueue.getBlock();
-            topQueue.advance();
-            int num = currentBlock.getNumber();
-
-            for (int i = 1; i < activeList.size(); i++) {
-                BlockQueue blockQueue = activeList.get(i);
-                BlockPP block = blockQueue.getBlock();
-                if (block.getNumber() == num) {
-                    currentBlock.merge(block);
-                    blockQueue.advance();
-                }
-            }
-
-            activeList.removeIf(blockQueue -> blockQueue.getBlock() == null);
-
-            long position = los.getWrittenCount();
-            writeBlock(currentBlock, sampledData, los, compressor);
-            long size = los.getWrittenCount() - position;
-
-            indexEntries.add(new IndexEntry(num, position, (int) size));
-
-        } while (activeList.size() > 0);
-
-
-        for (File f : tmpFiles) {
-            boolean result = f.delete();
-            if (!result) {
-                System.out.println("Error while deleting file");
-            }
-        }
-
-        computeStats(sampledData);
-
-        return indexEntries;
     }
 
     // Merge and write out blocks multithreaded.
@@ -403,48 +447,70 @@ public class MatrixZoomDataPP {
         return finalIndexEntries;
     }
 
-    private void writeBlockChunk(Integer[] threadBlocks, Map<Integer, BlockPP> threadSafeBlocks,LittleEndianOutputStream[] losArray,
-                                 int threadNum, List<IndexEntry> indexEntries, DownsampledDoubleArrayList sampledData ) throws IOException{
-        Deflater compressor = new Deflater();
-        compressor.setLevel(Deflater.DEFAULT_COMPRESSION);
-        //System.err.println(threadBlocks.length);
-        for (int i = 0; i < threadBlocks.length; i++) {
-            BlockPP currentBlock = null;
-            int num = threadBlocks[i];
-            if (threadSafeBlocks.get(num) != null ){
-                currentBlock = threadSafeBlocks.get(num);
-                if (tmpFilesByBlockNumber.get(num) != null) {
-                    for (Map.Entry<File, Long> entry : tmpFilesByBlockNumber.get(num).entrySet()) {
-                        readAndMerge(currentBlock, entry);
-                    }
-                }
-            } else if (tmpFilesByBlockNumber.get(num) != null) {
-                Iterator<Map.Entry<File, Long>> iter = tmpFilesByBlockNumber.get(num).entrySet().iterator();
-                if (iter.hasNext()) {
-                    Map.Entry<File, Long> firstEntry = iter.next();
-                    currentBlock = readTmpBlock(firstEntry.getKey(), firstEntry.getValue());
-                    if (currentBlock != null) {
-                        while (iter.hasNext()) {
-                            readAndMerge(currentBlock, iter.next());
-                        }
-                    }
+    // Merge and write out blocks one at a time.
+    protected List<IndexEntry> mergeAndWriteBlocks(LittleEndianOutputStream los, Deflater compressor) throws IOException {
+        DownsampledDoubleArrayList sampledData = new DownsampledDoubleArrayList(10000, 10000);
+
+        List<BlockQueue> activeList = new ArrayList<>();
+
+        // Initialize queues -- first whatever is left over in memory
+        if (blocks.size() > 0) {
+            BlockQueue bqInMem = new BlockQueueMem(blocks.values());
+            activeList.add(bqInMem);
+        }
+        // Now from files
+        for (File file : tmpFiles) {
+            BlockQueue bq = new BlockQueueFB(file);
+            if (bq.getBlock() != null) {
+                activeList.add(bq);
+            }
+        }
+
+        if (activeList.size() == 0) {
+            throw new RuntimeException("No reads in Hi-C contact matrices. " +
+                    "This could be because the MAP-Q filter is set too high (-q) or " +
+                    "because all reads map to the same fragment.");
+        }
+
+        List<IndexEntry> indexEntries = new ArrayList<>();
+        do {
+            activeList.sort(Comparator.comparingInt(o -> o.getBlock().getNumber()));
+
+            BlockQueue topQueue = activeList.get(0);
+            BlockPP currentBlock = topQueue.getBlock();
+            topQueue.advance();
+            int num = currentBlock.getNumber();
+
+            for (int i = 1; i < activeList.size(); i++) {
+                BlockQueue blockQueue = activeList.get(i);
+                BlockPP block = blockQueue.getBlock();
+                if (block.getNumber() == num) {
+                    currentBlock.merge(block);
+                    blockQueue.advance();
                 }
             }
 
-            if (currentBlock != null) {
-                long position = losArray[threadNum + 1].getWrittenCount();
-                writeBlock(currentBlock, sampledData, losArray[threadNum + 1], compressor);
-                long size = losArray[threadNum + 1].getWrittenCount() - position;
-                indexEntries.add(new IndexEntry(num, position, (int) size));
+            activeList.removeIf(blockQueue -> blockQueue.getBlock() == null);
+
+            long position = los.getWrittenCount();
+            writeBlock(currentBlock, sampledData, los, compressor, countThreshold, cellCount, sum);
+            long size = los.getWrittenCount() - position;
+
+            indexEntries.add(new IndexEntry(num, position, (int) size));
+
+        } while (activeList.size() > 0);
+
+
+        for (File f : tmpFiles) {
+            boolean result = f.delete();
+            if (!result) {
+                System.out.println("Error while deleting file");
             }
         }
-    }
 
-    private void readAndMerge(BlockPP currentBlock, Map.Entry<File, Long> entry) throws IOException {
-        BlockPP tmpBlock = readTmpBlock(entry.getKey(), entry.getValue());
-        if (tmpBlock != null) {
-            currentBlock.merge(tmpBlock);
-        }
+        computeStats(sampledData);
+
+        return indexEntries;
     }
 
     /**
@@ -485,32 +551,6 @@ public class MatrixZoomDataPP {
         }
     }
 
-    private BlockPP readTmpBlock(File file, long filePosition) throws IOException {
-        if (filePosition >= file.length()) {
-            return null;
-        }
-
-        try (FileInputStream fis = new FileInputStream(file)) {
-            fis.getChannel().position(filePosition);
-
-            LittleEndianInputStream lis = new LittleEndianInputStream(fis);
-            int blockNumber = lis.readInt();
-            int nRecords = lis.readInt();
-
-            byte[] bytes = new byte[nRecords * 12];
-            int len = bytes.length;
-            int n = 0;
-            while (n < len) {
-                int count = fis.read(bytes, n, len - n);
-                if (count < 0)
-                    throw new EOFException();
-                n += count;
-            }
-
-            return new BlockPP(blockNumber, readContactRecordsToMap(nRecords, bytes));
-        }
-    }
-
     private void computeStats(DownsampledDoubleArrayList sampledData) {
         DescriptiveStatistics stats = new DescriptiveStatistics(sampledData.toArray());
         this.percent5 = stats.getPercentile(5);
@@ -523,16 +563,53 @@ public class MatrixZoomDataPP {
         }
     }
 
+    private void writeBlockChunk(Integer[] threadBlocks, Map<Integer, BlockPP> threadSafeBlocks, LittleEndianOutputStream[] losArray,
+                                 int threadNum, List<IndexEntry> indexEntries, DownsampledDoubleArrayList sampledData) throws IOException {
+        Deflater compressor = new Deflater();
+        compressor.setLevel(Deflater.DEFAULT_COMPRESSION);
+        //System.err.println(threadBlocks.length);
+        for (int i = 0; i < threadBlocks.length; i++) {
+            BlockPP currentBlock = null;
+            int num = threadBlocks[i];
+            if (threadSafeBlocks.get(num) != null) {
+                currentBlock = threadSafeBlocks.get(num);
+                if (tmpFilesByBlockNumber.get(num) != null) {
+                    for (Map.Entry<File, Long> entry : tmpFilesByBlockNumber.get(num).entrySet()) {
+                        RecordBlockUtils.readAndMerge(currentBlock, entry);
+                    }
+                }
+            } else if (tmpFilesByBlockNumber.get(num) != null) {
+                Iterator<Map.Entry<File, Long>> iter = tmpFilesByBlockNumber.get(num).entrySet().iterator();
+                if (iter.hasNext()) {
+                    Map.Entry<File, Long> firstEntry = iter.next();
+                    currentBlock = RecordBlockUtils.readTmpBlock(firstEntry.getKey(), firstEntry.getValue());
+                    if (currentBlock != null) {
+                        while (iter.hasNext()) {
+                            RecordBlockUtils.readAndMerge(currentBlock, iter.next());
+                        }
+                    }
+                }
+            }
+
+            if (currentBlock != null) {
+                long position = losArray[threadNum + 1].getWrittenCount();
+                writeBlock(currentBlock, sampledData, losArray[threadNum + 1], compressor,
+                        countThreshold, cellCount, sum);
+                long size = losArray[threadNum + 1].getWrittenCount() - position;
+                indexEntries.add(new IndexEntry(num, position, (int) size));
+            }
+        }
+    }
+
     /**
      * used by multithreaded code
+     *
      * @param otherMatrixZoom that will be merged in
      */
     void mergeMatrices(MatrixZoomDataPP otherMatrixZoom) {
-        sum += otherMatrixZoom.sum;
+        sum.addAndGet(otherMatrixZoom.sum.get());
         numRecords += otherMatrixZoom.numRecords;
         for (int blockNumber : otherMatrixZoom.blocks.keySet()) {
-            // int blockNumber = otherBlock.getKey();
-            // Map.Entry<Integer, BlockPP> otherBlock : otherMatrixZoom.blocks.entrySet()
             BlockPP otherBlock = otherMatrixZoom.blocks.get(blockNumber);
             if (blocks.containsKey(blockNumber)) {
                 BlockPP block = blocks.get(blockNumber);
@@ -545,215 +622,24 @@ public class MatrixZoomDataPP {
         }
         for (int blockNumber : otherMatrixZoom.blockNumbers) {
             blockNumbers.add(blockNumber);
-            if (!blockNumRecords.containsKey(blockNumber)) {
-                blockNumRecords.put(blockNumber, otherMatrixZoom.blockNumRecords.get(blockNumber));
-            } else {
+            if (blockNumRecords.containsKey(blockNumber)) {
                 blockNumRecords.put(blockNumber, blockNumRecords.get(blockNumber) + otherMatrixZoom.blockNumRecords.get(blockNumber));
+            } else {
+                blockNumRecords.put(blockNumber, otherMatrixZoom.blockNumRecords.get(blockNumber));
             }
         }
 
         tmpFiles.addAll(otherMatrixZoom.tmpFiles);
 
         for (Map.Entry<Integer, Map<File, Long>> entry : otherMatrixZoom.tmpFilesByBlockNumber.entrySet()) {
-            if (!tmpFilesByBlockNumber.containsKey(entry.getKey())) {
-                tmpFilesByBlockNumber.put(entry.getKey(), entry.getValue());
-            } else {
+            if (tmpFilesByBlockNumber.containsKey(entry.getKey())) {
                 for (Map.Entry<File, Long> tmpFile : entry.getValue().entrySet()) {
                     tmpFilesByBlockNumber.get(entry.getKey()).put(tmpFile.getKey(), tmpFile.getValue());
                 }
-            }
-        }
-    }
-
-    /**
-     * Note -- compressed
-     *
-     * @param block       Block to write
-     * @param sampledData Array to hold a sample of the data (to compute statistics)
-     * @throws IOException
-     */
-    protected void writeBlock(BlockPP block, DownsampledDoubleArrayList sampledData, LittleEndianOutputStream los, Deflater compressor) throws IOException {
-
-        final Map<Point, Float> records = block.getContactRecordMap();//   getContactRecords();
-
-        // System.out.println("Write contact records : records count = " + records.size());
-
-        // Count records first
-        int nRecords;
-        if (countThreshold > 0) {
-            nRecords = 0;
-            for (Float value : records.values()) {
-                if (value >= countThreshold) {
-                    nRecords++;
-                }
-            }
-        } else {
-            nRecords = records.size();
-        }
-        BufferedByteWriter buffer = new BufferedByteWriter(nRecords * 12);
-        buffer.putInt(nRecords);
-        incrementCellCount(nRecords);
-
-        // Find extents of occupied cells
-        int binXOffset = Integer.MAX_VALUE;
-        int binYOffset = Integer.MAX_VALUE;
-        int binXMax = 0;
-        int binYMax = 0;
-        for (Map.Entry<Point, Float> entry : records.entrySet()) {
-            Point point = entry.getKey();
-            binXOffset = Math.min(binXOffset, point.x);
-            binYOffset = Math.min(binYOffset, point.y);
-            binXMax = Math.max(binXMax, point.x);
-            binYMax = Math.max(binYMax, point.y);
-        }
-
-        buffer.putInt(binXOffset);
-        buffer.putInt(binYOffset);
-
-        // Sort keys in row-major order
-        List<Point> keys = new ArrayList<>(records.keySet());
-        keys.sort((o1, o2) -> {
-            if (o1.y != o2.y) {
-                return o1.y - o2.y;
             } else {
-                return o1.x - o2.x;
-            }
-        });
-        Point lastPoint = keys.get(keys.size() - 1);
-        final short w = (short) (binXMax - binXOffset + 1);
-        final int w1 = binXMax - binXOffset + 1;
-        final int w2 = binYMax - binYOffset + 1;
-
-        boolean isInteger = true;
-        float maxCounts = 0;
-
-        LinkedHashMap<Integer, List<ContactRecord>> rows = new LinkedHashMap<>();
-        for (Point point : keys) {
-            float counts = records.get(point);
-            if (counts >= countThreshold) {
-                isInteger = isInteger && (Math.floor(counts) == counts);
-                maxCounts = Math.max(counts, maxCounts);
-
-                final int px = point.x - binXOffset;
-                final int py = point.y - binYOffset;
-                if (!rows.containsKey(py)) {
-                    rows.put(py, new ArrayList<>(10));
-                }
-                List<ContactRecord> row = rows.get(py);
-                row.add(new ContactRecord(px, py, counts));
+                tmpFilesByBlockNumber.put(entry.getKey(), entry.getValue());
             }
         }
-
-        // Compute size for each representation and choose smallest
-        boolean useShort = isInteger && (maxCounts < Short.MAX_VALUE);
-        boolean useShortBinX = w1 < Short.MAX_VALUE;
-        boolean useShortBinY = w2 < Short.MAX_VALUE;
-        int valueSize = useShort ? 2 : 4;
-
-        int lorSize = 0;
-        int nDensePts = (lastPoint.y - binYOffset) * w + (lastPoint.x - binXOffset) + 1;
-
-
-        for (List<ContactRecord> row : rows.values()) {
-            lorSize += 4 + row.size() * valueSize;
-        }
-
-        buffer.put((byte) (useShort ? 0 : 1));
-        buffer.put((byte) (useShortBinX ? 0 : 1));
-        buffer.put((byte) (useShortBinY ? 0 : 1));
-
-        //dense calculation is incorrect for v9
-        int denseSize = Integer.MAX_VALUE;
-        if (lorSize < denseSize) {
-            buffer.put((byte) 1);  // List of rows representation
-            if (useShortBinY) {
-                buffer.putShort((short) rows.size()); // # of rows
-            } else {
-                buffer.putInt(rows.size());  // # of rows
-            }
-
-            for (Map.Entry<Integer, List<ContactRecord>> entry : rows.entrySet()) {
-
-                int py = entry.getKey();
-                List<ContactRecord> row = entry.getValue();
-                if (useShortBinY) {
-                    buffer.putShort((short) py);  // Row number
-                } else {
-                    buffer.putInt(py); // Row number
-                }
-                if (useShortBinX) {
-                    buffer.putShort((short) row.size());  // size of row
-                } else {
-                    buffer.putInt(row.size()); // size of row
-                }
-
-                for (ContactRecord contactRecord : row) {
-                    if (useShortBinX) {
-                        buffer.putShort((short) (contactRecord.getBinX()));
-                    } else {
-                        buffer.putInt(contactRecord.getBinX());
-                    }
-
-                    final float counts = contactRecord.getCounts();
-                    if (useShort) {
-                        buffer.putShort((short) counts);
-                    } else {
-                        buffer.putFloat(counts);
-                    }
-
-                    synchronized(sampledData) {
-                        sampledData.add(counts);
-                    }
-                    incrementSum(counts);
-                }
-            }
-
-        } else {
-            buffer.put((byte) 2);  // Dense matrix
-
-            buffer.putInt(nDensePts);
-            buffer.putShort(w);
-
-            int lastIdx = 0;
-            for (Point p : keys) {
-
-                int idx = (p.y - binYOffset) * w + (p.x - binXOffset);
-                for (int i = lastIdx; i < idx; i++) {
-                    // Filler value
-                    if (useShort) {
-                        buffer.putShort(Short.MIN_VALUE);
-                    } else {
-                        buffer.putFloat(Float.NaN);
-                    }
-                }
-                float counts = records.get(p);
-                if (useShort) {
-                    buffer.putShort((short) counts);
-                } else {
-                    buffer.putFloat(counts);
-                }
-                lastIdx = idx + 1;
-
-                synchronized(sampledData) {
-                    sampledData.add(counts);
-                }
-                incrementSum(counts);
-            }
-        }
-
-
-        byte[] bytes = buffer.getBytes();
-        byte[] compressedBytes = compress(bytes, compressor);
-        los.write(compressedBytes);
-
-    }
-
-    private synchronized void incrementSum(float counts) {
-        sum += counts;
-    }
-
-    private synchronized void incrementCellCount(int nRecords) {
-        cellCount += nRecords;
     }
 
     private int addToBlockAndRecordsSets(BlockPP b) {
