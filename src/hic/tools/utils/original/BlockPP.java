@@ -34,10 +34,7 @@ import java.util.Map;
 class BlockPP {
 
     private final int number;
-
-    // Key to the map is a Point representing the x,y coordinate for the cell.
     private final Map<Point, Float> contactRecordMap;
-
 
     BlockPP(int number) {
         this.number = number;
@@ -48,7 +45,6 @@ class BlockPP {
         this.number = number;
         this.contactRecordMap = contactRecordMap;
     }
-
 
     int getNumber() {
         return number;

@@ -205,13 +205,11 @@ public class MatrixZoomDataPP {
 
         BlockPP block = blocks.get(blockNumber);
         if (block == null) {
-
             block = new BlockPP(blockNumber);
             blocks.put(blockNumber, block);
         }
         block.incrementCount(xBin, yBin, score);
 
-        // If too many blocks write to tmp directory
         if (blocks.size() > BLOCK_CAPACITY) {
             File tmpfile;
             if (tmpDir == null) {
@@ -219,7 +217,6 @@ public class MatrixZoomDataPP {
             } else {
                 tmpfile = File.createTempFile("blocks", "bin", tmpDir);
             }
-            //System.out.println(chr1.getName() + "-" + chr2.getName() + " Dumping blocks to " + tmpfile.getAbsolutePath());
             dumpBlocks(tmpfile);
             tmpFiles.add(tmpfile);
             tmpfile.deleteOnExit();
@@ -246,17 +243,40 @@ public class MatrixZoomDataPP {
         return contactRecordMap;
     }
 
-    private int addToBlockAndRecordsSets(BlockPP b) {
-        int number = b.getNumber();
-        blockNumbers.add(number);
+    /**
+     * todo should this be synchronized?
+     *
+     * @param data
+     * @param compressor
+     * @return
+     */
+    private static byte[] compress(byte[] data, Deflater compressor) {
 
-        if (!blockNumRecords.containsKey(number)) {
-            blockNumRecords.put(number, b.getNumRecords());
-        } else {
-            blockNumRecords.put(number, blockNumRecords.get(number) + b.getNumRecords());
+        // Give the compressor the data to compress
+        compressor.reset();
+        compressor.setInput(data);
+        compressor.finish();
+
+        // Create an expandable byte array to hold the compressed data.
+        // You cannot use an array that's the same size as the orginal because
+        // there is no guarantee that the compressed data will be smaller than
+        // the uncompressed data.
+        ByteArrayOutputStream bos = new ByteArrayOutputStream(data.length);
+
+        // Compress the data
+        byte[] buf = new byte[1024];
+        while (!compressor.finished()) {
+            int count = compressor.deflate(buf);
+            bos.write(buf, 0, count);
         }
-        numRecords += b.getNumRecords();
-        return number;
+        try {
+            bos.close();
+        } catch (IOException e) {
+            System.err.println("Error closing ByteArrayOutputStream");
+            e.printStackTrace();
+        }
+
+        return bos.toByteArray();
     }
 
 
@@ -467,10 +487,7 @@ public class MatrixZoomDataPP {
             blockList.sort(Comparator.comparingInt(BlockPP::getNumber));
 
             for (BlockPP b : blockList) {
-
-                // Remove from map
                 blocks.remove(b.getNumber());
-
                 int number = addToBlockAndRecordsSets(b);
 
                 if (tmpFilesByBlockNumber.get(number) == null) {
@@ -483,7 +500,6 @@ public class MatrixZoomDataPP {
 
                 los.writeInt(records.size());
                 for (Map.Entry<Point, Float> entry : records.entrySet()) {
-
                     Point point = entry.getKey();
                     Float count = entry.getValue();
 
@@ -494,7 +510,6 @@ public class MatrixZoomDataPP {
             }
 
             blocks.clear();
-
         }
     }
 
@@ -525,15 +540,12 @@ public class MatrixZoomDataPP {
     }
 
     private void computeStats(DownsampledDoubleArrayList sampledData) {
-
         DescriptiveStatistics stats = new DescriptiveStatistics(sampledData.toArray());
         this.percent5 = stats.getPercentile(5);
         this.percent95 = stats.getPercentile(95);
-
     }
 
     void parsingComplete() {
-        // Add the block numbers still in memory
         for (BlockPP block : blocks.values()) {
             addToBlockAndRecordsSets(block);
         }
@@ -541,7 +553,6 @@ public class MatrixZoomDataPP {
 
     /**
      * used by multithreaded code
-     *
      * @param otherMatrixZoom that will be merged in
      */
     void mergeMatrices(MatrixZoomDataPP otherMatrixZoom) {
@@ -578,7 +589,6 @@ public class MatrixZoomDataPP {
                 }
             }
         }
-        //System.err.println(binSize + " " + blockNumbers.size() + " " + otherMatrixZoom.blockNumbers.size());
     }
 
     /**
@@ -772,39 +782,15 @@ public class MatrixZoomDataPP {
         cellCount += nRecords;
     }
 
-    /**
-     * todo should this be synchronized?
-     *
-     * @param data
-     * @param compressor
-     * @return
-     */
-    protected byte[] compress(byte[] data, Deflater compressor) {
-
-        // Give the compressor the data to compress
-        compressor.reset();
-        compressor.setInput(data);
-        compressor.finish();
-
-        // Create an expandable byte array to hold the compressed data.
-        // You cannot use an array that's the same size as the orginal because
-        // there is no guarantee that the compressed data will be smaller than
-        // the uncompressed data.
-        ByteArrayOutputStream bos = new ByteArrayOutputStream(data.length);
-
-        // Compress the data
-        byte[] buf = new byte[1024];
-        while (!compressor.finished()) {
-            int count = compressor.deflate(buf);
-            bos.write(buf, 0, count);
+    private int addToBlockAndRecordsSets(BlockPP b) {
+        int number = b.getNumber();
+        blockNumbers.add(number);
+        if (blockNumRecords.containsKey(number)) {
+            blockNumRecords.put(number, b.getNumRecords() + blockNumRecords.get(number));
+        } else {
+            blockNumRecords.put(number, b.getNumRecords());
         }
-        try {
-            bos.close();
-        } catch (IOException e) {
-            System.err.println("Error clossing ByteArrayOutputStream");
-            e.printStackTrace();
-        }
-
-        return bos.toByteArray();
+        numRecords += b.getNumRecords();
+        return number;
     }
 }
