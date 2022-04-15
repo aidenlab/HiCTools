@@ -190,7 +190,8 @@ public class MultithreadedPreprocessor extends Preprocessor {
                             if (outputFile != null) outputFile.deleteOnExit();
                             System.exit(58);
                         }
-                        currentMatrix = new MatrixPP(currentChr1, currentChr2, chromosomeHandler, bpBinSizes, countThreshold, v9DepthBase, chrPairBlockCapacities.get(currentChrPair));
+                        currentMatrix = new MatrixPP(currentChr1, currentChr2, chromosomeHandler, bpBinSizes,
+                                countThreshold, v9DepthBase, chrPairBlockCapacities.get(currentChrPair));
                     }
                     cleaner.incrementCount(currentMatrix, localExpectedValueCalculations, tmpDir);
 

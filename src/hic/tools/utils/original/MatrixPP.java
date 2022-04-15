@@ -77,7 +77,8 @@ public class MatrixPP {
             } else {
                 nColumns = getNumColumnsFromNumBins(nBins, binSize, INTER_CUTOFF);
             }
-            zoomData[idx] = new MatrixZoomDataPP(chrom1, chrom2, binSize, nColumns, zoom, countThreshold, v9DepthBase, BLOCK_CAPACITY);
+            zoomData[idx] = new MatrixZoomDataPP(chrom1, chrom2, binSize, nColumns, zoom, countThreshold,
+                    v9DepthBase, BLOCK_CAPACITY);
             zoom++;
 
         }
@@ -98,15 +99,15 @@ public class MatrixPP {
         zoomData = new MatrixZoomDataPP[1];
         zoomData[0] = new MatrixZoomDataPP(chromosomeHandler.getChromosomeFromIndex(chr1Idx),
                 chromosomeHandler.getChromosomeFromIndex(chr2Idx),
-                binSize, blockColumnCount, 0, countThreshold, v9DepthBase);
+                binSize, blockColumnCount, 0, countThreshold, v9DepthBase, Preprocessor.BLOCK_CAPACITY);
 
     }
 
     private int getNumColumnsFromNumBins(int nBins, int binSize, int cutoff) {
-        int nColumns = nBins / Preprocessor.BLOCK_SIZE + 1;
+        int nColumns = nBins / Preprocessor.BLOCK_CAPACITY + 1;
         if (binSize < cutoff) {
             long numerator = (long) nBins * binSize;
-            long denominator = (long) Preprocessor.BLOCK_SIZE * cutoff;
+            long denominator = (long) Preprocessor.BLOCK_CAPACITY * cutoff;
             nColumns = (int) (numerator / denominator) + 1;
         }
         return Math.min(nColumns, MAX_SQRT - 1);
@@ -114,7 +115,7 @@ public class MatrixPP {
 
 
     String getKey() {
-        return "" + chr1Idx + "_" + chr2Idx;
+        return chr1Idx + "_" + chr2Idx;
     }
 
     public void incrementCount(Contact contact, Map<String, ExpectedValueCalculation> expectedValueCalculations,

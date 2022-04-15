@@ -46,8 +46,8 @@ import java.util.zip.Deflater;
 public class MatrixZoomDataPP {
     final Set<Integer> blockNumbers;  // The only reason for this is to get a count
     final ConcurrentHashMap<Integer, Integer> blockNumRecords;
-    final List<File> tmpFiles;
-    final Map<Integer, Map<File, Long>> tmpFilesByBlockNumber;
+    final List<File> tmpFiles = new ArrayList<>();
+    final Map<Integer, Map<File, Long>> tmpFilesByBlockNumber = new ConcurrentHashMap<>();
     private final Chromosome chr1;  // Redundant, but convenient    BinDatasetReader
     private final Chromosome chr2;  // Redundant, but convenient
     private final int zoom;
@@ -62,7 +62,7 @@ public class MatrixZoomDataPP {
     private double cellCount = 0;
     private double percent5;
     private double percent95;
-    private int BLOCK_CAPACITY = 1000;
+    private final int blockCapacity;
     private final V9Depth v9Depth;
 
     /**
@@ -74,37 +74,11 @@ public class MatrixZoomDataPP {
      * @param blockColumnCount number of block columns
      * @param zoom             integer zoom (resolution) level index.  TODO Is this needed?
      */
-    MatrixZoomDataPP(Chromosome chr1, Chromosome chr2, int binSize, int blockColumnCount, int zoom, int countThreshold, int v9BaseDepth) {
-        this.tmpFiles = new ArrayList<>();
-        this.tmpFilesByBlockNumber = new ConcurrentHashMap<>();
-        this.blockNumbers = Collections.synchronizedSet(new HashSet<>(BLOCK_CAPACITY));
-        this.blockNumRecords = new ConcurrentHashMap<>(BLOCK_CAPACITY);
-        this.countThreshold = countThreshold;
-
-        this.chr1 = chr1;
-        this.chr2 = chr2;
-        this.binSize = binSize;
-        this.blockColumnCount = blockColumnCount;
-        this.zoom = zoom;
-
-        // Get length in proper units
-        Chromosome longChr = chr1.getLength() > chr2.getLength() ? chr1 : chr2;
-        long len = longChr.getLength();
-
-        int nBinsX = (int) (len / binSize + 1);
-
-        blockBinCount = nBinsX / blockColumnCount + 1;
-        blocks = new LinkedHashMap<>(blockColumnCount);
-        v9Depth = V9Depth.setDepthMethod(v9BaseDepth, blockBinCount);
-    }
-
     MatrixZoomDataPP(Chromosome chr1, Chromosome chr2, int binSize, int blockColumnCount, int zoom,
-                     int countThreshold, int v9BaseDepth, int BLOCK_CAPACITY) {
-        this.tmpFiles = new ArrayList<>();
-        this.tmpFilesByBlockNumber = new ConcurrentHashMap<>();
-        this.BLOCK_CAPACITY = BLOCK_CAPACITY;
-        this.blockNumbers = Collections.synchronizedSet(new HashSet<>(BLOCK_CAPACITY));
-        this.blockNumRecords = new ConcurrentHashMap<>(BLOCK_CAPACITY);
+                     int countThreshold, int v9BaseDepth, int blockCapacity) {
+        this.blockCapacity = blockCapacity;
+        this.blockNumbers = Collections.synchronizedSet(new HashSet<>(blockCapacity));
+        this.blockNumRecords = new ConcurrentHashMap<>(blockCapacity);
         this.countThreshold = countThreshold;
 
         this.chr1 = chr1;
@@ -210,7 +184,7 @@ public class MatrixZoomDataPP {
         }
         block.incrementCount(xBin, yBin, score);
 
-        if (blocks.size() > BLOCK_CAPACITY) {
+        if (blocks.size() > blockCapacity) {
             File tmpfile;
             if (tmpDir == null) {
                 tmpfile = File.createTempFile("blocks", "bin");
@@ -312,7 +286,6 @@ public class MatrixZoomDataPP {
             topQueue.advance();
             int num = currentBlock.getNumber();
 
-
             for (int i = 1; i < activeList.size(); i++) {
                 BlockQueue blockQueue = activeList.get(i);
                 BlockPP block = blockQueue.getBlock();
@@ -324,7 +297,6 @@ public class MatrixZoomDataPP {
 
             activeList.removeIf(blockQueue -> blockQueue.getBlock() == null);
 
-            // Output block
             long position = los.getWrittenCount();
             writeBlock(currentBlock, sampledData, los, compressor);
             long size = los.getWrittenCount() - position;
@@ -558,15 +530,17 @@ public class MatrixZoomDataPP {
     void mergeMatrices(MatrixZoomDataPP otherMatrixZoom) {
         sum += otherMatrixZoom.sum;
         numRecords += otherMatrixZoom.numRecords;
-        for (Map.Entry<Integer, BlockPP> otherBlock : otherMatrixZoom.blocks.entrySet()) {
-            int blockNumber = otherBlock.getKey();
-            BlockPP block = blocks.get(blockNumber);
-            if (block == null) {
-                blocks.put(blockNumber, otherBlock.getValue());
-                blockNumbers.add(blockNumber);
-            } else {
-                block.merge(otherBlock.getValue());
+        for (int blockNumber : otherMatrixZoom.blocks.keySet()) {
+            // int blockNumber = otherBlock.getKey();
+            // Map.Entry<Integer, BlockPP> otherBlock : otherMatrixZoom.blocks.entrySet()
+            BlockPP otherBlock = otherMatrixZoom.blocks.get(blockNumber);
+            if (blocks.containsKey(blockNumber)) {
+                BlockPP block = blocks.get(blockNumber);
+                block.merge(otherBlock);
                 blockNumRecords.put(blockNumber, block.getNumRecords());
+            } else {
+                blocks.put(blockNumber, otherBlock);
+                blockNumbers.add(blockNumber);
             }
         }
         for (int blockNumber : otherMatrixZoom.blockNumbers) {

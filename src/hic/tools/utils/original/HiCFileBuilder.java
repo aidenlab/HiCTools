@@ -52,14 +52,13 @@ abstract public class HiCFileBuilder {
     protected Map<String, ExpectedValueCalculation> expectedValueCalculations = Collections.synchronizedMap(new LinkedHashMap<>());
     private static final int TEN_MB = 10000000;
     protected static final int VERSION = 9;
-    protected static final int BLOCK_SIZE = 1000;
     public static int BLOCK_CAPACITY = 1000;
     protected final ChromosomeHandler chromosomeHandler;
     protected final File outputFile;
     protected final Map<String, IndexEntry> matrixPositions = new LinkedHashMap<>();
     protected final Deflater compressor = WriterUtils.getDefaultCompressor();
     protected int v9DepthBase = 2;
-    protected Map<String, Integer> chromosomeIndexes = new Hashtable<>();
+    protected Map<String, Integer> chromosomeIndexes = new ConcurrentHashMap<>();
     protected String genomeId;
     protected final LittleEndianOutputStream[] losArray = new LittleEndianOutputStream[1];
     protected long masterIndexPosition;
@@ -279,7 +278,7 @@ abstract public class HiCFileBuilder {
         int binSize = (int) (genomeLength / 500); // todo
         if (binSize == 0) binSize = 1;
         int nBinsX = (int) (genomeLength / binSize + 1); // todo
-        int nBlockColumns = nBinsX / BLOCK_SIZE + 1;
+        int nBlockColumns = nBinsX / BLOCK_CAPACITY + 1;
         return new MatrixPP(0, 0, binSize, nBlockColumns, chromosomeHandler, countThreshold, v9DepthBase);
     }
 

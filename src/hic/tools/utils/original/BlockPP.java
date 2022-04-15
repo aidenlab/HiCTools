@@ -68,10 +68,9 @@ class BlockPP {
     }
 
     void merge(BlockPP other) {
-        for (Map.Entry<Point, Float> entry : other.getContactRecordMap().entrySet()) {
-            Point point = entry.getKey();
-            Float otherValue = entry.getValue();
-
+        Map<Point, Float> oMap = other.getContactRecordMap();
+        for (Point point : oMap.keySet()) {
+            Float otherValue = oMap.get(point);
             if (contactRecordMap.containsKey(point)) {
                 contactRecordMap.put(point, otherValue + contactRecordMap.get(point));
             } else {
