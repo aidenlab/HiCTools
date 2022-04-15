@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ public class Contact {
     private final int pos1;
     private final int chr2;
     private final int pos2;
-    private float score = 1.0f;  // The score (or count)
+    private final float score;  // The score (or count)
 
     public Contact(int chr1Index, int chr2Index, ContactRecord record, int resolution) {
         this.chr1 = chr1Index;

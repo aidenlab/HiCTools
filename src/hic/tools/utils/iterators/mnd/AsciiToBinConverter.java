@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -56,9 +56,7 @@ public class AsciiToBinConverter {
         }
 
         AsciiPairIterator iter = null;
-        BufferedOutputStream bos = null;
-        try {
-            bos = new BufferedOutputStream(new FileOutputStream(outputFile));
+        try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outputFile))) {
             LittleEndianOutputStream les = new LittleEndianOutputStream(bos);
             iter = new AsciiPairIterator(inputPath, chromosomeOrdinals, chromosomeHandler, true);
 
@@ -71,7 +69,6 @@ public class AsciiToBinConverter {
             bos.flush();
         } finally {
             if (iter != null) iter.close();
-            if (bos != null) bos.close();
 
         }
     }

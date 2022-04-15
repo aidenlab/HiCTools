@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MTIndexHandler {
     public static Map<Integer, List<Chunk>> readMndIndex(String mndIndexFile,
                                                          Map<Integer, String> chromosomePairIndexes) {
-        FileInputStream is = null;
+        FileInputStream is;
         Map<String, List<Chunk>> tempIndex = new HashMap<>();
         Map<Integer, List<Chunk>> mndIndex = new ConcurrentHashMap<>();
         try {

@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -204,11 +204,6 @@ public class FinalScale {
 
             reportErrorForIteration[allItersI + 1] = convergeError;
             reportErrorForIteration[allItersI + 2] = rowSumError;
-
-            //System.out.println(allItersI);
-            //System.out.println(localPercentLowRowSumExcluded);
-            //System.out.println(Arrays.toString(reportErrorForIteration));
-            //printFirst10(calculatedVectorB, -1);
         }
 
         long numNans = 0;
