@@ -50,11 +50,16 @@ class BlockPP {
         return number;
     }
 
-    int getNumRecords() {return contactRecordMap.size();}
+    int getNumRecords() {
+        return contactRecordMap.size();
+    }
 
-    void incrementCount(int col, int row, float score) {
-        Point p = new Point(col, row);
+    Map<Point, Float> getContactRecordMap() {
+        return contactRecordMap;
+    }
 
+    void incrementCount(int x, int y, float score) {
+        Point p = new Point(x, y);
         if (contactRecordMap.containsKey(p)) {
             contactRecordMap.put(p, score + contactRecordMap.get(p));
         } else {
@@ -62,14 +67,8 @@ class BlockPP {
         }
     }
 
-    Map<Point, Float> getContactRecordMap() {
-        return contactRecordMap;
-    }
-
     void merge(BlockPP other) {
-
         for (Map.Entry<Point, Float> entry : other.getContactRecordMap().entrySet()) {
-
             Point point = entry.getKey();
             Float otherValue = entry.getValue();
 
