@@ -146,9 +146,8 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
     private void readInChromosomeRegionMatrixST(Chromosome chromosome1, Chromosome chromosome2, Dataset[] datasets,
                                                 LittleEndianOutputStream[] losArray, Deflater compressor,
                                                 Map<String, IndexEntry> matrixPositions) {
-        int newBlockCapacity = (int) (Math.sqrt(datasets.length) * BLOCK_CAPACITY);
         MatrixPP mergedMatrix = new MatrixPP(chromosome1.getIndex(), chromosome2.getIndex(), chromosomeHandler,
-                bpBinSizes, countThreshold, v9DepthBase, newBlockCapacity);
+                bpBinSizes, countThreshold, v9DepthBase, BLOCK_CAPACITY);
 
         for (Dataset dataset : datasets) {
             Matrix matrix = dataset.getMatrix(chromosome1, chromosome2, highestResolution);
@@ -194,9 +193,8 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
     private void readInChromosomeRegionMatrixMT(Chromosome chromosome1, Chromosome chromosome2, Dataset[] datasets,
                                                 LittleEndianOutputStream[] losArray, Deflater compressor,
                                                 Map<String, IndexEntry> matrixPositions) {
-        int newBlockCapacity = (int) (Math.sqrt(datasets.length) * BLOCK_CAPACITY);
         MatrixPP mergedMatrix = new MatrixPP(chromosome1.getIndex(), chromosome2.getIndex(), chromosomeHandler,
-                bpBinSizes, countThreshold, v9DepthBase, newBlockCapacity);
+                bpBinSizes, countThreshold, v9DepthBase, BLOCK_CAPACITY);
 
         AtomicInteger index = new AtomicInteger();
 
@@ -204,7 +202,7 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
         ExecutorService executor = Executors.newFixedThreadPool(numCPUThreads);
         for (int l = 0; l < numCPUThreads; ++l) {
             executor.execute(new DataReadingWorker(index, chromosome1, chromosome2, chromosomeHandler,
-                    bpBinSizes, countThreshold, v9DepthBase, newBlockCapacity, datasets, highestResolution,
+                    bpBinSizes, countThreshold, v9DepthBase, BLOCK_CAPACITY, datasets, highestResolution,
                     expectedValueCalculations, tmpDir, mergedMatrix, onlyNearDiagonalContacts));
         }
         executor.shutdown();
