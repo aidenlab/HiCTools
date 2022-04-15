@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ class BlockPP {
     private final int number;
 
     // Key to the map is a Point representing the x,y coordinate for the cell.
-    private final Map<Point, ContactCount> contactRecordMap;
+    private final Map<Point, Float> contactRecordMap;
 
 
     BlockPP(int number) {
@@ -44,7 +44,7 @@ class BlockPP {
         this.contactRecordMap = new HashMap<>();
     }
 
-    BlockPP(int number, Map<Point, ContactCount> contactRecordMap) {
+    BlockPP(int number, Map<Point, Float> contactRecordMap) {
         this.number = number;
         this.contactRecordMap = contactRecordMap;
     }
@@ -58,34 +58,30 @@ class BlockPP {
 
     void incrementCount(int col, int row, float score) {
         Point p = new Point(col, row);
-        ContactCount rec = contactRecordMap.get(p);
-        if (rec == null) {
-            rec = new ContactCount(score);
-            contactRecordMap.put(p, rec);
 
+        if (contactRecordMap.containsKey(p)) {
+            contactRecordMap.put(p, score + contactRecordMap.get(p));
         } else {
-            rec.incrementCount(score);
+            contactRecordMap.put(p, score);
         }
     }
 
-    Map<Point, ContactCount> getContactRecordMap() {
+    Map<Point, Float> getContactRecordMap() {
         return contactRecordMap;
     }
 
     void merge(BlockPP other) {
 
-        for (Map.Entry<Point, ContactCount> entry : other.getContactRecordMap().entrySet()) {
+        for (Map.Entry<Point, Float> entry : other.getContactRecordMap().entrySet()) {
 
             Point point = entry.getKey();
-            ContactCount otherValue = entry.getValue();
+            Float otherValue = entry.getValue();
 
-            ContactCount value = contactRecordMap.get(point);
-            if (value == null) {
-                contactRecordMap.put(point, otherValue);
+            if (contactRecordMap.containsKey(point)) {
+                contactRecordMap.put(point, otherValue + contactRecordMap.get(point));
             } else {
-                value.incrementCount(otherValue.getCounts());
+                contactRecordMap.put(point, otherValue);
             }
-
         }
     }
 }

@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -226,47 +226,24 @@ public class MatrixZoomDataPP {
         }
     }
 
-    /**
-     * Dump the blocks calculated so far to a temporary file
-     *
-     * @param file File to write to
-     */
-    private void dumpBlocks(File file) throws IOException {
-        try (LittleEndianOutputStream los = new LittleEndianOutputStream(new BufferedOutputStream(new FileOutputStream(file), 4194304))) {
+    static Map<Point, Float> readContactRecordsToMap(int nRecords, byte[] bytes) throws IOException {
+        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+        LittleEndianInputStream lis = new LittleEndianInputStream(bis);
 
-            List<BlockPP> blockList = new ArrayList<>(blocks.values());
-            blockList.sort(Comparator.comparingInt(BlockPP::getNumber));
-
-            for (BlockPP b : blockList) {
-
-                // Remove from map
-                blocks.remove(b.getNumber());
-
-                int number = addToBlockAndRecordsSets(b);
-
-                if (tmpFilesByBlockNumber.get(number) == null) {
-                    tmpFilesByBlockNumber.put(number, new ConcurrentHashMap<>());
-                }
-                tmpFilesByBlockNumber.get(number).put(file, los.getWrittenCount());
-
-                los.writeInt(number);
-                Map<Point, ContactCount> records = b.getContactRecordMap();
-
-                los.writeInt(records.size());
-                for (Map.Entry<Point, ContactCount> entry : records.entrySet()) {
-
-                    Point point = entry.getKey();
-                    ContactCount count = entry.getValue();
-
-                    los.writeInt(point.x);
-                    los.writeInt(point.y);
-                    los.writeFloat(count.getCounts());
-                }
-            }
-
-            blocks.clear();
-
+        Map<Point, Float> contactRecordMap = new HashMap<>(nRecords);
+        for (int i = 0; i < nRecords; i++) {
+            int x = lis.readInt();
+            int y = lis.readInt();
+            float v = lis.readFloat();
+            contactRecordMap.put(new Point(x, y), v);
         }
+        try {
+            lis.close();
+            bis.close();
+        } catch (Exception e) {
+            System.err.println("Error cleanup contact record to map = " + e.getLocalizedMessage());
+        }
+        return contactRecordMap;
     }
 
     private int addToBlockAndRecordsSets(BlockPP b) {
@@ -478,25 +455,47 @@ public class MatrixZoomDataPP {
         }
     }
 
-    static Map<Point, ContactCount> readContactRecordsToMap(int nRecords, byte[] bytes) throws IOException {
-        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-        LittleEndianInputStream lis = new LittleEndianInputStream(bis);
+    /**
+     * Dump the blocks calculated so far to a temporary file
+     *
+     * @param file File to write to
+     */
+    private void dumpBlocks(File file) throws IOException {
+        try (LittleEndianOutputStream los = new LittleEndianOutputStream(new BufferedOutputStream(new FileOutputStream(file), 4194304))) {
 
-        Map<Point, ContactCount> contactRecordMap = new HashMap<>(nRecords);
-        for (int i = 0; i < nRecords; i++) {
-            int x = lis.readInt();
-            int y = lis.readInt();
-            float v = lis.readFloat();
-            ContactCount rec = new ContactCount(v);
-            contactRecordMap.put(new Point(x, y), rec);
+            List<BlockPP> blockList = new ArrayList<>(blocks.values());
+            blockList.sort(Comparator.comparingInt(BlockPP::getNumber));
+
+            for (BlockPP b : blockList) {
+
+                // Remove from map
+                blocks.remove(b.getNumber());
+
+                int number = addToBlockAndRecordsSets(b);
+
+                if (tmpFilesByBlockNumber.get(number) == null) {
+                    tmpFilesByBlockNumber.put(number, new ConcurrentHashMap<>());
+                }
+                tmpFilesByBlockNumber.get(number).put(file, los.getWrittenCount());
+
+                los.writeInt(number);
+                Map<Point, Float> records = b.getContactRecordMap();
+
+                los.writeInt(records.size());
+                for (Map.Entry<Point, Float> entry : records.entrySet()) {
+
+                    Point point = entry.getKey();
+                    Float count = entry.getValue();
+
+                    los.writeInt(point.x);
+                    los.writeInt(point.y);
+                    los.writeFloat(count);
+                }
+            }
+
+            blocks.clear();
+
         }
-        try {
-            lis.close();
-            bis.close();
-        } catch (Exception e) {
-            System.err.println("Error cleanup contact record to map = " + e.getLocalizedMessage());
-        }
-        return contactRecordMap;
     }
 
     private BlockPP readTmpBlock(File file, long filePosition) throws IOException {
@@ -591,7 +590,7 @@ public class MatrixZoomDataPP {
      */
     protected void writeBlock(BlockPP block, DownsampledDoubleArrayList sampledData, LittleEndianOutputStream los, Deflater compressor) throws IOException {
 
-        final Map<Point, ContactCount> records = block.getContactRecordMap();//   getContactRecords();
+        final Map<Point, Float> records = block.getContactRecordMap();//   getContactRecords();
 
         // System.out.println("Write contact records : records count = " + records.size());
 
@@ -599,8 +598,8 @@ public class MatrixZoomDataPP {
         int nRecords;
         if (countThreshold > 0) {
             nRecords = 0;
-            for (ContactCount rec : records.values()) {
-                if (rec.getCounts() >= countThreshold) {
+            for (Float value : records.values()) {
+                if (value >= countThreshold) {
                     nRecords++;
                 }
             }
@@ -616,7 +615,7 @@ public class MatrixZoomDataPP {
         int binYOffset = Integer.MAX_VALUE;
         int binXMax = 0;
         int binYMax = 0;
-        for (Map.Entry<Point, ContactCount> entry : records.entrySet()) {
+        for (Map.Entry<Point, Float> entry : records.entrySet()) {
             Point point = entry.getKey();
             binXOffset = Math.min(binXOffset, point.x);
             binYOffset = Math.min(binYOffset, point.y);
@@ -646,10 +645,8 @@ public class MatrixZoomDataPP {
 
         LinkedHashMap<Integer, List<ContactRecord>> rows = new LinkedHashMap<>();
         for (Point point : keys) {
-            final ContactCount contactCount = records.get(point);
-            float counts = contactCount.getCounts();
+            float counts = records.get(point);
             if (counts >= countThreshold) {
-
                 isInteger = isInteger && (Math.floor(counts) == counts);
                 maxCounts = Math.max(counts, maxCounts);
 
@@ -745,7 +742,7 @@ public class MatrixZoomDataPP {
                         buffer.putFloat(Float.NaN);
                     }
                 }
-                float counts = records.get(p).getCounts();
+                float counts = records.get(p);
                 if (useShort) {
                     buffer.putShort((short) counts);
                 } else {
