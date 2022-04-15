@@ -114,7 +114,7 @@ public class DataReadingWorker implements Runnable {
         datasets[i].clearCache(false);
     }
 
-    private static boolean tooFarFromDiagonal(Contact contact) {
+    public static boolean tooFarFromDiagonal(Contact contact) {
         return HiCFileBuilder.tooFarFromDiagonal(contact.getPos1(), contact.getPos2());
     }
 
