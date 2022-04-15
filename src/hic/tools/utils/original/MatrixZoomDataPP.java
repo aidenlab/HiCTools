@@ -159,8 +159,7 @@ public class MatrixZoomDataPP {
                 if (!rows.containsKey(py)) {
                     rows.put(py, new ArrayList<>(10));
                 }
-                List<ContactRecord> row = rows.get(py);
-                row.add(new ContactRecord(px, py, counts));
+                rows.get(py).add(new ContactRecord(px, py, counts));
             }
         }
 
@@ -185,40 +184,20 @@ public class MatrixZoomDataPP {
         int denseSize = Integer.MAX_VALUE;
         if (lorSize < denseSize) {
             buffer.put((byte) 1);  // List of rows representation
-            if (useShortBinY) {
-                buffer.putShort((short) rows.size()); // # of rows
-            } else {
-                buffer.putInt(rows.size());  // # of rows
-            }
+            putShortOrIntInBuffer(buffer, rows.size(), useShortBinY);
 
             for (Map.Entry<Integer, List<ContactRecord>> entry : rows.entrySet()) {
 
                 int py = entry.getKey();
                 List<ContactRecord> row = entry.getValue();
-                if (useShortBinY) {
-                    buffer.putShort((short) py);  // Row number
-                } else {
-                    buffer.putInt(py); // Row number
-                }
-                if (useShortBinX) {
-                    buffer.putShort((short) row.size());  // size of row
-                } else {
-                    buffer.putInt(row.size()); // size of row
-                }
+                putShortOrIntInBuffer(buffer, py, useShortBinY);
+                putShortOrIntInBuffer(buffer, row.size(), useShortBinX);
 
                 for (ContactRecord contactRecord : row) {
-                    if (useShortBinX) {
-                        buffer.putShort((short) (contactRecord.getBinX()));
-                    } else {
-                        buffer.putInt(contactRecord.getBinX());
-                    }
+                    putShortOrIntInBuffer(buffer, contactRecord.getBinX(), useShortBinX);
 
                     final float counts = contactRecord.getCounts();
-                    if (useShort) {
-                        buffer.putShort((short) counts);
-                    } else {
-                        buffer.putFloat(counts);
-                    }
+                    putShortOrFloatInBuffer(buffer, counts, useShort);
 
                     synchronized (sampledData) {
                         sampledData.add(counts);
@@ -244,11 +223,7 @@ public class MatrixZoomDataPP {
                     }
                 }
                 float counts = records.get(p);
-                if (useShort) {
-                    buffer.putShort((short) counts);
-                } else {
-                    buffer.putFloat(counts);
-                }
+                putShortOrFloatInBuffer(buffer, counts, useShort);
                 lastIdx = idx + 1;
 
                 synchronized (sampledData) {
@@ -261,6 +236,24 @@ public class MatrixZoomDataPP {
         byte[] bytes = buffer.getBytes();
         byte[] compressedBytes = RecordBlockUtils.compress(bytes, compressor);
         los.write(compressedBytes);
+    }
+
+    private static void putShortOrFloatInBuffer(BufferedByteWriter buffer, float value,
+                                                boolean useShort) throws IOException {
+        if (useShort) {
+            buffer.putShort((short) value);
+        } else {
+            buffer.putFloat(value);
+        }
+    }
+
+    private static void putShortOrIntInBuffer(BufferedByteWriter buffer, int value,
+                                              boolean useShort) throws IOException {
+        if (useShort) {
+            buffer.putShort((short) value);
+        } else {
+            buffer.putInt(value);
+        }
     }
 
     double getSum() {
