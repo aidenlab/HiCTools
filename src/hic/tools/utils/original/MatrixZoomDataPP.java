@@ -356,7 +356,7 @@ public class MatrixZoomDataPP {
     }
 
     // Merge and write out blocks multithreaded.
-    protected List<IndexEntry> mergeAndWriteBlocks(LittleEndianOutputStream[] losArray, int whichZoom, int numResolutions) {
+    protected List<IndexEntry> mergeAndWriteBlocksMT(LittleEndianOutputStream[] losArray, int whichZoom, int numResolutions) {
         DownsampledDoubleArrayList sampledData = new DownsampledDoubleArrayList(10000, 10000);
         Integer[] sortedBlockNumbers = new Integer[blockNumbers.size()];
         blockNumbers.toArray(sortedBlockNumbers);
@@ -389,7 +389,6 @@ public class MatrixZoomDataPP {
             if (threadNum + 1 == numCPUThreads && endBlock < sortedBlockNumbers.length) {
                 endBlock = sortedBlockNumbers.length;
             }
-            //System.err.println(binSize + " " + blockNumbers.size() + " " + sortedBlockNumbers.length + " " + startBlock + " " + endBlock);
             if (startBlock >= endBlock) {
                 blockChunkSizes.put(threadNum, (long) 0);
                 continue;
@@ -402,7 +401,6 @@ public class MatrixZoomDataPP {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-
                 chunkBlockIndexes.put(whichLos, indexEntries);
             };
             executor.execute(worker);
@@ -441,7 +439,7 @@ public class MatrixZoomDataPP {
     }
 
     // Merge and write out blocks one at a time.
-    protected List<IndexEntry> mergeAndWriteBlocks(LittleEndianOutputStream los, Deflater compressor) throws IOException {
+    protected List<IndexEntry> mergeAndWriteBlocksST(LittleEndianOutputStream los, Deflater compressor) throws IOException {
         DownsampledDoubleArrayList sampledData = new DownsampledDoubleArrayList(10000, 10000);
 
         List<BlockQueue> activeList = new ArrayList<>();
@@ -525,21 +523,17 @@ public class MatrixZoomDataPP {
                     tmpFilesByBlockNumber.put(number, new ConcurrentHashMap<>());
                 }
                 tmpFilesByBlockNumber.get(number).put(file, los.getWrittenCount());
-
                 los.writeInt(number);
+
                 Map<Point, Float> records = b.getContactRecordMap();
-
                 los.writeInt(records.size());
-                for (Map.Entry<Point, Float> entry : records.entrySet()) {
-                    Point point = entry.getKey();
-                    Float count = entry.getValue();
-
+                for (Point point : records.keySet()) {
+                    Float count = records.get(point);
                     los.writeInt(point.x);
                     los.writeInt(point.y);
                     los.writeFloat(count);
                 }
             }
-
             blocks.clear();
         }
     }
@@ -560,7 +554,7 @@ public class MatrixZoomDataPP {
                                  int threadNum, List<IndexEntry> indexEntries, DownsampledDoubleArrayList sampledData) throws IOException {
         Deflater compressor = new Deflater();
         compressor.setLevel(Deflater.DEFAULT_COMPRESSION);
-        //System.err.println(threadBlocks.length);
+
         for (int i = 0; i < threadBlocks.length; i++) {
             BlockPP currentBlock = null;
             int num = threadBlocks[i];

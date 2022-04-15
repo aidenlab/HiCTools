@@ -440,7 +440,6 @@ abstract public class HiCFileBuilder {
         }
         los.writeInt(numResolutions);
 
-        //fos.writeInt(matrix.getZoomData().length);
         for (int i = 0; i < matrix.getZoomData().length; i++) {
             MatrixZoomDataPP zd = matrix.getZoomData()[i];
             if (zd != null) {
@@ -460,16 +459,16 @@ abstract public class HiCFileBuilder {
         for (int i = 0; i < matrix.getZoomData().length; i++) {
             MatrixZoomDataPP zd = matrix.getZoomData()[i];
             if (zd != null) {
-                List<IndexEntry> blockIndex;
                 if (doMultiThreadedBehavior) {
+                    List<IndexEntry> blockIndex;
                     if (losArray.length > 1) {
-                        blockIndex = zd.mergeAndWriteBlocks(losArray, i, matrix.getZoomData().length);
+                        blockIndex = zd.mergeAndWriteBlocksMT(losArray, i, matrix.getZoomData().length);
                     } else {
-                        blockIndex = zd.mergeAndWriteBlocks(losArray[0], compressor);
+                        blockIndex = zd.mergeAndWriteBlocksST(losArray[0], compressor);
                     }
                     localBlockIndexes.put(zd.blockIndexPosition, blockIndex);
                 } else {
-                    blockIndex = zd.mergeAndWriteBlocks(losArray[0], compressor);
+                    List<IndexEntry> blockIndex = zd.mergeAndWriteBlocksST(losArray[0], compressor);
                     updateIndexPositions(blockIndex, losArray, true, outputFile, 0, zd.blockIndexPosition);
                 }
             }
