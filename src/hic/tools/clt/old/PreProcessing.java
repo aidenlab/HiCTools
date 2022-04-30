@@ -30,8 +30,6 @@ import hic.tools.clt.JuiceboxCLT;
 import hic.tools.utils.ShellCommandRunner;
 import hic.tools.utils.original.MultithreadedPreprocessor;
 import hic.tools.utils.original.Preprocessor;
-import javastraw.reader.basics.ChromosomeHandler;
-import javastraw.reader.basics.ChromosomeTools;
 import javastraw.reader.type.NormalizationType;
 
 import java.io.File;
@@ -53,8 +51,9 @@ public class PreProcessing extends JuiceboxCLT {
 
     public PreProcessing() {
         super(getBasicUsage() + "\n"
-                + "           : -d only calculate intra chromosome (diagonal) [false]\n"
-                + "           : -f <restriction site file> calculate fragment map\n"
+                + "           : --intra only calculate intra chromosomal maps [false]\n"
+                + "           : --near-diagonal only retain reads within 10MB of diagonal [false]\n"
+                + "           : --block-size <int> set block capacity [1000]\n"
                 + "           : -m <int> only write cells with count above threshold m [0]\n"
                 + "           : -q <int> filter by MAPQ score greater than or equal to q [not set]\n"
                 + "           : -c <chromosome ID> only calculate map on specific chromosome [not set]\n"
@@ -65,9 +64,7 @@ public class PreProcessing extends JuiceboxCLT {
                 + "           : -n Don't normalize the matrices\n"
                 + "           : -z <double> scale factor for hic file\n"
                 + "           : -a <1, 2, 3, 4, 5> filter based on inner, outer, left-left, right-right, tandem pairs respectively\n"
-                + "           : --randomize_position randomize positions between fragment sites\n"
                 + "           : --random_seed <long> for seeding random number generator\n"
-                + "           : --frag_site_maps <fragment site files> for randomization\n"
                 + "           : -k normalizations to include\n"
                 + "           : -j number of CPU threads to use\n"
                 + "           : --threads <int> number of threads \n"
@@ -93,8 +90,6 @@ public class PreProcessing extends JuiceboxCLT {
             printUsageAndExit();
         }
 
-        ChromosomeHandler chromHandler = ChromosomeTools.loadChromosomes(genomeId);
-
         inputFile = args[1];
         outputFile = args[2];
         String tmpDir = parser.getTmpdirOption();
@@ -105,16 +100,16 @@ public class PreProcessing extends JuiceboxCLT {
         HiCGlobals.numCPUMatrixThreads = numCPUThreadsForSecondTask;
 
         if (numCPUThreads < 2) {
-            preprocessor = new Preprocessor(new File(outputFile), genomeId, chromHandler, hicFileScalingFactor);
+            preprocessor = new Preprocessor(new File(outputFile), genomeId, hicFileScalingFactor);
             usingMultiThreadedVersion = false;
         } else {
             try {
-                preprocessor = new MultithreadedPreprocessor(new File(outputFile), genomeId, chromHandler,
+                preprocessor = new MultithreadedPreprocessor(new File(outputFile), genomeId,
                         hicFileScalingFactor, numCPUThreads, parser.getMndIndexOption());
                 usingMultiThreadedVersion = true;
             } catch (Exception e) {
                 System.err.println(e.getLocalizedMessage() + "\nUsing single threaded preprocessor");
-                preprocessor = new Preprocessor(new File(outputFile), genomeId, chromHandler, hicFileScalingFactor);
+                preprocessor = new Preprocessor(new File(outputFile), genomeId, hicFileScalingFactor);
                 usingMultiThreadedVersion = false;
             }
         }
@@ -123,19 +118,13 @@ public class PreProcessing extends JuiceboxCLT {
         preprocessor.setCountThreshold(parser.getCountThresholdOption());
         preprocessor.setV9DepthBase(parser.getV9DepthBase());
         preprocessor.setMapqThreshold(parser.getMapqThresholdOption());
-        preprocessor.setDiagonalsOnly(parser.getDiagonalsOption());
-        preprocessor.setFragmentFile(parser.getFragmentOption());
-        preprocessor.setExpectedVectorFile(parser.getExpectedVectorOption());
+        preprocessor.setIntraChromosomalOnly(parser.getDiagonalsOption());
         preprocessor.setTmpdir(tmpDir);
         preprocessor.setStatisticsFile(parser.getStatsOption());
         preprocessor.setGraphFile(parser.getGraphOption());
         preprocessor.setGenome(parser.getGenomeOption());
         preprocessor.setResolutions(parser.getResolutionOption());
-        preprocessor.setAlignmentFilter(parser.getAlignmentOption());
-        preprocessor.setRandomizePosition(parser.getRandomizePositionsOption());
-        preprocessor.setPositionRandomizerSeed(parser.getRandomPositionSeedOption());
-        preprocessor.setRandomizeFragMaps(parser.getRandomizePositionMaps());
-        preprocessor.setThrowOutIntraFragOption(parser.getThrowIntraFragOption());
+        preprocessor.setFilter(parser.getAlignmentOption());
         int blockCapacity = parser.getBlockCapacityOption();
         if (blockCapacity > 10) {
             Preprocessor.BLOCK_CAPACITY = blockCapacity;

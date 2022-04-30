@@ -42,6 +42,7 @@ public class CLTFactory {
             AddNorm.getBasicUsage(),
             Pearsons.getBasicUsage(),
             Eigenvector.getUsage(),
+            Sum.getBasicUsage()
     };
 
     public static void generalUsage() {
@@ -61,16 +62,14 @@ public class CLTFactory {
         cmd = cmd.toLowerCase();
         if (cmd.equals("pre")) {
             return new PreProcessing();
+        } else if (cmd.startsWith("sum")) {
+            return new Sum();
         } else if (cmd.equals("addnorm")) {
             return new AddNorm();
         } else if (cmd.equals("bigwig")) {
             return new BigWig();
         } else if (cmd.equals("bintopairs")) {
             return new BinToPairs();
-        } else if (cmd.equals("bptofrag")) {
-            return new BPToFragment();
-        } else if (cmd.equals("fragmenttobed")) {
-            return new FragmentToBed();
         } else if (cmd.equals("pairstobin")) {
             return new PairsToBin();
         } else if (cmd.equals("pearsons")) {

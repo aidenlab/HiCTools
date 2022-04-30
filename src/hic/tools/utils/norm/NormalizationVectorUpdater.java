@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,9 +27,11 @@ package hic.tools.utils.norm;
 import hic.HiCGlobals;
 import hic.tools.utils.bigarray.BigContactArray;
 import hic.tools.utils.bigarray.BigContactArrayCreator;
+import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.Dataset;
 import javastraw.reader.DatasetReaderV2;
+import javastraw.reader.Matrix;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.datastructures.ListOfFloatArrays;
@@ -38,8 +40,6 @@ import javastraw.reader.norm.NormalizationVector;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
-import javastraw.tools.HiCFileTools;
-import org.broad.igv.tdf.BufferedByteWriter;
 
 import java.io.IOException;
 import java.util.*;
@@ -52,13 +52,11 @@ import java.util.*;
  */
 public class NormalizationVectorUpdater extends NormVectorUpdater {
 
-    protected List<BufferedByteWriter> normVectorBuffers = new ArrayList<>();
-    protected List<NormalizationVectorIndexEntry> normVectorIndices = new ArrayList<>();
-    protected List<ExpectedValueCalculation> expectedValueCalculations = new ArrayList<>();
-
+    protected final BigListOfByteWriters normVectorBuffers = new BigListOfByteWriters();
+    protected final List<NormalizationVectorIndexEntry> normVectorIndices = new ArrayList<>();
+    protected final List<ExpectedValueCalculation> expectedValueCalculations = new ArrayList<>();
     // Keep track of chromosomes that fail to converge, so we don't try them at higher resolutions.
-    protected Set<Chromosome> scaleBPFailChroms = new HashSet<>();
-    protected Set<Chromosome> scaleFragFailChroms = new HashSet<>();
+    protected final Set<Chromosome> scaleBPFailChroms = new HashSet<>();
 
     // norms to build; gets overwritten
     protected boolean weShouldBuildVC = true;
@@ -71,8 +69,12 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
         }
     }
 
-    protected static void updateExpectedValueCalculationForChr(final int chrIdx, NormalizationCalculations nc, ListOfFloatArrays vec, NormalizationType type, HiCZoom zoom, MatrixZoomData zd,
-                                                               ExpectedValueCalculation ev, List<BufferedByteWriter> normVectorBuffers, List<NormalizationVectorIndexEntry> normVectorIndex) throws IOException {
+    protected static void updateExpectedValueCalculationForChr(final int chrIdx, NormalizationCalculations nc,
+                                                               ListOfFloatArrays vec, NormalizationType type,
+                                                               HiCZoom zoom, MatrixZoomData zd,
+                                                               ExpectedValueCalculation ev,
+                                                               BigListOfByteWriters normVectorBuffers,
+                                                               List<NormalizationVectorIndexEntry> normVectorIndex) throws IOException {
         double factor = nc.getSumFactor(vec);
         vec.multiplyEverythingBy(factor);
         updateNormVectorIndexWithVector(normVectorIndex, normVectorBuffers, vec, chrIdx, type, zoom);
@@ -107,13 +109,13 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
         reEvaluateWhichIntraNormsToBuild(normalizationsToBuild);
 
-        normVectorBuffers.add(new BufferedByteWriter());
+        normVectorBuffers.expandBuffer();
         for (HiCZoom zoom : resolutions) {
             if (zoom.getBinSize() < minResolution) {
-                System.out.println("skipping zoom" + zoom);
+                System.out.println("Skipping zoom" + zoom);
                 continue;
             }
-            if (noFrag && zoom.getUnit() == HiCZoom.HiCUnit.FRAG) continue;
+            if (zoom.getUnit() == HiCZoom.HiCUnit.FRAG) continue;
 
             System.out.println();
             System.out.print("Calculating norms for zoom " + zoom);
@@ -129,16 +131,16 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
             ds.clearCache(true);
 
-            Map<String, Integer> fcm = zoom.getUnit() == HiCZoom.HiCUnit.FRAG ? fragCountMap : null;
-
-            ExpectedValueCalculation evVC = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, NormalizationHandler.VC);
-            ExpectedValueCalculation evVCSqrt = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, NormalizationHandler.VC_SQRT);
-            ExpectedValueCalculation evSCALE = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), fcm, NormalizationHandler.SCALE);
+            ExpectedValueCalculation evVC = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), NormalizationHandler.VC);
+            ExpectedValueCalculation evVCSqrt = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), NormalizationHandler.VC_SQRT);
+            ExpectedValueCalculation evSCALE = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), NormalizationHandler.SCALE);
 
             // Loop through chromosomes
             for (Chromosome chrom : chromosomeHandler.getChromosomeArrayWithoutAllByAll()) {
 
-                MatrixZoomData zd = HiCFileTools.getMatrixZoomData(ds, chrom, chrom, zoom);
+                Matrix matrix = ds.getMatrix(chrom, chrom, zoom.getBinSize());
+                if (matrix == null) continue;
+                MatrixZoomData zd = matrix.getZoomData(zoom);
                 if (zd == null) continue;
 
                 if (HiCGlobals.printVerboseComments) {
@@ -166,6 +168,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                 }
 
                 zd.clearCache();
+                matrix.clearCache();
                 ba.clear();
             }
 
@@ -200,12 +203,10 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
         String stem = "NORM_" + chrIdx + "_" + zoom.getBinSize();
 
         if (saveScale) {
-            Set<Chromosome> failureSet = zoom.getUnit() == HiCZoom.HiCUnit.FRAG ? scaleFragFailChroms : scaleBPFailChroms;
-
-            if (!failureSet.contains(chr)) {
+            if (!scaleBPFailChroms.contains(chr)) {
                 ListOfFloatArrays scale = nc.computeSCALE(vc, stem);
                 if (scale == null) {
-                    failureSet.add(chr);
+                    scaleBPFailChroms.add(chr);
                 } else {
                     updateExpectedValueCalculationForChr(chrIdx, nc, scale, NormalizationHandler.SCALE, zoom, zd, evSCALE, normVectorBuffers, normVectorIndices);
                 }

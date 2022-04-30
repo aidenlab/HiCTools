@@ -24,17 +24,14 @@
 
 package hic.tools.utils.cleaner;
 
-import hic.tools.utils.mnditerator.AlignmentPair;
+import hic.tools.utils.iterators.mnd.AlignmentPair;
 import hic.tools.utils.original.ExpectedValueCalculation;
-import hic.tools.utils.original.FragmentCalculation;
 import hic.tools.utils.original.MatrixPP;
 import javastraw.reader.basics.ChromosomeHandler;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 public class ContactCleaner {
     protected final ChromosomeHandler handler;
@@ -43,21 +40,6 @@ public class ContactCleaner {
 
     public ContactCleaner(ChromosomeHandler chromosomeHandler) {
         this.handler = chromosomeHandler;
-    }
-
-    public static ContactCleaner create(ChromosomeHandler chromosomeHandler,
-                                        boolean allowPositionsRandomization,
-                                        FragmentCalculation fragmentCalculation,
-                                        List<FragmentCalculation> fragmentCalculationsForRandomization,
-                                        Random random) {
-        if (allowPositionsRandomization) {
-            if (fragmentCalculationsForRandomization != null && fragmentCalculationsForRandomization.size() > 0) {
-                return new ContactCleanerWithRandomizerType2(chromosomeHandler, fragmentCalculationsForRandomization, random);
-            } else if (fragmentCalculation != null) {
-                return new ContactCleanerWithRandomizer(chromosomeHandler, fragmentCalculation, random);
-            }
-        }
-        return new ContactCleaner(chromosomeHandler);
     }
 
     public static int getWholeGenomePosition(int chr, int pos, ChromosomeHandler handler) {
@@ -71,7 +53,7 @@ public class ContactCleaner {
     }
 
     public void updateLatestContact(AlignmentPair pair) {
-        if (pair.getChr1() < pair.getChr2()) {
+        if (isUpperTriangular(pair)) {
             bp1 = pair.getPos1();
             bp2 = pair.getPos2();
             frag1 = pair.getFrag1();
@@ -92,6 +74,13 @@ public class ContactCleaner {
         bp2 = ensureFitInChromosomeBounds(bp2, chr2);
     }
 
+    private boolean isUpperTriangular(AlignmentPair pair) {
+        boolean isIntra = pair.getChr1() == pair.getChr2();
+        boolean isUpperTriangular = pair.getPos1() <= pair.getPos2();
+        boolean isInterUpperTriangular = pair.getChr1() < pair.getChr2();
+        return (isIntra && isUpperTriangular) || isInterUpperTriangular;
+    }
+
     protected int ensureFitInChromosomeBounds(int bp, int chrom) {
         if (bp < 0) {
             return 0;
@@ -106,7 +95,7 @@ public class ContactCleaner {
     public void incrementCount(MatrixPP currentMatrix, Map<String, ExpectedValueCalculation> expectedValueCalculations,
                                File tmpDir) throws IOException {
         if (currentMatrix != null) {
-            currentMatrix.incrementCount(bp1, bp2, frag1, frag2, score, expectedValueCalculations, tmpDir);
+            currentMatrix.incrementCount(bp1, bp2, score, expectedValueCalculations, tmpDir);
         }
     }
 
@@ -125,7 +114,7 @@ public class ContactCleaner {
     public void incrementGWCount(MatrixPP wholeGenomeMatrix, Map<String, ExpectedValueCalculation> localExpectedValueCalculations, File tmpDir) throws IOException {
         int pos1 = getWholeGenomePosition(chr1, bp1, handler);
         int pos2 = getWholeGenomePosition(chr2, bp2, handler);
-        wholeGenomeMatrix.incrementCount(pos1, pos2, pos1, pos2, score, localExpectedValueCalculations, tmpDir);
+        wholeGenomeMatrix.incrementCount(pos1, pos2, score, localExpectedValueCalculations, tmpDir);
     }
 
     public String getCurrentMatrixName() {

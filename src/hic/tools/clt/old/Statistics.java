@@ -27,7 +27,6 @@ package hic.tools.clt.old;
 import hic.tools.clt.CommandLineParser;
 import hic.tools.clt.JuiceboxCLT;
 import hic.tools.utils.original.Chunk;
-import hic.tools.utils.original.FragmentCalculation;
 import hic.tools.utils.original.MTIndexHandler;
 import hic.tools.utils.stats.LoneStatisticsWorker;
 import hic.tools.utils.stats.ParallelStatistics;
@@ -81,15 +80,6 @@ public class Statistics extends JuiceboxCLT {
                 mndChunks.addAll(values);
             }
         }
-    }
-
-    private FragmentCalculation readSiteFile(String siteFile) {
-        //read in restriction site file and store as multidimensional array q
-        if (!siteFile.contains("none")) {
-            //if restriction enzyme exists, find the RE distance//
-            return FragmentCalculation.readFragments(siteFile, localHandler, "Stats");
-        }
-        return null;
     }
 
     @Override
@@ -150,18 +140,17 @@ public class Statistics extends JuiceboxCLT {
     @Override
     public void run() {
         setMndIndex();
-        FragmentCalculation fragmentCalculation = readSiteFile(siteFile);
         StatisticsContainer container;
         if (localHandler == null || mndChunks.size() < 2 || numCPUThreads == 1) {
             LoneStatisticsWorker runner = new LoneStatisticsWorker(siteFile, statsFiles, mapqThresholds,
-                    ligationJunction, inFile, fragmentCalculation);
+                    ligationJunction, inFile);
             runner.infileStatistics();
             container = runner.getResultsContainer();
         } else {
             container = new StatisticsContainer();
             ParallelStatistics pStats = new ParallelStatistics(numCPUThreads, container,
                     mndChunks, siteFile, statsFiles, mapqThresholds,
-                    ligationJunction, inFile, localHandler, fragmentCalculation);
+                    ligationJunction, inFile, localHandler);
             pStats.launchThreads();
         }
         container.calculateConvergence(statsFiles.size());

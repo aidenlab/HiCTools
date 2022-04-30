@@ -24,9 +24,8 @@
 
 package hic.tools.utils.stats;
 
-import hic.tools.utils.mnditerator.AlignmentPair;
-import hic.tools.utils.mnditerator.AlignmentPairLong;
-import hic.tools.utils.original.FragmentCalculation;
+import hic.tools.utils.iterators.mnd.AlignmentPair;
+import hic.tools.utils.iterators.mnd.AlignmentPairLong;
 
 import java.util.List;
 import java.util.Map;
@@ -45,17 +44,15 @@ public abstract class StatisticsWorker {
     protected final String ligationJunction;
     protected final List<String> statsFiles;
     protected final List<Integer> mapqThresholds;
-    protected final FragmentCalculation fragmentCalculation;
     protected final StatisticsContainer resultsContainer;
 
     public StatisticsWorker(String siteFile, List<String> statsFiles, List<Integer> mapqThresholds,
-                            String ligationJunction, String inFile, FragmentCalculation fragmentCalculation) {
+                            String ligationJunction, String inFile) {
         this.inFile = inFile;
         this.siteFile = siteFile;
         this.statsFiles = statsFiles;
         this.mapqThresholds = mapqThresholds;
         this.ligationJunction = ligationJunction;
-        this.fragmentCalculation = fragmentCalculation;
         this.resultsContainer = new StatisticsContainer();
         this.danglingJunction = ligationJunction.substring(ligationJunction.length() / 2);
     }
@@ -173,51 +170,6 @@ public abstract class StatisticsWorker {
                         }
                     }
                 }
-                //determine distance from nearest HindIII site, add to histogram
-                if (!siteFile.contains("none") && fragmentCalculation != null) {
-                    try {
-                        boolean report = ((chr1 != chr2) || (posDist >= TWENTY_KB));
-                        int dist = distHindIII(str1, chr1, pos1, frag1, report, ind);
-                        if (dist <= distThreshold) {
-                            resultsContainer.hindIII.get(ind).put(dist, resultsContainer.hindIII.get(ind).getOrDefault(dist, 0L) + 1);
-                        }
-                        dist = distHindIII(str2, chr2, pos2, frag2, report, ind);
-                        if (dist <= distThreshold) {
-                            resultsContainer.hindIII.get(ind).put(dist, resultsContainer.hindIII.get(ind).getOrDefault(dist, 0L) + 1);
-                        }
-                    } catch (Exception e) {
-                       // System.err.println(e.getLocalizedMessage());
-                        // do nothing, fail gracefully; likely a chromosome issue
-                    }
-                }
-                if (pair instanceof AlignmentPairLong && fragmentCalculation != null) {
-                    AlignmentPairLong longPair = (AlignmentPairLong) pair;
-                    String seq1 = longPair.getSeq1();
-                    String seq2 = longPair.getSeq2();
-                    if (isDangling) {
-                        try {
-                            int dist;
-                            if (seq1.startsWith(danglingJunction)) {
-                                dist = distHindIII(str1, chr1, pos1, frag1, true, ind);
-                            } else {
-                                dist = distHindIII(str2, chr2, pos2, frag2, true, ind);
-                            } //$record[13] =~ m/^$danglingJunction/
-                            if (dist == 1) {
-                                if (chr1 == chr2) {
-                                    if (posDist < TWENTY_KB) {
-                                        resultsContainer.trueDanglingIntraSmall[ind]++;
-                                    } else {
-                                        resultsContainer.trueDanglingIntraLarge[ind]++;
-                                    }
-                                } else {
-                                    resultsContainer.trueDanglingInter[ind]++;
-                                }
-                            }
-                        } catch (Exception e) {
-                            // do nothing, fail gracefully; likely a chromosome issue
-                        }
-                    }
-                }
             }
         }
         return false;
@@ -236,73 +188,6 @@ public abstract class StatisticsWorker {
         }
         arrayM.get(ind).put(histDist, arrayM.get(ind).getOrDefault(histDist, 0L) + 1);
     }
-
-    /*
-    private void fragmentSearch() {
-        try {
-            BufferedReader files = new BufferedReader(new FileReader(inFile));
-            BufferedWriter fragOut = new BufferedWriter(new FileWriter(outFile, false));
-            String file = files.readLine();
-            while (file != null) {
-                String[] record = file.split("\\s+");
-                int indexOne = FragmentCalculation.binarySearch(fragmentCalculation.getSites(localHandler.cleanUpName(record[1])),Integer.parseInt(record[2]));
-                int indexTwo = FragmentCalculation.binarySearch(fragmentCalculation.getSites(localHandler.cleanUpName(record[4])),Integer.parseInt(record[5]));
-                fragOut.write(record[0] + " " + record[1] + " " + record[2] + " " + indexOne + " ");
-                fragOut.write(record[3] + " " + record[4] + " " + record[5] + " " + indexTwo + " ");
-                for (int i = 6; i < record.length; i++) {
-                    fragOut.write(record[i] + " ");
-                }
-                fragOut.write("\n");
-                file = files.readLine();
-            }
-            files.close();
-            fragOut.close();
-        }
-        catch (IOException error){
-            error.printStackTrace();
-        }
-    }
-    */
-
-    private int distHindIII(boolean strand, int chrIndex, int pos, int frag, boolean rep, int index) {
-        //Find distance to nearest HindIII restriction site
-        //find upper index of position in sites array via binary search
-        //get distance to each end of HindIII fragment
-        int dist1;
-        int dist2;
-        int[] sites = fragmentCalculation.getSites(getChromosomeNameFromIndex(chrIndex));
-        int arr = sites.length;
-        if (frag >= arr) {
-            return 0;
-        }
-        if (frag == 0) {
-            //# first fragment, distance is position
-            dist1 = pos;
-        } else {
-            dist1 = Math.abs(pos - sites[frag - 1]);
-        }
-
-        dist2 = Math.abs(pos - sites[frag]);
-        //get minimum value -- if (dist1 <= dist2), it's dist1, else dist2
-        int retVal = Math.min(dist1, dist2);
-        //get which end of the fragment this is, 3' or 5' (depends on strand)
-        if ((retVal == dist1) && (rep)) {
-            if (strand) {
-                resultsContainer.fivePrimeEnd[index]++;
-            } else {
-                resultsContainer.threePrimeEnd[index]++;
-            }
-        } else if ((retVal == dist2) && (rep)) {
-            if (!strand) {
-                resultsContainer.fivePrimeEnd[index]++;
-            } else {
-                resultsContainer.threePrimeEnd[index]++;
-            }
-        }
-        return retVal;
-    }
-
-    protected abstract String getChromosomeNameFromIndex(int chr);
 
     private static int bSearch(int distance) {
         //search for int distance in array binary

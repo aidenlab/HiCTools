@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,12 +37,7 @@ class BlockQueueMem implements BlockQueue {
     BlockQueueMem(Collection<BlockPP> blockCollection) {
 
         this.blocks = new ArrayList<>(blockCollection);
-        blocks.sort(new Comparator<BlockPP>() {
-            @Override
-            public int compare(BlockPP o1, BlockPP o2) {
-                return o1.getNumber() - o2.getNumber();
-            }
-        });
+        blocks.sort(Comparator.comparingInt(BlockPP::getNumber));
     }
 
     public void advance() {

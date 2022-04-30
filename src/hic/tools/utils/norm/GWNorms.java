@@ -27,6 +27,7 @@ package hic.tools.utils.norm;
 import hic.tools.utils.bigarray.BigContactArray;
 import hic.tools.utils.bigarray.BigGWContactArray;
 import hic.tools.utils.bigarray.BigGWContactArrayCreator;
+import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.Dataset;
 import javastraw.reader.basics.Chromosome;
@@ -36,7 +37,6 @@ import javastraw.reader.norm.NormalizationVector;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
-import org.broad.igv.tdf.BufferedByteWriter;
 
 import java.io.IOException;
 import java.util.*;
@@ -125,7 +125,7 @@ public class GWNorms {
     public static void addGWNormsToBuffer(List<NormalizationType> norms,
                                           Map<NormalizationType, Map<Chromosome, NormalizationVector>> normMap,
                                           Chromosome chromosome, List<NormalizationVectorIndexEntry> normVectorIndices,
-                                          List<BufferedByteWriter> normVectorBuffers, HiCZoom zoom,
+                                          BigListOfByteWriters normVectorBuffers, HiCZoom zoom,
                                           Map<NormalizationType, ExpectedValueCalculation> expectedMap,
                                           BigContactArray ba) throws IOException {
         for (NormalizationType norm : norms) {
@@ -154,11 +154,11 @@ public class GWNorms {
         Map<NormalizationType, ExpectedValueCalculation> expMap = new HashMap<>();
 
         for (NormalizationType norm : gwNorms) {
-            expMap.put(norm, new ExpectedValueCalculation(chromosomeHandler, resolution, null, norm));
+            expMap.put(norm, new ExpectedValueCalculation(chromosomeHandler, resolution, norm));
         }
 
         for (NormalizationType norm : interNorms) {
-            expMap.put(norm, new ExpectedValueCalculation(chromosomeHandler, resolution, null, norm));
+            expMap.put(norm, new ExpectedValueCalculation(chromosomeHandler, resolution, norm));
         }
 
         return expMap;

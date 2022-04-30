@@ -25,7 +25,6 @@
 package hic.tools.utils.stats;
 
 import hic.tools.utils.original.Chunk;
-import hic.tools.utils.original.FragmentCalculation;
 import javastraw.reader.basics.ChromosomeHandler;
 
 import java.util.List;
@@ -46,12 +45,11 @@ public class ParallelStatistics {
     private final String ligationJunction;
     private final String inFile;
     private final ChromosomeHandler localHandler;
-    private final FragmentCalculation fragmentCalculation;
 
     public ParallelStatistics(int numThreads, StatisticsContainer mergedContainer,
                               List<Chunk> mndChunks, String siteFile, List<String> statsFiles,
                               List<Integer> mapqThresholds, String ligationJunction, String inFile,
-                              ChromosomeHandler localHandler, FragmentCalculation fragmentCalculation) {
+                              ChromosomeHandler localHandler) {
         this.numThreads = numThreads;
         this.mergedContainer = mergedContainer;
         this.mndChunks = mndChunks;
@@ -61,7 +59,6 @@ public class ParallelStatistics {
         this.ligationJunction = ligationJunction;
         this.inFile = inFile;
         this.localHandler = localHandler;
-        this.fragmentCalculation = fragmentCalculation;
     }
 
     public void launchThreads() {
@@ -81,7 +78,7 @@ public class ParallelStatistics {
             Chunk chunk = mndChunks.get(currentCount);
             try {
                 ParallelStatisticsWorker runner = new ParallelStatisticsWorker(siteFile, statsFiles, mapqThresholds,
-                        ligationJunction, inFile, localHandler, fragmentCalculation);
+                        ligationJunction, inFile, localHandler);
                 runner.infileStatistics(chunk);
                 synchronized (mergerLock) {
                     mergedContainer.add(runner.getResultsContainer(), statsFiles.size());

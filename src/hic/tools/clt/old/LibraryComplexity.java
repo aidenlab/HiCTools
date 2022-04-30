@@ -175,56 +175,17 @@ public class LibraryComplexity extends JuiceboxCLT {
 
                 Callable<Long> taskOptDups = () -> {
                     File f = new File(localWorkingDirectory + "/opt_dups.txt");
-                    if (f.exists()) {
-                        try {
-                            long opticalDupsT = 0L;
-                            BufferedReader reader = new BufferedReader(new FileReader(f));
-                            while (reader.readLine() != null) opticalDupsT++;
-                            reader.close();
-                            return opticalDupsT;
-                        } catch (Exception e) {
-                            somethingFailed.set(true);
-                            return 0L;
-                        }
-                    } else {
-                        return 0L;
-                    }
+                    return getFileLength(somethingFailed, f);
                 };
 
                 Callable<Long> taskUniqueReads = () -> {
                     File f = new File(localWorkingDirectory + "/merged_nodups.txt");
-                    if (f.exists()) {
-                        try {
-                            long uniqueReadPairsT = 0L;
-                            BufferedReader reader = new BufferedReader(new FileReader(f));
-                            while (reader.readLine() != null) uniqueReadPairsT++;
-                            reader.close();
-                            return uniqueReadPairsT;
-                        } catch (Exception e) {
-                            somethingFailed.set(true);
-                            return 0L;
-                        }
-                    } else {
-                        return 0L;
-                    }
+                    return getFileLength(somethingFailed, f);
                 };
 
                 Callable<Long> taskDupReadPairs = () -> {
                     File f = new File(localWorkingDirectory + "/dups.txt");
-                    if (f.exists()) {
-                        try {
-                            long readPairsT = 0;
-                            BufferedReader reader = new BufferedReader(new FileReader(localWorkingDirectory + "/dups.txt"));
-                            while (reader.readLine() != null) readPairsT++;
-                            reader.close();
-                            return readPairsT;
-                        } catch (Exception e) {
-                            somethingFailed.set(true);
-                            return 0L;
-                        }
-                    } else {
-                        return 0L;
-                    }
+                    return getFileLength(somethingFailed, f);
                 };
 
                 Future<Long> futureOptDups = executor.submit(taskOptDups);
@@ -302,5 +263,22 @@ public class LibraryComplexity extends JuiceboxCLT {
             result = 0;
         }
         System.out.println("Library Complexity Estimate: " + nf.format(result));
+    }
+
+    private Long getFileLength(AtomicBoolean somethingFailed, File f) {
+        if (f.exists()) {
+            try {
+                long value = 0L;
+                BufferedReader reader = new BufferedReader(new FileReader(f));
+                while (reader.readLine() != null) value++;
+                reader.close();
+                return value;
+            } catch (Exception e) {
+                somethingFailed.set(true);
+                return 0L;
+            }
+        } else {
+            return 0L;
+        }
     }
 }

@@ -24,11 +24,19 @@
 
 package hic.tools.clt;
 
+import hic.tools.HiCTools;
+
 /**
  * Created for testing multiple CLTs at once
  * Basically scratch space
  */
 class AggregateProcessing {
     public static void main(String[] argv) throws Exception {
+        String[] command = new String[]{"sum", "--diagonals",
+                "/Users/mshamim/Desktop/ovary/ovary.hic",
+                "/Users/mshamim/Desktop/ovary/w61_ovary.hic",
+                "/Users/mshamim/Desktop/ovary/w80_ovary.hic",
+        };
+        HiCTools.main(command);
     }
 }

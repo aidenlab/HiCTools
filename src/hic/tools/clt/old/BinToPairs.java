@@ -26,7 +26,7 @@ package hic.tools.clt.old;
 
 import hic.tools.clt.CommandLineParser;
 import hic.tools.clt.JuiceboxCLT;
-import hic.tools.utils.mnditerator.AsciiToBinConverter;
+import hic.tools.utils.iterators.mnd.AsciiToBinConverter;
 
 
 public class BinToPairs extends JuiceboxCLT {

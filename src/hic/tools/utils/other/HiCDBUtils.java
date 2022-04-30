@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -72,11 +72,7 @@ public class HiCDBUtils {
 
     private static void insertAnnotationList(String annotListFile) throws IOException, SQLException {
 
-        BufferedReader reader = null;
-
-        try {
-            //reader = ParsingUtils.openBufferedReader(annotListFile);
-            reader = new BufferedReader(new InputStreamReader(ParsingUtils.openInputStream(annotListFile)), HiCGlobals.bufferSize);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(ParsingUtils.openInputStream(annotListFile)), HiCGlobals.bufferSize)) {
             String nextLine;
             while ((nextLine = reader.readLine()) != null) {
                 if (!nextLine.startsWith("#")) {
@@ -85,8 +81,6 @@ public class HiCDBUtils {
                     System.out.println("   DONE");
                 }
             }
-        } finally {
-            if (reader != null) reader.close();
         }
     }
 

@@ -24,6 +24,7 @@
 
 package hic.tools.clt;
 
+import hic.tools.utils.iterators.mnd.ReadPairFilter;
 import jargs.gnu.CmdLineParser;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
@@ -46,7 +47,8 @@ public class CommandLineParser extends CmdLineParser {
     protected final Option versionOption = addBooleanOption('V', "version");
 
     // boolean
-    private final Option diagonalsOption = addBooleanOption('d', "diagonals");
+    private final Option diagonalsOption = addBooleanOption("intra");
+    private final Option onlyNearDiagonalsOption = addBooleanOption("near-diagonal");
     private final Option removeCacheMemoryOption = addBooleanOption('x', "remove-memory-cache");
     private final Option noNormOption = addBooleanOption('n', "no_normalization");
     private final Option allPearsonsOption = addBooleanOption('p', "pearsons-all-resolutions");
@@ -62,19 +64,18 @@ public class CommandLineParser extends CmdLineParser {
     private final Option statsOption = addStringOption('s', "statistics");
     private final Option graphOption = addStringOption('g', "graphs");
     private final Option genomeIDOption = addStringOption('y', "genomeid");
-    private final Option expectedVectorOption = addStringOption('e', "expected-vector-file");
     protected final Option normalizationTypeOption = addStringOption('k', "normalization");
     private final Option mndIndexOption = addStringOption('i', "mndindex");
     private final Option ligationOption = addStringOption("ligation");
     private final Option shellOption = addStringOption("shell");
 
     // ints
-    private final Option blockCapacityOption = addIntegerOption("block-capacity");
+    private final Option blockCapacityOption = addIntegerOption("block-size");
     private final Option countThresholdOption = addIntegerOption('m', "min-count");
     private final Option mapqOption = addIntegerOption('q', "mapq");
     private final Option genomeWideOption = addIntegerOption('w', "genomewide");
     private final Option nearDiagonalOption = addIntegerOption("diagonal-cutoff");
-    private final Option alignmentFilterOption = addIntegerOption('a', "alignment");
+    private final Option alignmentFilterOption = addIntegerOption("alignment");
     private final Option threadNumOption = addIntegerOption('j', "threads");
     private final Option matrixThreadNumOption = addIntegerOption("mthreads");
     private final Option v9DepthBaseOption = addIntegerOption("v9-depth-base");
@@ -105,10 +106,16 @@ public class CommandLineParser extends CmdLineParser {
         return opt != null && (Boolean) opt;
     }
 
-    public boolean getHelpOption() { return optionToBoolean(helpOption);}
+    public boolean getHelpOption() {
+        return optionToBoolean(helpOption);
+    }
 
     public boolean getDiagonalsOption() {
         return optionToBoolean(diagonalsOption);
+    }
+
+    public boolean getOnlyNearDiagonalOption() {
+        return optionToBoolean(onlyNearDiagonalsOption);
     }
 
     public boolean useCacheMemory() {
@@ -119,7 +126,9 @@ public class CommandLineParser extends CmdLineParser {
         return optionToBoolean(verboseOption);
     }
 
-    public boolean getNoNormOption() { return optionToBoolean(noNormOption); }
+    public boolean getNoNormOption() {
+        return optionToBoolean(noNormOption);
+    }
 
     public boolean getAllPearsonsOption() {
         return optionToBoolean(allPearsonsOption);
@@ -175,10 +184,6 @@ public class CommandLineParser extends CmdLineParser {
         return optionToString(tmpDirOption);
     }
 
-    public String getExpectedVectorOption() {
-        return optionToString(expectedVectorOption);
-    }
-
     public String getMndIndexOption() {
         return optionToString(mndIndexOption);
     }
@@ -191,22 +196,22 @@ public class CommandLineParser extends CmdLineParser {
         return optionToString(shellOption);
     }
 
-    public Alignment getAlignmentOption() {
+    public ReadPairFilter.Type getAlignmentOption() {
         int alignmentInt = optionToInt(alignmentFilterOption);
 
         if (alignmentInt == 0) {
             return null;
         }
         if (alignmentInt == 1) {
-            return Alignment.INNER;
+            return ReadPairFilter.Type.INNER;
         } else if (alignmentInt == 2) {
-            return Alignment.OUTER;
+            return ReadPairFilter.Type.OUTER;
         } else if (alignmentInt == 3) {
-            return Alignment.LL;
+            return ReadPairFilter.Type.LL;
         } else if (alignmentInt == 4) {
-            return Alignment.RR;
+            return ReadPairFilter.Type.RR;
         } else if (alignmentInt == 5) {
-            return Alignment.TANDEM;
+            return ReadPairFilter.Type.TANDEM;
         } else {
             throw new IllegalArgumentException(String.format("alignment option %d not supported", alignmentInt));
         }
@@ -248,8 +253,6 @@ public class CommandLineParser extends CmdLineParser {
     public long getRandomPositionSeedOption() {
         return optionToLong(randomSeedOption);
     }
-
-    public enum Alignment {INNER, OUTER, LL, RR, TANDEM}
 
     public int getNumThreads() {
         return optionToInt(threadNumOption);
@@ -349,5 +352,4 @@ public class CommandLineParser extends CmdLineParser {
         }
         return null;
     }
-
 }
