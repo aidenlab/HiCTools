@@ -71,8 +71,8 @@ public class MultithreadedPreprocessor extends Preprocessor {
     private final ConcurrentHashMap<Integer, MatrixPP> finalChrMatrices = new ConcurrentHashMap<>();
 
     public MultithreadedPreprocessor(File outputFile, String genomeId, double hicFileScalingFactor, int numCPUThreads,
-                                     String mndIndexFile) throws IOException {
-        super(outputFile, genomeId, hicFileScalingFactor);
+                                     String mndIndexFile, String tmpDir) throws IOException {
+        super(outputFile, genomeId, hicFileScalingFactor, tmpDir);
         MultithreadedPreprocessor.numCPUThreads = numCPUThreads;
         chromosomeIndexes = MTIndexHandler.populateChromosomeIndexes(chromosomeHandler, numCPUThreads);
         chromosomePairCounter = MTIndexHandler.populateChromosomePairIndexes(chromosomeHandler,

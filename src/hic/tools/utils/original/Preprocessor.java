@@ -36,8 +36,8 @@ import java.util.*;
 public class Preprocessor extends HiCFileBuilder {
 
 
-    public Preprocessor(File outputFile, String genomeId, double hicFileScalingFactor) {
-        super(outputFile, genomeId, hicFileScalingFactor);
+    public Preprocessor(File outputFile, String genomeId, double hicFileScalingFactor, String tmp) {
+        super(outputFile, genomeId, hicFileScalingFactor, tmp);
     }
 
     public void preprocess(final String inputFile, final String headerFile, final String footerFile,

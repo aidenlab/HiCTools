@@ -73,9 +73,9 @@ abstract public class HiCFileBuilder {
     protected int[] bpBinSizes = {2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000};
     protected int numResolutions;
     protected double hicFileScalingFactor = 1;
-    protected File tmpDir = UNIXTools.makeDir(new File("temp_folder"));
+    protected final File tmpDir;
 
-    public HiCFileBuilder(File outputFile, String genomeId, double hicFileScalingFactor) {
+    public HiCFileBuilder(File outputFile, String genomeId, double hicFileScalingFactor, String tmpDir) {
         this.genomeId = genomeId;
         this.outputFile = outputFile;
         this.chromosomeHandler = ChromosomeTools.loadChromosomes(genomeId);
@@ -85,6 +85,14 @@ abstract public class HiCFileBuilder {
         if (hicFileScalingFactor > 0) {
             this.hicFileScalingFactor = hicFileScalingFactor;
         }
+
+        if (tmpDir != null && tmpDir.length() > 1) {
+            this.tmpDir = UNIXTools.makeDir(new File(tmpDir));
+        } else {
+            this.tmpDir = UNIXTools.makeDir(new File("temp_folder"));
+        }
+        this.tmpDir.deleteOnExit();
+
         initializeExpectedVectorCalculations();
     }
 
@@ -179,18 +187,6 @@ abstract public class HiCFileBuilder {
     public void setFilter(ReadPairFilter.Type type) {
         if (type != null) {
             this.filter = new ReadPairFilter(type);
-        }
-    }
-
-
-    public void setTmpdir(String tmpDirName) {
-        if (tmpDirName != null) {
-            this.tmpDir = new File(tmpDirName);
-            if (!tmpDir.exists()) {
-                System.err.println("Tmp directory does not exist: " + tmpDirName);
-                if (outputFile != null) outputFile.deleteOnExit();
-                System.exit(59);
-            }
         }
     }
 

@@ -100,16 +100,16 @@ public class PreProcessing extends JuiceboxCLT {
         HiCGlobals.numCPUMatrixThreads = numCPUThreadsForSecondTask;
 
         if (numCPUThreads < 2) {
-            preprocessor = new Preprocessor(new File(outputFile), genomeId, hicFileScalingFactor);
+            preprocessor = new Preprocessor(new File(outputFile), genomeId, hicFileScalingFactor, tmpDir);
             usingMultiThreadedVersion = false;
         } else {
             try {
                 preprocessor = new MultithreadedPreprocessor(new File(outputFile), genomeId,
-                        hicFileScalingFactor, numCPUThreads, parser.getMndIndexOption());
+                        hicFileScalingFactor, numCPUThreads, parser.getMndIndexOption(), tmpDir);
                 usingMultiThreadedVersion = true;
             } catch (Exception e) {
                 System.err.println(e.getLocalizedMessage() + "\nUsing single threaded preprocessor");
-                preprocessor = new Preprocessor(new File(outputFile), genomeId, hicFileScalingFactor);
+                preprocessor = new Preprocessor(new File(outputFile), genomeId, hicFileScalingFactor, tmpDir);
                 usingMultiThreadedVersion = false;
             }
         }
@@ -119,7 +119,6 @@ public class PreProcessing extends JuiceboxCLT {
         preprocessor.setV9DepthBase(parser.getV9DepthBase());
         preprocessor.setMapqThreshold(parser.getMapqThresholdOption());
         preprocessor.setIntraChromosomalOnly(parser.getDiagonalsOption());
-        preprocessor.setTmpdir(tmpDir);
         preprocessor.setStatisticsFile(parser.getStatsOption());
         preprocessor.setGraphFile(parser.getGraphOption());
         preprocessor.setGenome(parser.getGenomeOption());

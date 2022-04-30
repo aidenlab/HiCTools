@@ -64,8 +64,9 @@ public class Sum extends JuiceboxCLT {
         double hicFileScalingFactor = parser.getScalingOption();
         updateNumberOfCPUThreads(parser, 10);
 
-        pfd = new PreprocessorFromDatasets(new File(outputFile), datasets, hicFileScalingFactor);
-        pfd.setTmpdir(tmpDir);
+        pfd = new PreprocessorFromDatasets(new File(outputFile), datasets, hicFileScalingFactor,
+                tmpDir);
+
         pfd.setHighestResolution(parser.getResolutionOption());
         boolean getOnlyNearDiagonal = parser.getOnlyNearDiagonalOption();
         pfd.setIntraChromosomalOnly(parser.getDiagonalsOption() || getOnlyNearDiagonal);
