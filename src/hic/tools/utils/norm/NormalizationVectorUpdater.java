@@ -99,7 +99,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
             }
         }
 
-        DatasetReaderV2 reader = new DatasetReaderV2(path, false);
+        DatasetReaderV2 reader = new DatasetReaderV2(path, false, false);
         Dataset ds = reader.read();
         HiCGlobals.verifySupportedHiCFileWritingVersion(reader.getVersion());
 

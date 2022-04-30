@@ -48,7 +48,7 @@ import java.util.zip.GZIPInputStream;
 public class CustomNormVectorFileHandler extends NormVectorUpdater {
 
     public static void updateHicFile(String path, String vectorPath) throws IOException {
-        DatasetReaderV2 reader = new DatasetReaderV2(path, false);
+        DatasetReaderV2 reader = new DatasetReaderV2(path, false, false);
         Dataset ds = reader.read();
         HiCGlobals.verifySupportedHiCFileVersion(reader.getVersion());
 

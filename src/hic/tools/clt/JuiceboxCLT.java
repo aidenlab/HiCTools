@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -68,7 +68,7 @@ public abstract class JuiceboxCLT {
     }
 
     protected void setDatasetAndNorm(String file, String normType, boolean allowPrinting) {
-        dataset = HiCFileTools.extractDatasetForCLT(file, allowPrinting, false);
+        dataset = HiCFileTools.extractDatasetForCLT(file, allowPrinting, false, false);
         norm = dataset.getNormalizationHandler().getNormTypeFromString(normType);
         if (norm == null) {
             System.err.println("Normalization type " + norm + " unrecognized.  Normalization type must be one of \n" +

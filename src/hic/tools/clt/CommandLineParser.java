@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,9 +55,6 @@ public class CommandLineParser extends CmdLineParser {
     private final Option noFragNormOption = addBooleanOption('F', "no_fragment-normalization");
     private final Option randomizePositionOption = addBooleanOption("randomize_position");
     private final Option throwIntraFragOption = addBooleanOption("skip-intra-frag");
-    private final Option useMinRAM = addBooleanOption("conserve-ram");
-    private final Option checkMemory = addBooleanOption("check-ram-usage");
-
     // String
     private final Option fragmentOption = addStringOption('f', "restriction-fragment-site-file");
     private final Option tmpDirOption = addStringOption('t', "tmpdir");
@@ -148,14 +145,6 @@ public class CommandLineParser extends CmdLineParser {
 
     public boolean getThrowIntraFragOption() {
         return optionToBoolean(throwIntraFragOption);
-    }
-
-    public boolean getDontPutAllContactsIntoRAM() {
-        return optionToBoolean(useMinRAM);
-    }
-
-    public boolean shouldCheckRAMUsage() {
-        return optionToBoolean(checkMemory);
     }
 
     /**

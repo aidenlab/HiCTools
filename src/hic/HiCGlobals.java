@@ -24,14 +24,12 @@
 
 package hic;
 
-import javastraw.reader.mzd.MatrixZoomData;
-
 /**
  * @author Muhammad Shamim
  * @since 11/25/14
  */
 public class HiCGlobals {
-    public static final String versionNum = "3.15.01";
+    public static final String versionNum = "3.16.01";
     public static final int writingVersion = 9;
     public static final int bufferSize = 2097152;
     public static int MAX_PEARSON_ZOOM = 50000;
@@ -39,8 +37,6 @@ public class HiCGlobals {
     public static boolean useCache = true;
     public static boolean allowDynamicBlockIndex = true;
     public static boolean printVerboseComments = false;
-    public static boolean USE_ITERATOR_NOT_ALL_IN_RAM = false;
-    public static boolean CHECK_RAM_USAGE = false;
     public static int numCPUMatrixThreads = 1;
 
     public static void verifySupportedHiCFileVersion(int version) throws RuntimeException {
@@ -57,10 +53,5 @@ public class HiCGlobals {
                     ". Only version " + writingVersion + " files can be edited using this jar.");
             System.exit(2);
         }
-    }
-
-    public static void setMatrixZoomDataRAMUsage() {
-        MatrixZoomData.useIteratorDontPutAllInRAM = USE_ITERATOR_NOT_ALL_IN_RAM;
-        MatrixZoomData.shouldCheckRAMUsage = CHECK_RAM_USAGE;
     }
 }

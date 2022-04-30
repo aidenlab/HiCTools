@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -57,7 +57,7 @@ public class Sum extends JuiceboxCLT {
         outputFile = args[1];
         Dataset[] datasets = new Dataset[args.length - 2];
         for (int z = 2; z < args.length; z++) {
-            datasets[z - 2] = HiCFileTools.extractDatasetForCLT(args[z], false, false);
+            datasets[z - 2] = HiCFileTools.extractDatasetForCLT(args[z], false, false, false);
         }
 
         String tmpDir = parser.getTmpdirOption();

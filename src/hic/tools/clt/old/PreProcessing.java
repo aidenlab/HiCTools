@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -138,9 +138,6 @@ public class PreProcessing extends JuiceboxCLT {
         genomeWide = parser.getGenomeWideOption();
         noFragNorm = parser.getNoFragNormOption();
         normalizationTypes.addAll(parser.getAllNormalizationTypesOption());
-        HiCGlobals.USE_ITERATOR_NOT_ALL_IN_RAM = parser.getDontPutAllContactsIntoRAM();
-        HiCGlobals.CHECK_RAM_USAGE = parser.shouldCheckRAMUsage();
-        HiCGlobals.setMatrixZoomDataRAMUsage();
     }
 
     @Override
