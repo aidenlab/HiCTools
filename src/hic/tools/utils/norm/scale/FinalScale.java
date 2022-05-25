@@ -66,9 +66,11 @@ public class FinalScale {
         //	find relevant percentiles
         ZScore zscore = new ZScore(numNonZero);
         float lowCutoff = zscore.getCutoff(localZscoreCutoff);
+        long numToCompletelyIgnore = 0;
         for (long p = 0; p < matrixSize; p++) {
             if (numNonZero.get(p) < lowCutoff) {
                 excludeBadRow(p, bad, zTargetVector, one);
+                numToCompletelyIgnore++;
             }
         }
 
@@ -240,7 +242,7 @@ public class FinalScale {
                     " and in row sums is " + reportErrorForIteration[allItersI + 2]);
         }
 
-        if (numNans > .7 * matrixSize) {
+        if ((numNans - numToCompletelyIgnore) > .7 * (matrixSize - numToCompletelyIgnore)) {
             calculatedVectorB.clear();
             return null;
         }
