@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,6 @@ package hic.tools.utils.bigarray;
 
 import hic.HiCGlobals;
 import hic.tools.utils.largelists.BigDoublesArray;
-import hic.tools.utils.largelists.BigFloatsArray;
 import hic.tools.utils.largelists.BigShortsArray;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.datastructures.ListOfFloatArrays;
@@ -58,7 +57,7 @@ public class BigContactArray {
         sumVector.addTo(y, counts * vector.get(x));
     }
 
-    public static void matrixVectorMult(BigFloatsArray vector,
+    public static void matrixVectorMult(BigDoublesArray vector,
                                         BigDoublesArray sumVector, int x, int y, float c) {
         double counts = c;
         if (x == y) {
@@ -100,7 +99,7 @@ public class BigContactArray {
         return Math.min(HiCGlobals.numCPUMatrixThreads, binXs.size());
     }
 
-    public BigFloatsArray parSparseMultiplyAcrossLists(BigFloatsArray vector, long vectorLength) {
+    public BigDoublesArray parSparseMultiplyAcrossLists(BigDoublesArray vector, long vectorLength) {
         final BigDoublesArray totalSumVector = new BigDoublesArray(vectorLength);
 
         AtomicInteger index = new AtomicInteger(0);
@@ -124,10 +123,10 @@ public class BigContactArray {
             }
         });
 
-        return totalSumVector.convertToFloats();
+        return totalSumVector;
     }
 
-    public BigFloatsArray parSparseMultiplyAcrossLists(BigShortsArray vector, long vectorLength) {
+    public BigDoublesArray parSparseMultiplyAcrossLists(BigShortsArray vector, long vectorLength) {
         final BigDoublesArray totalSumVector = new BigDoublesArray(vectorLength);
 
         AtomicInteger index = new AtomicInteger(0);
@@ -151,7 +150,7 @@ public class BigContactArray {
             }
         });
 
-        return totalSumVector.convertToFloats();
+        return totalSumVector;
     }
 
     public ListOfFloatArrays getRowSums() {

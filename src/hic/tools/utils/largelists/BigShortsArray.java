@@ -91,10 +91,10 @@ public class BigShortsArray {
 		return overallLength;
 	}
 
-	public BigFloatsArray deepConvertedClone() {
-		BigFloatsArray clone = new BigFloatsArray(overallLength);
+	public BigDoublesArray deepConvertedClone() {
+		BigDoublesArray clone = new BigDoublesArray(overallLength);
 		for (int k = 0; k < internalList.size(); k++) {
-			float[] dest = clone.internalList.get(k);
+			double[] dest = clone.internalList.get(k);
 			short[] src = internalList.get(k);
 			for (int q = 0; q < dest.length; q++) {
 				dest[q] = src[q];
@@ -107,13 +107,13 @@ public class BigShortsArray {
 		return internalList;
 	}
 
-	public void parSetTo(BigFloatsArray srcArrays) {
+	public void parSetTo(BigDoublesArray srcArrays) {
 		AtomicInteger index = new AtomicInteger();
 		ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
 			int i = index.getAndIncrement();
 			while (i < internalList.size()) {
 				short[] dest = internalList.get(i);
-				float[] src = srcArrays.internalList.get(i);
+				double[] src = srcArrays.internalList.get(i);
 				for (int z = 0; z < dest.length; z++) {
 					dest[z] = (short) src[z];
 				}
