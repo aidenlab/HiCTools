@@ -36,8 +36,9 @@ public class FinalScale {
 
     private final static short S1 = (short) 1;
     private final static short S0 = (short) 0;
-    private final static float zscoreCutoff = -3;
-    private final static float dZscore = 0.2f;
+    private final static float maxPercentile = 20f;
+    private final static float startingPercentile = 1f;
+    private final static float deltaPercentile = 0.5f;
     private final static double tolerance = 1e-8;
     private final static int maxIter = 100;
     private final static int totalIterations = 3 * maxIter;
@@ -48,7 +49,7 @@ public class FinalScale {
 
         long startTime = System.nanoTime();
 
-        float localZscoreCutoff = zscoreCutoff;
+
         BigShortsArray bad = new BigShortsArray(matrixSize);
 
         BigShortsArray zTargetVector = new BigShortsArray(matrixSize, S1);
@@ -62,8 +63,10 @@ public class FinalScale {
         ListOfIntArrays numNonZero = ba.getNumNonZeroInRows();
 
         //	find relevant percentiles
-        ZScore zscore = new ZScore(numNonZero);
-        double lowCutoff = zscore.getCutoff(localZscoreCutoff);
+        Percentiles percentiles = new Percentiles(numNonZero, startingPercentile, deltaPercentile, maxPercentile);
+        int cutoffIndex = 0;
+        int maxNumCutoffs = percentiles.getMaxNumCutoffs();
+        double lowCutoff = percentiles.get(cutoffIndex);
         for (long p = 0; p < matrixSize; p++) {
             if (numNonZero.get(p) < lowCutoff) {
                 excludeBadRow(p, bad, zTargetVector, one);
@@ -103,7 +106,7 @@ public class FinalScale {
         // if perc or perc1 reached upper bound or the total number of iterations is too high, exit
         while ((convergeError > tolerance || rowSumError > 5.0 * tolerance)
                 && iter < maxIter && allItersI < totalIterations
-                && localZscoreCutoff <= -.5) {
+                && cutoffIndex < maxNumCutoffs) {
             iter++;
             allItersI++;
             realIters++;
@@ -160,9 +163,10 @@ public class FinalScale {
                 }
 
                 if (failed) {
-                    localZscoreCutoff += dZscore;
+                    cutoffIndex++;
                     nerr = 0;
-                    lowCutoff = zscore.getCutoff(localZscoreCutoff);
+                    lowCutoff = percentiles.get(cutoffIndex);
+
                     for (long p = 0; p < matrixSize; p++) {
                         if (numNonZero.get(p) < lowCutoff && zTargetVector.get(p) > 0) {
                             excludeBadRow(p, bad, zTargetVector, one);
@@ -203,7 +207,10 @@ public class FinalScale {
             reportErrorForIteration[allItersI + 2] = rowSumError;
         }
 
-        if (convergeError > tolerance || rowSumError > 5.0 * tolerance) {
+        if (convergeError > tolerance || rowSumError > 5.0 * tolerance || cutoffIndex >= maxNumCutoffs) {
+            if (HiCGlobals.printVerboseComments) {
+                System.out.println("Setting vector to null (not converged)");
+            }
             calculatedVectorB.clear();
             return null;
         }
@@ -233,7 +240,7 @@ public class FinalScale {
             for (int q = 0; q < allItersI; q++) {
                 System.out.println(numItersForAllIterations[q] + ": " + reportErrorForIteration[q]);
             }
-            System.out.println("Total " + allItersI + " iterations; final zscore = " + localZscoreCutoff);
+            System.out.println("Total " + allItersI + " iterations; final zscore = " + percentiles.get(cutoffIndex));
             System.out.println("Final error in scaling vector is " + reportErrorForIteration[allItersI + 1] +
                     " and in row sums is " + reportErrorForIteration[allItersI + 2]);
         }
