@@ -26,6 +26,7 @@ package hic.tools.utils.bigarray;
 
 import hic.HiCGlobals;
 import hic.tools.utils.largelists.BigDoublesArray;
+import hic.tools.utils.largelists.BigFloatsArray;
 import hic.tools.utils.largelists.BigShortsArray;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.datastructures.ListOfFloatArrays;
@@ -57,7 +58,7 @@ public class BigContactArray {
         sumVector.addTo(y, counts * vector.get(x));
     }
 
-    public static void matrixVectorMult(BigDoublesArray vector,
+    public static void matrixVectorMult(BigFloatsArray vector,
                                         BigDoublesArray sumVector, int x, int y, float c) {
         double counts = c;
         if (x == y) {
@@ -99,7 +100,7 @@ public class BigContactArray {
         return Math.min(HiCGlobals.numCPUMatrixThreads, binXs.size());
     }
 
-    public BigDoublesArray parSparseMultiplyAcrossLists(BigDoublesArray vector, long vectorLength) {
+    public BigFloatsArray parSparseMultiplyAcrossLists(BigFloatsArray vector, long vectorLength) {
         final BigDoublesArray totalSumVector = new BigDoublesArray(vectorLength);
 
         AtomicInteger index = new AtomicInteger(0);
@@ -123,10 +124,10 @@ public class BigContactArray {
             }
         });
 
-        return totalSumVector;
+        return totalSumVector.convertToFloats();
     }
 
-    public BigDoublesArray parSparseMultiplyAcrossLists(BigShortsArray vector, long vectorLength) {
+    public BigFloatsArray parSparseMultiplyAcrossLists(BigShortsArray vector, long vectorLength) {
         final BigDoublesArray totalSumVector = new BigDoublesArray(vectorLength);
 
         AtomicInteger index = new AtomicInteger(0);
@@ -150,7 +151,7 @@ public class BigContactArray {
             }
         });
 
-        return totalSumVector;
+        return totalSumVector.convertToFloats();
     }
 
     public ListOfFloatArrays getRowSums() {

@@ -26,7 +26,6 @@ package hic.tools.utils.norm.scale;
 
 import hic.HiCGlobals;
 import hic.tools.utils.bigarray.BigContactArray;
-import hic.tools.utils.largelists.BigDoublesArray;
 import hic.tools.utils.largelists.BigFloatsArray;
 import hic.tools.utils.largelists.BigShortsArray;
 import javastraw.reader.datastructures.ListOfFloatArrays;
@@ -39,10 +38,10 @@ public class FinalScale {
     private final static float maxPercentile = 20f;
     private final static float startingPercentile = 1f;
     private final static float deltaPercentile = 0.5f;
-    private final static double tolerance = 1e-8;
+    private final static float tolerance = 5e-4f;
     private final static int maxIter = 100;
     private final static int totalIterations = 3 * maxIter;
-    private final static double minErrorThreshold = .02;
+    private final static float minErrorThreshold = .02f;
 
     public static ListOfFloatArrays scaleToTargetVector(BigContactArray ba, long matrixSize,
                                                         BigFloatsArray initialGuess, String stem) {
@@ -53,7 +52,7 @@ public class FinalScale {
         BigShortsArray bad = new BigShortsArray(matrixSize);
 
         BigShortsArray zTargetVector = new BigShortsArray(matrixSize, S1);
-        BigDoublesArray calculatedVectorB = new BigDoublesArray(matrixSize);
+        BigFloatsArray calculatedVectorB = new BigFloatsArray(matrixSize);
         BigShortsArray one = new BigShortsArray(matrixSize, S1);
 
         double[] reportErrorForIteration = new double[totalIterations + 3];
@@ -73,21 +72,21 @@ public class FinalScale {
             }
         }
 
-        BigDoublesArray row = ba.parSparseMultiplyAcrossLists(one, matrixSize);
-        BigDoublesArray rowBackup = row.deepClone();
+        BigFloatsArray row = ba.parSparseMultiplyAcrossLists(one, matrixSize);
+        BigFloatsArray rowBackup = row.deepClone();
 
         for (long p = 0; p < matrixSize; p++) {
             one.set(p, (short) (1 - bad.get(p)));
         }
 
-        BigDoublesArray dr;
+        BigFloatsArray dr;
         if (initialGuess == null) {
             dr = one.deepConvertedClone();
         } else {
-            dr = initialGuess.convertToDoubles();
+            dr = initialGuess;
         }
-        BigDoublesArray dc = dr.deepClone();
-        BigDoublesArray current = dr.deepClone();
+        BigFloatsArray dc = dr.deepClone();
+        BigFloatsArray current = dr.deepClone();
         //	start iterations
         //	row is the current rows sum; dr and dc are the current rows and columns scaling vectors
         double convergeError = 10.0 * (1.0 + tolerance);
@@ -95,9 +94,9 @@ public class FinalScale {
         int iter = 0;
         boolean failed;
         int nerr = 0;
-        double[] errors = new double[10000];
+        float[] errors = new float[10000];
         int allItersI = 0;
-        BigDoublesArray col;
+        BigFloatsArray col;
         int realIters = 0;
 
         // rowSumError = .1
@@ -124,7 +123,7 @@ public class FinalScale {
             //printFirst10(calculatedVectorB, iter);
 
             //	calculate the current error
-            convergeError = BigDoublesArray.parCalculateConvergenceError(calculatedVectorB, current, bad);
+            convergeError = BigFloatsArray.parCalculateConvergenceError(calculatedVectorB, current, bad);
 
             reportErrorForIteration[allItersI - 1] = convergeError;
             numItersForAllIterations[allItersI - 1] = iter;
@@ -133,8 +132,8 @@ public class FinalScale {
             //	we are doing this every 10	iterations
             if (iter % 10 == 0) {
                 col = ba.parSparseMultiplyAcrossLists(calculatedVectorB, matrixSize);
-                rowSumError = BigDoublesArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
-                errors[nerr++] = rowSumError;
+                rowSumError = BigFloatsArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
+                errors[nerr++] = (float) rowSumError;
             }
 
             // current = calculatedVectorB
@@ -198,9 +197,9 @@ public class FinalScale {
 
         //	find the final error in row sums
         col = ba.parSparseMultiplyAcrossLists(calculatedVectorB, matrixSize);
-        rowSumError = BigDoublesArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
+        rowSumError = BigFloatsArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
         if (HiCGlobals.printVerboseComments) {
-            double err90 = BigDoublesArray.calculateError90(col, calculatedVectorB, zTargetVector, bad);
+            double err90 = BigFloatsArray.calculateError90(col, calculatedVectorB, zTargetVector, bad);
             System.out.println("Total iters " + realIters + " \nRow Sums Error " + rowSumError + " \nError90 " + err90);
             System.out.println("Convergence error " + convergeError);
             reportErrorForIteration[allItersI + 1] = convergeError;
@@ -217,7 +216,7 @@ public class FinalScale {
 
         for (long p = 0; p < matrixSize; p++) {
             if (bad.get(p) == 1) {
-                calculatedVectorB.set(p, Double.NaN);
+                calculatedVectorB.set(p, Float.NaN);
             }
         }
 
@@ -245,7 +244,7 @@ public class FinalScale {
                     " and in row sums is " + reportErrorForIteration[allItersI + 2]);
         }
 
-        ListOfFloatArrays answer = calculatedVectorB.convertToListOfFloat();
+        ListOfFloatArrays answer = calculatedVectorB.convertToRegular();
         calculatedVectorB.clear();
         return answer;
     }
@@ -256,9 +255,9 @@ public class FinalScale {
         target.set(index, S0);
     }
 
-    private static BigDoublesArray update(long matrixSize, BigShortsArray bad,
-                                          BigDoublesArray vector, BigShortsArray target,
-                                          BigDoublesArray dVector, BigContactArray ba) {
+    private static BigFloatsArray update(long matrixSize, BigShortsArray bad,
+                                         BigFloatsArray vector, BigShortsArray target,
+                                         BigFloatsArray dVector, BigContactArray ba) {
         for (long p = 0; p < matrixSize; p++) {
             if (bad.get(p) == 1) {
                 vector.set(p, 1f);
