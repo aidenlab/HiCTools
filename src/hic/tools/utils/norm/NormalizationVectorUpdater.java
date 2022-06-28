@@ -104,7 +104,6 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
         HiCGlobals.verifySupportedHiCFileWritingVersion(reader.getVersion());
 
         ChromosomeHandler chromosomeHandler = ds.getChromosomeHandler();
-        Map<String, Integer> fragCountMap = ds.getFragmentCounts();
         List<HiCZoom> resolutions = ds.getAllPossibleResolutions();
 
         reEvaluateWhichIntraNormsToBuild(normalizationsToBuild);
@@ -129,7 +128,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
             Map<NormalizationType, ExpectedValueCalculation> gwMapExpected = GWNorms.createdExpectedMap(gwNormalizations,
                     interNormalizations, chromosomeHandler, zoom.getBinSize());
 
-            ds.clearCache(true);
+            ds.clearInterCacheForRes(zoom);
 
             ExpectedValueCalculation evVC = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), NormalizationHandler.VC);
             ExpectedValueCalculation evVCSqrt = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), NormalizationHandler.VC_SQRT);
@@ -168,7 +167,6 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                 }
 
                 zd.clearCache();
-                matrix.clearCache();
                 ba.clear();
             }
 
@@ -187,9 +185,8 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
             if (weShouldBuildScale && evSCALE.hasData() && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.SCALE)) {
                 expectedValueCalculations.add(evSCALE);
             }
-
-            ds.clearCache(false);
         }
+        ds.clearCache(false);
         writeNormsToUpdateFile(reader, path, true, expectedValueCalculations, null, normVectorIndices,
                 normVectorBuffers, "Finished writing norms");
     }
