@@ -27,9 +27,9 @@ package hic.tools.utils.original;
 import hic.tools.utils.iterators.contacts.ChromosomeContactsIterator;
 import hic.tools.utils.iterators.contacts.Contact;
 import javastraw.reader.Dataset;
-import javastraw.reader.Matrix;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.mzd.Matrix;
 import javastraw.reader.mzd.MatrixZoomData;
 import javastraw.reader.type.HiCZoom;
 
@@ -84,7 +84,8 @@ public class DataReadingWorker implements Runnable {
             System.err.println("Skipping null matrix " + chromosome1.getName() + " " + chromosome2.getName());
             return;
         }
-        MatrixZoomData zd = matrix.getZoomData(new HiCZoom(highestResolution));
+        HiCZoom hZoom = new HiCZoom(highestResolution);
+        MatrixZoomData zd = matrix.getZoomData(hZoom);
         if (zd == null) {
             System.err.println("Skipping null zd (res=" + highestResolution + ") " +
                     chromosome1.getName() + " " + chromosome2.getName());
@@ -110,8 +111,7 @@ public class DataReadingWorker implements Runnable {
             System.exit(90);
         }
 
-        zd.clearCache();
-        datasets[i].clearCache(false);
+        matrix.clearCacheForZoom(hZoom);
     }
 
     public static boolean tooFarFromDiagonal(Contact contact) {

@@ -31,10 +31,10 @@ import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.Dataset;
 import javastraw.reader.DatasetReaderV2;
-import javastraw.reader.Matrix;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.mzd.Matrix;
 import javastraw.reader.mzd.MatrixZoomData;
 import javastraw.reader.norm.NormalizationVector;
 import javastraw.reader.type.HiCZoom;
@@ -154,7 +154,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                         normVectorBuffers, zoom, gwMapExpected, ba);
 
                 NormalizationCalculations nc = new NormalizationCalculations(ba, zd.getBinSize());
-                zd.clearCache();
+                matrix.clearCacheForZoom(zoom);
 
                 if (weShouldBuildVC || weShouldBuildVCSqrt || weShouldBuildScale) {
                     boolean saveVC = weShouldBuildVC && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC);
@@ -166,7 +166,6 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                     }
                 }
 
-                zd.clearCache();
                 ba.clear();
             }
 

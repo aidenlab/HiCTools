@@ -31,8 +31,8 @@ import hic.tools.utils.iterators.contacts.ContactIterator;
 import hic.tools.utils.merge.HiCMergeTools;
 import htsjdk.tribble.util.LittleEndianOutputStream;
 import javastraw.reader.Dataset;
-import javastraw.reader.Matrix;
 import javastraw.reader.basics.Chromosome;
+import javastraw.reader.mzd.Matrix;
 import javastraw.reader.mzd.MatrixZoomData;
 import javastraw.reader.type.HiCZoom;
 
@@ -155,7 +155,8 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
                 System.err.println("Skipping null matrix " + chromosome1.getName() + " " + chromosome2.getName());
                 return;
             }
-            MatrixZoomData zd = matrix.getZoomData(new HiCZoom(highestResolution));
+            HiCZoom hZoom = new HiCZoom(highestResolution);
+            MatrixZoomData zd = matrix.getZoomData(hZoom);
             if (zd == null) {
                 System.err.println("Skipping null zd (res=" + highestResolution + ") " +
                         chromosome1.getName() + " " + chromosome2.getName());
@@ -181,8 +182,8 @@ public class PreprocessorFromDatasets extends HiCFileBuilder {
                 System.exit(90);
             }
 
-            zd.clearCache();
-            dataset.clearCache(false);
+            matrix.clearCacheForZoom(hZoom);
+            //dataset.clearCache(false);
         }
 
         mergedMatrix.parsingComplete();

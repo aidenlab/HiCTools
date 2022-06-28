@@ -25,9 +25,9 @@
 package hic.tools.utils.iterators.contacts;
 
 import javastraw.reader.Dataset;
-import javastraw.reader.Matrix;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.block.ContactRecord;
+import javastraw.reader.mzd.Matrix;
 import javastraw.reader.mzd.MatrixZoomData;
 
 import java.io.IOException;
@@ -38,6 +38,8 @@ public class AllByAllContactsIterator implements ContactIterator {
     private final Dataset[] datasets;
     private int currentIndex = -1;
     private MatrixZoomData zd = null;
+
+    private Matrix matrix = null;
     private Iterator<ContactRecord> iterator = null;
     private int resolution;
 
@@ -51,9 +53,9 @@ public class AllByAllContactsIterator implements ContactIterator {
     }
 
     private void advanceIterator() {
-        if (currentIndex > -1 && zd != null) {
+        if (currentIndex > -1 && zd != null && matrix != null) {
             if (iterator != null) iterator = null;
-            zd.clearCache();
+            matrix.clearCache();
             datasets[currentIndex].clearCache(false);
         }
 
@@ -61,7 +63,7 @@ public class AllByAllContactsIterator implements ContactIterator {
 
         if (currentIndex < datasets.length) {
             Chromosome all = datasets[currentIndex].getChromosomeHandler().getChromosomeFromIndex(0);
-            Matrix matrix = datasets[currentIndex].getMatrix(all, all);
+            matrix = datasets[currentIndex].getMatrix(all, all);
             zd = matrix.getFirstZoomData();
             iterator = zd.getDirectIterator();
             resolution = zd.getBinSize();
