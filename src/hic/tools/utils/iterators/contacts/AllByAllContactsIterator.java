@@ -55,8 +55,8 @@ public class AllByAllContactsIterator implements ContactIterator {
     private void advanceIterator() {
         if (currentIndex > -1 && zd != null && matrix != null) {
             if (iterator != null) iterator = null;
-            matrix.clearCache();
-            datasets[currentIndex].clearCache(false);
+            //matrix.clearCache();
+            //datasets[currentIndex].clearCache(false);
         }
 
         currentIndex++;
