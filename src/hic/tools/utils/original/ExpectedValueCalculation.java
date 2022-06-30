@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,15 +27,12 @@ package hic.tools.utils.original;
 
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
-import javastraw.reader.block.ContactRecord;
 import javastraw.reader.datastructures.ListOfDoubleArrays;
-import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.expected.ExpectedValueFunctionImpl;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationType;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -138,23 +135,18 @@ public class ExpectedValueCalculation {
      * @param bin2   Position2 observed in units of "bins"
      */
     public synchronized void addDistance(Integer chrIdx, int bin1, int bin2, double weight) {
-
-        // Ignore NaN values    TODO -- is this the right thing to do?
-        if (Double.isNaN(weight)) return;
-
-        int dist;
-        Chromosome chr = chromosomesMap.get(chrIdx);
-        if (chr == null) return;
-
-        if (chromosomeCounts.containsKey(chrIdx)) {
-            double count = chromosomeCounts.get(chrIdx);
-            chromosomeCounts.put(chrIdx, count + weight);
-        } else {
-            chromosomeCounts.put(chrIdx, weight);
+        if (weight > 0) {
+            Chromosome chr = chromosomesMap.get(chrIdx);
+            if (chr == null) return;
+            if (chromosomeCounts.containsKey(chrIdx)) {
+                double count = chromosomeCounts.get(chrIdx);
+                chromosomeCounts.put(chrIdx, count + weight);
+            } else {
+                chromosomeCounts.put(chrIdx, weight);
+            }
+            int dist = Math.abs(bin1 - bin2);
+            actualDistances[dist] += weight;
         }
-        dist = Math.abs(bin1 - bin2);
-
-        actualDistances[dist] += weight; // Math.log(1 + weight);
     }
 
     public void merge(ExpectedValueCalculation otherEVCalc) {
@@ -318,22 +310,6 @@ public class ExpectedValueCalculation {
     public ExpectedValueFunctionImpl getExpectedValueFunction() {
         computeDensity();
         return new ExpectedValueFunctionImpl(type, HiCZoom.HiCUnit.BP, gridSize, densityAvg, chrScaleFactors);
-    }
-
-    // TODO: this is often inefficient, we have all of the contact records when we leave norm calculations, should do this there if possible
-    public void addDistancesFromIterator(int chrIndx, Iterator<ContactRecord> iterator, ListOfFloatArrays vector) {
-        while (iterator.hasNext()) {
-            ContactRecord cr = iterator.next();
-            int x = cr.getBinX();
-            int y = cr.getBinY();
-            final float counts = cr.getCounts();
-            float xVal = vector.get(x);
-            float yVal = vector.get(y);
-            if (xVal > 0 & yVal > 0) {
-                double value = counts / (xVal * yVal);
-                addDistance(chrIndx, x, y, value);
-            }
-        }
     }
 }
 

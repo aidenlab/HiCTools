@@ -31,7 +31,9 @@ import javastraw.reader.Dataset;
 import javastraw.reader.DatasetReaderV2;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
+import javastraw.reader.block.ContactRecord;
 import javastraw.reader.datastructures.ListOfDoubleArrays;
+import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.expected.ExpectedValueFunction;
 import javastraw.reader.mzd.MatrixZoomData;
 import javastraw.reader.norm.NormalizationVector;
@@ -147,8 +149,24 @@ public class CustomNormVectorFileHandler extends NormVectorUpdater {
             int sizeInBytes = (int) (newPos - position);
             normVectorIndex.add(new NormalizationVectorIndexEntry(
                     customNormType.toString(), chrIndx, zoom.getUnit().toString(), zoom.getBinSize(), position, sizeInBytes));
-    
-            evLoaded.addDistancesFromIterator(chrIndx, zd.getDirectIterator(), vector.getData().convertToFloats());
+
+            addDistancesFromIterator(chrIndx, zd.getDirectIterator(), vector.getData().convertToFloats(), evLoaded);
+        }
+    }
+
+    private static void addDistancesFromIterator(int chrIndx, Iterator<ContactRecord> iterator,
+                                                 ListOfFloatArrays vector, ExpectedValueCalculation ev) {
+        while (iterator.hasNext()) {
+            ContactRecord cr = iterator.next();
+            int x = cr.getBinX();
+            int y = cr.getBinY();
+            final float counts = cr.getCounts();
+            float xVal = vector.get(x);
+            float yVal = vector.get(y);
+            if (xVal > 0 & yVal > 0) {
+                double value = counts / (xVal * yVal);
+                ev.addDistance(chrIndx, x, y, value);
+            }
         }
     }
 

@@ -71,14 +71,14 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
     protected static void updateExpectedValueCalculationForChr(final int chrIdx, NormalizationCalculations nc,
                                                                ListOfFloatArrays vec, NormalizationType type,
-                                                               HiCZoom zoom, MatrixZoomData zd,
+                                                               HiCZoom zoom, BigContactArray ba,
                                                                ExpectedValueCalculation ev,
                                                                BigListOfByteWriters normVectorBuffers,
                                                                List<NormalizationVectorIndexEntry> normVectorIndex) throws IOException {
         double factor = nc.getSumFactor(vec);
         vec.multiplyEverythingBy(factor);
         updateNormVectorIndexWithVector(normVectorIndex, normVectorBuffers, vec, chrIdx, type, zoom);
-        ev.addDistancesFromIterator(chrIdx, zd.getDirectIterator(), vec);
+        ba.updateGenomeWideExpected(chrIdx, vec, ev);
     }
 
     protected void reEvaluateWhichIntraNormsToBuild(List<NormalizationType> normalizationsToBuild) {
@@ -137,7 +137,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
             // Loop through chromosomes
             for (Chromosome chrom : chromosomeHandler.getChromosomeArrayWithoutAllByAll()) {
 
-                Matrix matrix = ds.getMatrix(chrom, chrom, zoom.getBinSize());
+                Matrix matrix = ds.getMatrix(chrom, chrom);
                 if (matrix == null) continue;
                 MatrixZoomData zd = matrix.getZoomData(zoom);
                 if (zd == null) continue;
@@ -147,14 +147,14 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                 }
 
                 BigContactArray ba = BigContactArrayCreator.createFromZD(zd);
+                matrix.clearCacheForZoom(zoom);
 
                 GWNorms.addGWNormsToBuffer(gwNormalizations, gwNormMaps, chrom, normVectorIndices,
                         normVectorBuffers, zoom, gwMapExpected, ba);
                 GWNorms.addGWNormsToBuffer(interNormalizations, gwNormMaps, chrom, normVectorIndices,
                         normVectorBuffers, zoom, gwMapExpected, ba);
 
-                NormalizationCalculations nc = new NormalizationCalculations(ba, zd.getBinSize());
-                matrix.clearCacheForZoom(zoom);
+                NormalizationCalculations nc = new NormalizationCalculations(ba, zoom.getBinSize());
 
                 if (weShouldBuildVC || weShouldBuildVCSqrt || weShouldBuildScale) {
                     boolean saveVC = weShouldBuildVC && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC);
@@ -162,7 +162,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                     boolean saveScale = weShouldBuildScale && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.SCALE);
 
                     if (saveVC || saveVCSqrt || saveScale) {
-                        buildTheNorms(saveVC, saveVCSqrt, saveScale, chrom, nc, zoom, zd, evVC, evVCSqrt, evSCALE);
+                        buildTheNorms(saveVC, saveVCSqrt, saveScale, chrom, nc, zoom, evVC, evVCSqrt, evSCALE, ba);
                     }
                 }
 
@@ -191,8 +191,9 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
     }
 
     private void buildTheNorms(boolean saveVC, boolean saveVCSqrt, boolean saveScale, Chromosome chr,
-                               NormalizationCalculations nc, HiCZoom zoom, MatrixZoomData zd,
-                               ExpectedValueCalculation evVC, ExpectedValueCalculation evVCSqrt, ExpectedValueCalculation evSCALE) throws IOException {
+                               NormalizationCalculations nc, HiCZoom zoom, ExpectedValueCalculation evVC,
+                               ExpectedValueCalculation evVCSqrt, ExpectedValueCalculation evSCALE,
+                               BigContactArray ba) throws IOException {
 
         final int chrIdx = chr.getIndex();
         ListOfFloatArrays vc = nc.computeVC();
@@ -204,19 +205,19 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                 if (scale == null) {
                     scaleBPFailChroms.add(chr);
                 } else {
-                    updateExpectedValueCalculationForChr(chrIdx, nc, scale, NormalizationHandler.SCALE, zoom, zd, evSCALE, normVectorBuffers, normVectorIndices);
+                    updateExpectedValueCalculationForChr(chrIdx, nc, scale, NormalizationHandler.SCALE, zoom, ba, evSCALE, normVectorBuffers, normVectorIndices);
                 }
             }
         }
         if (saveVC) {
-            updateExpectedValueCalculationForChr(chrIdx, nc, vc, NormalizationHandler.VC, zoom, zd, evVC, normVectorBuffers, normVectorIndices);
+            updateExpectedValueCalculationForChr(chrIdx, nc, vc, NormalizationHandler.VC, zoom, ba, evVC, normVectorBuffers, normVectorIndices);
         }
         if (saveVCSqrt) {
             ListOfFloatArrays vcSqrt = new ListOfFloatArrays(vc.getLength());
             for (int i = 0; i < vc.getLength(); i++) {
                 vcSqrt.set(i, (float) Math.sqrt(vc.get(i)));
             }
-            updateExpectedValueCalculationForChr(chrIdx, nc, vcSqrt, NormalizationHandler.VC_SQRT, zoom, zd, evVCSqrt, normVectorBuffers, normVectorIndices);
+            updateExpectedValueCalculationForChr(chrIdx, nc, vcSqrt, NormalizationHandler.VC_SQRT, zoom, ba, evVCSqrt, normVectorBuffers, normVectorIndices);
         }
     }
 }
