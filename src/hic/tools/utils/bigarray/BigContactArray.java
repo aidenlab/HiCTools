@@ -37,7 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class BigContactArray {
+public class BigContactArray implements BigArray {
 
     protected final List<int[]> binXs = new ArrayList<>();
     protected final List<int[]> binYs = new ArrayList<>();

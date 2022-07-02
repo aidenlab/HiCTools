@@ -25,7 +25,7 @@
 package hic.tools.utils.norm;
 
 import hic.HiCGlobals;
-import hic.tools.utils.bigarray.BigContactArray;
+import hic.tools.utils.bigarray.BigArray;
 import hic.tools.utils.bigarray.BigContactArrayCreator;
 import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
@@ -71,7 +71,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
     protected static void updateExpectedValueCalculationForChr(final int chrIdx, NormalizationCalculations nc,
                                                                ListOfFloatArrays vec, NormalizationType type,
-                                                               HiCZoom zoom, BigContactArray ba,
+                                                               HiCZoom zoom, BigArray ba,
                                                                ExpectedValueCalculation ev,
                                                                BigListOfByteWriters normVectorBuffers,
                                                                List<NormalizationVectorIndexEntry> normVectorIndex) throws IOException {
@@ -146,7 +146,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                     System.out.println("Now Doing " + chrom.getName());
                 }
 
-                BigContactArray ba = BigContactArrayCreator.createFromZD(zd);
+                BigArray ba = BigContactArrayCreator.createFromZD(zd);
                 matrix.clearCacheForZoom(zoom);
 
                 GWNorms.addGWNormsToBuffer(gwNormalizations, gwNormMaps, chrom, normVectorIndices,
@@ -193,7 +193,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
     private void buildTheNorms(boolean saveVC, boolean saveVCSqrt, boolean saveScale, Chromosome chr,
                                NormalizationCalculations nc, HiCZoom zoom, ExpectedValueCalculation evVC,
                                ExpectedValueCalculation evVCSqrt, ExpectedValueCalculation evSCALE,
-                               BigContactArray ba) throws IOException {
+                               BigArray ba) throws IOException {
 
         final int chrIdx = chr.getIndex();
         ListOfFloatArrays vc = nc.computeVC();

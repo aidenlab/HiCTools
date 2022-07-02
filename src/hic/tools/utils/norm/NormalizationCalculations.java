@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
 package hic.tools.utils.norm;
 
 import hic.tools.clt.old.NormalizationBuilder;
-import hic.tools.utils.bigarray.BigContactArray;
+import hic.tools.utils.bigarray.BigArray;
 import hic.tools.utils.largelists.BigFloatsArray;
 import hic.tools.utils.norm.scale.FinalScale;
 import javastraw.reader.datastructures.ListOfFloatArrays;
@@ -35,10 +35,10 @@ public class NormalizationCalculations {
 
     private final long matrixSize; // x and y symmetric
     //private boolean isEnoughMemory = false;
-    private final BigContactArray ba;
+    private final BigArray ba;
     private final int resolution;
 
-    public NormalizationCalculations(BigContactArray ba, int resolution) {
+    public NormalizationCalculations(BigArray ba, int resolution) {
         this.ba = ba;
         this.matrixSize = ba.getMatrixSize();
         this.resolution = resolution;

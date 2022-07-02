@@ -77,6 +77,8 @@ public class CommandLineParser extends CmdLineParser {
     private final Option matrixThreadNumOption = addIntegerOption("mthreads");
     private final Option v9DepthBaseOption = addIntegerOption("v9-depth-base");
     private final Option initOption = addIntegerOption("initial");
+    private final Option ramSavePointOption = addIntegerOption("save-ram");
+
 
     // sets of strings
     private final Option multipleChromosomesOption = addStringOption('c', "chromosomes");
@@ -257,6 +259,10 @@ public class CommandLineParser extends CmdLineParser {
 
     public int getInitType() {
         return optionToInt(initOption);
+    }
+
+    public int getRamSavePoint() {
+        return optionToInt(ramSavePointOption);
     }
 
     /**

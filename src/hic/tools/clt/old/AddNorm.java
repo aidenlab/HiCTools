@@ -43,6 +43,7 @@ public class AddNorm extends JuiceboxCLT {
     private boolean noFragNorm = false;
     private String inputVectorFile = null;
     private int genomeWideResolution = -100;
+    private int ramSavePoint = 0;
     private String file;
     private final List<NormalizationType> normalizationTypes = new ArrayList<>();
     private Map<NormalizationType, Integer> resolutionsToBuildTo;
@@ -102,6 +103,7 @@ public class AddNorm extends JuiceboxCLT {
         genomeWideResolution = parser.getGenomeWideOption();
         normalizationTypes.addAll(parser.getAllNormalizationTypesOption());
         resolutionsToBuildTo = defaultHashMapForResToBuildTo(normalizationTypes);
+        ramSavePoint = parser.getRamSavePoint();
 
         List<String> resolutions = parser.getResolutionOption();
         if (resolutions != null && resolutions.size() > 0) {
