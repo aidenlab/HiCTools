@@ -25,7 +25,7 @@
 package hic.tools.utils.norm;
 
 import hic.tools.clt.old.NormalizationBuilder;
-import hic.tools.utils.bigarray.BigArray;
+import hic.tools.utils.bigarray.BigContactList;
 import hic.tools.utils.largelists.BigFloatsArray;
 import hic.tools.utils.norm.scale.FinalScale;
 import javastraw.reader.datastructures.ListOfFloatArrays;
@@ -35,10 +35,10 @@ public class NormalizationCalculations {
 
     private final long matrixSize; // x and y symmetric
     //private boolean isEnoughMemory = false;
-    private final BigArray ba;
+    private final BigContactList ba;
     private final int resolution;
 
-    public NormalizationCalculations(BigArray ba, int resolution) {
+    public NormalizationCalculations(BigContactList ba, int resolution) {
         this.ba = ba;
         this.matrixSize = ba.getMatrixSize();
         this.resolution = resolution;

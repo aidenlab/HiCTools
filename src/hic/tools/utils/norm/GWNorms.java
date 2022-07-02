@@ -24,8 +24,8 @@
 
 package hic.tools.utils.norm;
 
-import hic.tools.utils.bigarray.BigArray;
 import hic.tools.utils.bigarray.BigContactArray;
+import hic.tools.utils.bigarray.BigContactList;
 import hic.tools.utils.bigarray.BigGWContactArray;
 import hic.tools.utils.bigarray.BigGWContactArrayCreator;
 import hic.tools.utils.largelists.BigListOfByteWriters;
@@ -128,7 +128,7 @@ public class GWNorms {
                                           Chromosome chromosome, List<NormalizationVectorIndexEntry> normVectorIndices,
                                           BigListOfByteWriters normVectorBuffers, HiCZoom zoom,
                                           Map<NormalizationType, ExpectedValueCalculation> expectedMap,
-                                          BigArray ba) throws IOException {
+                                          BigContactList ba) throws IOException {
         for (NormalizationType norm : norms) {
             if (normMap.containsKey(norm)) {
                 Map<Chromosome, NormalizationVector> map = normMap.get(norm);

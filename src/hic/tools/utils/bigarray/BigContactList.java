@@ -30,7 +30,7 @@ import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
 
-public interface BigArray {
+public interface BigContactList {
     void updateGenomeWideExpected(int chrIdx, ListOfFloatArrays vector, ExpectedValueCalculation exp);
 
     long getMatrixSize();

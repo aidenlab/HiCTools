@@ -25,7 +25,7 @@
 package hic.tools.utils.norm.scale;
 
 import hic.HiCGlobals;
-import hic.tools.utils.bigarray.BigArray;
+import hic.tools.utils.bigarray.BigContactList;
 import hic.tools.utils.largelists.BigFloatsArray;
 import hic.tools.utils.largelists.BigShortsArray;
 import javastraw.reader.datastructures.ListOfFloatArrays;
@@ -43,7 +43,7 @@ public class FinalScale {
     private final static int totalIterations = 3 * maxIter;
     private final static float minErrorThreshold = .02f;
 
-    public static ListOfFloatArrays scaleToTargetVector(BigArray ba, long matrixSize,
+    public static ListOfFloatArrays scaleToTargetVector(BigContactList ba, long matrixSize,
                                                         BigFloatsArray initialGuess, String stem) {
 
         long startTime = System.nanoTime();
@@ -257,7 +257,7 @@ public class FinalScale {
 
     private static BigFloatsArray update(long matrixSize, BigShortsArray bad,
                                          BigFloatsArray vector, BigShortsArray target,
-                                         BigFloatsArray dVector, BigArray ba) {
+                                         BigFloatsArray dVector, BigContactList ba) {
         for (long p = 0; p < matrixSize; p++) {
             if (bad.get(p) == 1) {
                 vector.set(p, 1f);
