@@ -32,32 +32,39 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Iterator;
+import java.util.List;
 
 public class BinRecordsWriter {
-    public void export(Iterator<ContactRecord> recordIterator, String outputName) throws IOException {
 
-        File tempFile = File.createTempFile(outputName, ".tmp.bin");
-        System.out.println(
-                "Temporary file is located on Default location"
-                        + tempFile.getAbsolutePath());
+    private static int internalCount = 0;
 
-        BufferedOutputStream bos = new BufferedOutputStream(Files.newOutputStream(tempFile.toPath()));
-        LittleEndianOutputStream les = new LittleEndianOutputStream(bos);
-
-        try {
-            while (recordIterator.hasNext()) {
-                ContactRecord record = recordIterator.next();
-                les.writeInt(record.getBinX());
-                les.writeInt(record.getBinY());
-                les.writeFloat(record.getCounts());
+    public static void saveAllContacts(Iterator<ContactRecord> iterator, int limit,
+                                       List<String> filenames) throws IOException {
+        LittleEndianOutputStream les = createNewTempFile(filenames);
+        int counter = 0;
+        while (iterator.hasNext()) {
+            ContactRecord record = iterator.next();
+            les.writeInt(record.getBinX());
+            les.writeInt(record.getBinY());
+            les.writeFloat(record.getCounts());
+            counter++;
+            if (counter >= limit) {
+                les.close();
+                les = createNewTempFile(filenames);
+                counter = 0;
             }
-
+        }
+        if (counter > 0) {
             les.close();
-        } catch (IOException error) {
-            System.err.println("Problem when writing Pearson's");
-            error.printStackTrace();
-            System.exit(1);
         }
     }
 
+    private static LittleEndianOutputStream createNewTempFile(List<String> files) throws IOException {
+        File tempFile = File.createTempFile("contacts." + (internalCount++), ".tmp.bin");
+        System.out.println("Created " + tempFile.getAbsolutePath());
+        files.add(tempFile.getAbsolutePath());
+
+        BufferedOutputStream bos = new BufferedOutputStream(Files.newOutputStream(tempFile.toPath()));
+        return new LittleEndianOutputStream(bos);
+    }
 }

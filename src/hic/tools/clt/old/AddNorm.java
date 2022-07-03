@@ -74,12 +74,11 @@ public class AddNorm extends JuiceboxCLT {
         return map;
     }
 
-    public static void launch(String outputFile, List<NormalizationType> normalizationTypes, int genomeWide,
-                              boolean noFragNorm, int numCPUThreads,
+    public static void launch(String outputFile, List<NormalizationType> normalizationTypes, int ramSavePoint,
                               Map<NormalizationType, Integer> resolutionsToBuildTo) throws IOException {
         HiCGlobals.useCache = false;
         NormalizationVectorUpdater updater = new NormalizationVectorUpdater();
-        updater.updateHicFile(outputFile, normalizationTypes, resolutionsToBuildTo, genomeWide, noFragNorm);
+        updater.updateHicFile(outputFile, normalizationTypes, resolutionsToBuildTo, ramSavePoint);
     }
 
     @Override
@@ -133,8 +132,7 @@ public class AddNorm extends JuiceboxCLT {
             if (inputVectorFile != null) {
                 CustomNormVectorFileHandler.updateHicFile(file, inputVectorFile);
             } else {
-                launch(file, normalizationTypes, genomeWideResolution, noFragNorm,
-                        numCPUThreads, resolutionsToBuildTo);
+                launch(file, normalizationTypes, ramSavePoint, resolutionsToBuildTo);
             }
         } catch (Exception e) {
             e.printStackTrace();

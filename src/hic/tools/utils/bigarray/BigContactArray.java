@@ -48,26 +48,6 @@ public class BigContactArray implements BigContactList {
         this.matrixSize = matrixSize;
     }
 
-    public static void matrixVectorMult(BigShortsArray vector,
-                                        BigDoublesArray sumVector, int x, int y, float c) {
-        double counts = c;
-        if (x == y) {
-            counts *= .5;
-        }
-        sumVector.addTo(x, counts * vector.get(y));
-        sumVector.addTo(y, counts * vector.get(x));
-    }
-
-    public static void matrixVectorMult(BigFloatsArray vector,
-                                        BigDoublesArray sumVector, int x, int y, float c) {
-        double counts = c;
-        if (x == y) {
-            counts *= .5;
-        }
-        sumVector.addTo(x, counts * vector.get(y));
-        sumVector.addTo(y, counts * vector.get(x));
-    }
-
     public void addSubList(int[] x, int[] y, float[] c) {
         binXs.add(x);
         binYs.add(y);
@@ -113,7 +93,7 @@ public class BigContactArray implements BigContactList {
                 float[] subBinVals = binVals.get(sIndx);
 
                 for (int z = 0; z < subBinXs.length; z++) {
-                    matrixVectorMult(vector, sumVector,
+                    SparseMatrixTools.matrixVectorMult(vector, sumVector,
                             subBinXs[z], subBinYs[z], subBinVals[z]);
                 }
                 sIndx = index.getAndIncrement();
@@ -140,7 +120,7 @@ public class BigContactArray implements BigContactList {
                 float[] subBinVals = binVals.get(sIndx);
 
                 for (int z = 0; z < subBinXs.length; z++) {
-                    matrixVectorMult(vector, sumVector,
+                    SparseMatrixTools.matrixVectorMult(vector, sumVector,
                             subBinXs[z], subBinYs[z], subBinVals[z]);
                 }
                 sIndx = index.getAndIncrement();
@@ -190,7 +170,7 @@ public class BigContactArray implements BigContactList {
                 float value = subBinVals[z];
                 double valX = norm.get(x);
                 double valY = norm.get(y);
-                if (!Double.isNaN(valX) && !Double.isNaN(valY) && valX > 0 && valY > 0) {
+                if (valX > 0 && valY > 0) {
                     // want total sum of matrix, not just upper triangle
                     if (x == y) {
                         norm_sum += value / (valX * valY);
@@ -210,14 +190,7 @@ public class BigContactArray implements BigContactList {
     }
 
     public ListOfFloatArrays normalizeVectorByScaleFactor(ListOfFloatArrays newNormVector) {
-        for (long k = 0; k < newNormVector.getLength(); k++) {
-            float kVal = newNormVector.get(k);
-            if (kVal <= 0 || Double.isNaN(kVal)) {
-                newNormVector.set(k, Float.NaN);
-            } else {
-                newNormVector.set(k, 1.f / kVal);
-            }
-        }
+        SparseMatrixTools.invertVector(newNormVector);
 
         double normalizedSumTotal = 0, sumTotal = 0;
 
@@ -234,7 +207,7 @@ public class BigContactArray implements BigContactList {
                 double valX = newNormVector.get(x);
                 double valY = newNormVector.get(y);
 
-                if (!Double.isNaN(valX) && !Double.isNaN(valY)) {
+                if (valX > 0 && valY > 0) {
                     double normalizedValue = counts / (valX * valY);
                     normalizedSumTotal += normalizedValue;
                     sumTotal += counts;

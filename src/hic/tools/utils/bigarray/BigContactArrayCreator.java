@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,10 @@ public class BigContactArrayCreator {
         return populateBigArrayFromSingleIterator(zd.getDirectIterator(), 10000000, zd.getMatrixSize());
     }
 
+    public static BigContactList createLocalVersionFromZD(MatrixZoomData zd) {//100000000
+        return new LocallySavedContacts(zd.getDirectIterator(), 10000000, zd.getMatrixSize());
+    }
+
     public static BigContactArray populateBigArrayFromSingleIterator(Iterator<ContactRecord> iterator, int limit,
                                                                      long matrixSize) {
         BigContactArray allRecords = new BigContactArray(matrixSize);
@@ -60,5 +64,4 @@ public class BigContactArrayCreator {
         }
         return allRecords;
     }
-
 }

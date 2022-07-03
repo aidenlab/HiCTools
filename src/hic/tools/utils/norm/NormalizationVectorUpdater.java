@@ -89,7 +89,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
     public void updateHicFile(String path, List<NormalizationType> normalizationsToBuild,
                               Map<NormalizationType, Integer> resolutionsToBuildTo,
-                              int genomeWideLowestResolutionAllowed, boolean noFrag) throws IOException {
+                              int resolutionCutoffToSaveRAM) throws IOException {
 
         //System.out.println("test: using old norm code");
         int minResolution = Integer.MAX_VALUE;
@@ -146,7 +146,12 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                     System.out.println("Now Doing " + chrom.getName());
                 }
 
-                BigContactList ba = BigContactArrayCreator.createFromZD(zd);
+                BigContactList ba;
+                if (zoom.getBinSize() < resolutionCutoffToSaveRAM) {
+                    ba = BigContactArrayCreator.createLocalVersionFromZD(zd);
+                } else {
+                    ba = BigContactArrayCreator.createFromZD(zd);
+                }
                 matrix.clearCacheForZoom(zoom);
 
                 GWNorms.addGWNormsToBuffer(gwNormalizations, gwNormMaps, chrom, normVectorIndices,

@@ -85,7 +85,7 @@ public class BigGWContactArrayCreator {
         return bas;
     }
 
-    private static long calculateGWSize(ChromosomeHandler handler, int resolution) {
+    public static long calculateGWSize(ChromosomeHandler handler, int resolution) {
         long totalSize = 0;
         for (Chromosome c1 : handler.getChromosomeArrayWithoutAllByAll()) {
             totalSize += (c1.getLength() / resolution) + 1;
