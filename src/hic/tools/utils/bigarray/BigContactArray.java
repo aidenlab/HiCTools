@@ -24,6 +24,7 @@
 
 package hic.tools.utils.bigarray;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import hic.HiCGlobals;
 import hic.tools.utils.largelists.BigDoublesArray;
 import hic.tools.utils.largelists.BigFloatsArray;
@@ -135,7 +136,7 @@ public class BigContactArray implements BigContactList {
     }
 
     public ListOfFloatArrays getRowSums() {
-        final ListOfFloatArrays rowsums = new ListOfFloatArrays(matrixSize, 0);
+        final ListOfFloatArrays totalRowSums = new ListOfFloatArrays(matrixSize, 0);
 
         AtomicInteger index = new AtomicInteger(0);
         ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
@@ -150,49 +151,50 @@ public class BigContactArray implements BigContactList {
                     int x = subBinXs[z];
                     int y = subBinYs[z];
                     float value = subBinVals[z];
-                    sums.addTo(x, value);
-                    if (x != y) {
-                        sums.addTo(y, value);
-                    }
+                    SparseMatrixTools.updateRowSums(sums, x, y, value);
                 }
                 sIndx = index.getAndIncrement();
             }
 
-            synchronized (rowsums) {
-                rowsums.addValuesFrom(sums);
+            synchronized (totalRowSums) {
+                totalRowSums.addValuesFrom(sums);
             }
         });
 
-        return rowsums;
+        return totalRowSums;
     }
 
     public double[] getNormMatrixSumFactor(ListOfFloatArrays norm) {
-        double matrix_sum = 0;
-        double norm_sum = 0;
-        for (int sIndx = 0; sIndx < binXs.size(); sIndx++) {
-            int[] subBinXs = binXs.get(sIndx);
-            int[] subBinYs = binYs.get(sIndx);
-            float[] subBinVals = binVals.get(sIndx);
+        final AtomicDouble matrixSum = new AtomicDouble(0);
+        final AtomicDouble normSum = new AtomicDouble(0);
 
-            for (int z = 0; z < subBinXs.length; z++) {
-                int x = subBinXs[z];
-                int y = subBinYs[z];
-                float value = subBinVals[z];
-                double valX = norm.get(x);
-                double valY = norm.get(y);
-                if (valX > 0 && valY > 0) {
-                    // want total sum of matrix, not just upper triangle
-                    if (x == y) {
-                        norm_sum += value / (valX * valY);
-                        matrix_sum += value;
-                    } else {
-                        norm_sum += 2 * value / (valX * valY);
-                        matrix_sum += 2 * value;
-                    }
+        AtomicInteger index = new AtomicInteger(0);
+        ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
+            int sIndx = index.getAndIncrement();
+            double[] mSum = new double[1];
+            double[] nSum = new double[1];
+            while (sIndx < binXs.size()) {
+
+                int[] subBinXs = binXs.get(sIndx);
+                int[] subBinYs = binYs.get(sIndx);
+                float[] subBinVals = binVals.get(sIndx);
+
+                for (int z = 0; z < subBinXs.length; z++) {
+                    int x = subBinXs[z];
+                    int y = subBinYs[z];
+                    float value = subBinVals[z];
+                    SparseMatrixTools.sumScaleFactor(norm, mSum, nSum, x, y, value);
                 }
+                sIndx = index.getAndIncrement();
             }
-        }
-        return new double[]{norm_sum, matrix_sum};
+
+            synchronized (matrixSum) {
+                matrixSum.addAndGet(mSum[0]);
+                normSum.addAndGet(nSum[0]);
+            }
+        });
+
+        return new double[]{normSum.get(), matrixSum.get()};
     }
 
     public long getMatrixSize() {
@@ -202,53 +204,69 @@ public class BigContactArray implements BigContactList {
     public ListOfFloatArrays normalizeVectorByScaleFactor(ListOfFloatArrays newNormVector) {
         SparseMatrixTools.invertVector(newNormVector);
 
-        double normalizedSumTotal = 0, sumTotal = 0;
+        final AtomicDouble normalizedSumTotal = new AtomicDouble(0);
+        final AtomicDouble sumTotal = new AtomicDouble(0);
 
-        for (int sIndx = 0; sIndx < binXs.size(); sIndx++) {
-            int[] subBinXs = binXs.get(sIndx);
-            int[] subBinYs = binYs.get(sIndx);
-            float[] subBinVals = binVals.get(sIndx);
+        AtomicInteger index = new AtomicInteger(0);
+        ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
+            int sIndx = index.getAndIncrement();
+            double[] normSum = new double[1];
+            double[] sum = new double[1];
+            while (sIndx < binXs.size()) {
 
-            for (int z = 0; z < subBinXs.length; z++) {
-                int x = subBinXs[z];
-                int y = subBinYs[z];
-                float counts = subBinVals[z];
+                int[] subBinXs = binXs.get(sIndx);
+                int[] subBinYs = binYs.get(sIndx);
+                float[] subBinVals = binVals.get(sIndx);
 
-                double valX = newNormVector.get(x);
-                double valY = newNormVector.get(y);
-
-                if (valX > 0 && valY > 0) {
-                    double normalizedValue = counts / (valX * valY);
-                    normalizedSumTotal += normalizedValue;
-                    sumTotal += counts;
-                    if (x != y) {
-                        normalizedSumTotal += normalizedValue;
-                        sumTotal += counts;
-                    }
+                for (int z = 0; z < subBinXs.length; z++) {
+                    int x = subBinXs[z];
+                    int y = subBinYs[z];
+                    float counts = subBinVals[z];
+                    SparseMatrixTools.sumRawAndNorm(normSum, sum, x, y, counts, newNormVector);
                 }
+                sIndx = index.getAndIncrement();
             }
-        }
 
-        double scaleFactor = Math.sqrt(normalizedSumTotal / sumTotal);
+            synchronized (normalizedSumTotal) {
+                normalizedSumTotal.addAndGet(normSum[0]);
+                sumTotal.addAndGet(sum[0]);
+            }
+        });
+
+        double scaleFactor = Math.sqrt(normalizedSumTotal.get() / sumTotal.get());
         newNormVector.multiplyEverythingBy(scaleFactor);
         return newNormVector;
     }
 
     public ListOfIntArrays getNumNonZeroInRows() {
-        ListOfIntArrays numNonZero = new ListOfIntArrays(matrixSize, 0);
-        for (int sIndx = 0; sIndx < binXs.size(); sIndx++) {
-            int[] subBinXs = binXs.get(sIndx);
-            int[] subBinYs = binYs.get(sIndx);
-            for (int z = 0; z < subBinXs.length; z++) {
-                int x = subBinXs[z];
-                int y = subBinYs[z];
-                numNonZero.addTo(x, 1);
-                if (x != y) {
-                    numNonZero.addTo(y, 1);
+        final ListOfIntArrays numNonZeros = new ListOfIntArrays(matrixSize);
+
+        AtomicInteger index = new AtomicInteger(0);
+        ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
+            int sIndx = index.getAndIncrement();
+            ListOfIntArrays nonZeros = new ListOfIntArrays(matrixSize);
+            while (sIndx < binXs.size()) {
+
+                int[] subBinXs = binXs.get(sIndx);
+                int[] subBinYs = binYs.get(sIndx);
+
+                for (int z = 0; z < subBinXs.length; z++) {
+                    int x = subBinXs[z];
+                    int y = subBinYs[z];
+                    nonZeros.addTo(x, 1);
+                    if (x != y) {
+                        nonZeros.addTo(y, 1);
+                    }
                 }
+                sIndx = index.getAndIncrement();
             }
-        }
-        return numNonZero;
+
+            synchronized (numNonZeros) {
+                numNonZeros.addValuesFrom(nonZeros);
+            }
+        });
+
+        return numNonZeros;
     }
 
     public void updateGenomeWideExpected(int chrIdx, ListOfFloatArrays vector, ExpectedValueCalculation exp) {
@@ -261,16 +279,7 @@ public class BigContactArray implements BigContactList {
                 int x = subBinXs[z];
                 int y = subBinYs[z];
                 float counts = subBinVals[z];
-                if (counts > 0) {
-                    final float vx = vector.get(x);
-                    final float vy = vector.get(y);
-                    if (vx > 0 && vy > 0) {
-                        double value = counts / (vx * vy);
-                        if (value > 0) {
-                            exp.addDistance(chrIdx, x, y, value);
-                        }
-                    }
-                }
+                SparseMatrixTools.populateNormedExpected(chrIdx, vector, exp, x, y, counts);
             }
         }
     }

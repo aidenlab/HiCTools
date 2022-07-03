@@ -144,21 +144,18 @@ public class LocallySavedContacts implements BigContactList {
     }
 
     public ListOfFloatArrays getRowSums() {
-        BigFloatsArray totalRowSums = new BigFloatsArray(matrixSize);
+        final ListOfFloatArrays totalRowSums = new ListOfFloatArrays(matrixSize, 0);
 
         AtomicInteger index = new AtomicInteger(0);
         ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
             int sIndx = index.getAndIncrement();
-            BigFloatsArray rowSums = new BigFloatsArray(matrixSize);
+            ListOfFloatArrays sums = new ListOfFloatArrays(matrixSize);
             while (sIndx < filenames.size()) {
                 try {
                     BinRecordsReader reader = new BinRecordsReader(filenames.get(sIndx));
                     while (reader.hasNext()) {
                         ContactRecord record = reader.next();
-                        rowSums.add(record.getBinX(), record.getCounts());
-                        if (record.getBinX() != record.getBinY()) {
-                            rowSums.add(record.getBinY(), record.getCounts());
-                        }
+                        SparseMatrixTools.updateRowSums(sums, record.getBinX(), record.getBinY(), record.getCounts());
                     }
                     reader.close();
                 } catch (IOException e) {
@@ -170,11 +167,11 @@ public class LocallySavedContacts implements BigContactList {
             }
 
             synchronized (totalRowSums) {
-                totalRowSums.addValuesFrom(rowSums);
+                totalRowSums.addValuesFrom(sums);
             }
         });
 
-        return totalRowSums.convertToRegular();
+        return totalRowSums;
     }
 
     public double[] getNormMatrixSumFactor(ListOfFloatArrays norm) {
@@ -184,8 +181,8 @@ public class LocallySavedContacts implements BigContactList {
         AtomicInteger index = new AtomicInteger(0);
         ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
             int sIndx = index.getAndIncrement();
-            double mSum = 0;
-            double nSum = 0;
+            double[] mSum = new double[1];
+            double[] nSum = new double[1];
             while (sIndx < filenames.size()) {
 
                 try {
@@ -196,18 +193,7 @@ public class LocallySavedContacts implements BigContactList {
                         int x = record.getBinX();
                         int y = record.getBinY();
                         float value = record.getCounts();
-                        double valX = norm.get(x);
-                        double valY = norm.get(y);
-                        if (!Double.isNaN(valX) && !Double.isNaN(valY) && valX > 0 && valY > 0) {
-                            // want total sum of matrix, not just upper triangle
-                            if (x == y) {
-                                nSum += value / (valX * valY);
-                                mSum += value;
-                            } else {
-                                nSum += 2 * value / (valX * valY);
-                                mSum += 2 * value;
-                            }
-                        }
+                        SparseMatrixTools.sumScaleFactor(norm, mSum, nSum, x, y, value);
                     }
                     reader.close();
                 } catch (IOException e) {
@@ -219,8 +205,8 @@ public class LocallySavedContacts implements BigContactList {
             }
 
             synchronized (matrixSum) {
-                matrixSum.addAndGet(mSum);
-                normSum.addAndGet(nSum);
+                matrixSum.addAndGet(mSum[0]);
+                normSum.addAndGet(nSum[0]);
             }
         });
 
@@ -237,8 +223,8 @@ public class LocallySavedContacts implements BigContactList {
         AtomicInteger index = new AtomicInteger(0);
         ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
             int sIndx = index.getAndIncrement();
-            double normSum = 0;
-            double sum = 0;
+            double[] normSum = new double[1];
+            double[] sum = new double[1];
             while (sIndx < filenames.size()) {
 
                 try {
@@ -248,19 +234,7 @@ public class LocallySavedContacts implements BigContactList {
                         int x = record.getBinX();
                         int y = record.getBinY();
                         float counts = record.getCounts();
-
-                        double valX = newNormVector.get(x);
-                        double valY = newNormVector.get(y);
-
-                        if (valX > 0 && valY > 0) {
-                            double normalizedValue = counts / (valX * valY);
-                            normSum += normalizedValue;
-                            sum += counts;
-                            if (x != y) {
-                                normSum += normalizedValue;
-                                sum += counts;
-                            }
-                        }
+                        SparseMatrixTools.sumRawAndNorm(normSum, sum, x, y, counts, newNormVector);
                     }
                     reader.close();
                 } catch (IOException e) {
@@ -272,8 +246,8 @@ public class LocallySavedContacts implements BigContactList {
             }
 
             synchronized (normalizedSumTotal) {
-                normalizedSumTotal.addAndGet(normSum);
-                sumTotal.addAndGet(sum);
+                normalizedSumTotal.addAndGet(normSum[0]);
+                sumTotal.addAndGet(sum[0]);
             }
         });
 
@@ -327,16 +301,7 @@ public class LocallySavedContacts implements BigContactList {
                     int x = record.getBinX();
                     int y = record.getBinY();
                     float counts = record.getCounts();
-                    if (counts > 0) {
-                        final float vx = expectedVector.get(x);
-                        final float vy = expectedVector.get(y);
-                        if (vx > 0 && vy > 0) {
-                            double value = counts / (vx * vy);
-                            if (value > 0) {
-                                exp.addDistance(chrIdx, x, y, value);
-                            }
-                        }
-                    }
+                    SparseMatrixTools.populateNormedExpected(chrIdx, expectedVector, exp, x, y, counts);
                 }
                 reader.close();
             } catch (IOException e) {

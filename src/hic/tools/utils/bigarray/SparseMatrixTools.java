@@ -27,6 +27,7 @@ package hic.tools.utils.bigarray;
 import hic.tools.utils.largelists.BigDoublesArray;
 import hic.tools.utils.largelists.BigFloatsArray;
 import hic.tools.utils.largelists.BigShortsArray;
+import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 
 public class SparseMatrixTools {
@@ -58,6 +59,57 @@ public class SparseMatrixTools {
             } else {
                 newNormVector.set(k, Float.NaN);
             }
+        }
+    }
+
+    public static void populateNormedExpected(int chrIdx, ListOfFloatArrays expectedVector, ExpectedValueCalculation exp, int x, int y, float counts) {
+        if (counts > 0) {
+            final float vx = expectedVector.get(x);
+            final float vy = expectedVector.get(y);
+            if (vx > 0 && vy > 0) {
+                double value = counts / (vx * vy);
+                if (value > 0) {
+                    exp.addDistance(chrIdx, x, y, value);
+                }
+            }
+        }
+    }
+
+    public static void sumRawAndNorm(double[] normSum, double[] sum, int x, int y, float counts,
+                                     ListOfFloatArrays newNormVector) {
+        double valX = newNormVector.get(x);
+        double valY = newNormVector.get(y);
+
+        if (valX > 0 && valY > 0) {
+            double normalizedValue = counts / (valX * valY);
+            normSum[0] += normalizedValue;
+            sum[0] += counts;
+            if (x != y) {
+                normSum[0] += normalizedValue;
+                sum[0] += counts;
+            }
+        }
+    }
+
+    public static void sumScaleFactor(ListOfFloatArrays norm, double[] mSum, double[] nSum, int x, int y, float value) {
+        double valX = norm.get(x);
+        double valY = norm.get(y);
+        if (valX > 0 && valY > 0) {
+            // want total sum of matrix, not just upper triangle
+            if (x == y) {
+                nSum[0] += value / (valX * valY);
+                mSum[0] += value;
+            } else {
+                nSum[0] += 2 * value / (valX * valY);
+                mSum[0] += 2 * value;
+            }
+        }
+    }
+
+    public static void updateRowSums(ListOfFloatArrays sums, int x, int y, float value) {
+        sums.addTo(x, value);
+        if (x != y) {
+            sums.addTo(y, value);
         }
     }
 }
