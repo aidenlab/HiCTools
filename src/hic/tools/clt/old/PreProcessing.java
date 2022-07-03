@@ -95,17 +95,16 @@ public class PreProcessing extends JuiceboxCLT {
         String tmpDir = parser.getTmpdirOption();
         double hicFileScalingFactor = parser.getScalingOption();
 
-        updateNumberOfCPUThreads(parser, 1);
-        updateSecondaryNumberOfCPUThreads(parser, 10);
-        HiCGlobals.numCPUMatrixThreads = numCPUThreadsForSecondTask;
+        HiCGlobals.primaryThreads = updateNumberOfCPUThreads(parser, 1);
+        HiCGlobals.normThreads = updateSecondaryNumberOfCPUThreads(parser, 10);
 
-        if (numCPUThreads < 2) {
+        if (HiCGlobals.primaryThreads < 2) {
             preprocessor = new Preprocessor(new File(outputFile), genomeId, hicFileScalingFactor, tmpDir);
             usingMultiThreadedVersion = false;
         } else {
             try {
                 preprocessor = new MultithreadedPreprocessor(new File(outputFile), genomeId,
-                        hicFileScalingFactor, numCPUThreads, parser.getMndIndexOption(), tmpDir);
+                        hicFileScalingFactor, HiCGlobals.primaryThreads, parser.getMndIndexOption(), tmpDir);
                 usingMultiThreadedVersion = true;
             } catch (Exception e) {
                 System.err.println(e.getLocalizedMessage() + "\nUsing single threaded preprocessor");

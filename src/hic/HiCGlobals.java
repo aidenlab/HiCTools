@@ -37,7 +37,8 @@ public class HiCGlobals {
     public static boolean useCache = true;
     public static boolean allowDynamicBlockIndex = true;
     public static boolean printVerboseComments = false;
-    public static int numCPUMatrixThreads = 1;
+    public static int primaryThreads = 4;
+    public static int normThreads = 4;
 
     public static void verifySupportedHiCFileVersion(int version) throws RuntimeException {
         if (version != writingVersion) {

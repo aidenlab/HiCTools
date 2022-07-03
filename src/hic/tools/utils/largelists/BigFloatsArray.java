@@ -284,7 +284,7 @@ public class BigFloatsArray {
     }
 
     private int getNumThreads() {
-        return Math.min(HiCGlobals.numCPUMatrixThreads, internalList.size());
+        return Math.min(HiCGlobals.normThreads, internalList.size());
     }
 
     public void parScaleByRatio(BigShortsArray num, BigFloatsArray denom) {

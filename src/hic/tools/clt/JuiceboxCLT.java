@@ -24,7 +24,6 @@
 
 package hic.tools.clt;
 
-import hic.HiCGlobals;
 import javastraw.reader.Dataset;
 import javastraw.reader.type.NormalizationType;
 import javastraw.tools.HiCFileTools;
@@ -37,8 +36,6 @@ public abstract class JuiceboxCLT {
     private static String usage;
     protected Dataset dataset = null;
     protected NormalizationType norm = null;
-    protected static int numCPUThreads = 1;
-    protected static int numCPUThreadsForSecondTask = 1;
     protected boolean usingMultiThreadedVersion = false;
 
     protected JuiceboxCLT(String usage) {
@@ -88,16 +85,16 @@ public abstract class JuiceboxCLT {
         }
     }
 
-    protected void updateNumberOfCPUThreads(CommandLineParser parser, int numDefaultThreads) {
-        int numThreads = parser.getNumThreads();
-        numCPUThreads = getAppropriateNumberOfThreads(numThreads, numDefaultThreads);
+    protected int updateNumberOfCPUThreads(CommandLineParser parser, int numDefaultThreads) {
+        int numCPUThreads = getAppropriateNumberOfThreads(parser.getNumThreads(), numDefaultThreads);
         System.out.println("Using " + numCPUThreads + " CPU thread(s) for primary task");
+        return numCPUThreads;
     }
 
-    protected void updateSecondaryNumberOfCPUThreads(CommandLineParser parser, int numDefaultThreads) {
-        int numMThreads = parser.getNumMatrixOperationThreads();
-        numCPUThreadsForSecondTask = getAppropriateNumberOfThreads(numMThreads, numDefaultThreads);
-        System.out.println("Using " + HiCGlobals.numCPUMatrixThreads + " CPU thread(s) for secondary task");
+    protected int updateSecondaryNumberOfCPUThreads(CommandLineParser parser, int numDefaultThreads) {
+        int numCPUThreadsForSecondTask = getAppropriateNumberOfThreads(parser.getNumMatrixOperationThreads(), numDefaultThreads);
+        System.out.println("Using " + numCPUThreadsForSecondTask + " CPU thread(s) for secondary task");
+        return numCPUThreadsForSecondTask;
     }
 }
 

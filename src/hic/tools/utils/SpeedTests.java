@@ -1,0 +1,85 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ *  THE SOFTWARE.
+ */
+
+package hic.tools.utils;
+
+import hic.tools.utils.bigarray.BigContactArrayCreator;
+import hic.tools.utils.bigarray.BigContactList;
+import javastraw.reader.Dataset;
+import javastraw.reader.DatasetReaderV2;
+import javastraw.reader.basics.Chromosome;
+import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.mzd.Matrix;
+import javastraw.reader.mzd.MatrixZoomData;
+import javastraw.reader.type.HiCZoom;
+
+import java.io.IOException;
+
+public class SpeedTests {
+
+    public static void testRowSums() throws IOException {
+
+        String path = "/Users/muhammad/Desktop/hicfiles/copy_tmp_chr10_subsample0.25";
+
+        DatasetReaderV2 reader = new DatasetReaderV2(path, false, false);
+        Dataset ds = reader.read();
+
+        Chromosome chr10 = ds.getChromosomeHandler().getChromosomeFromName("chr10");
+
+        Matrix matrix = ds.getMatrix(chr10, chr10, 50);
+        MatrixZoomData zd = matrix.getZoomData(new HiCZoom(50));
+
+        // test 1 direct iteration
+        ListOfFloatArrays f0 = test1(zd);
+        System.gc();
+
+        // test 1 big contact iterator
+        ListOfFloatArrays f1 = test1(zd);
+        System.gc();
+
+        // test 1 local file based iterator
+        ListOfFloatArrays f2 = test2(zd);
+
+    }
+
+    private static ListOfFloatArrays test1(MatrixZoomData zd) {
+        BigContactList ba = BigContactArrayCreator.createFromZD(zd);
+        long r0 = System.nanoTime();
+        ListOfFloatArrays f1 = ba.getRowSums();
+        long r1 = System.nanoTime();
+        double time = (r1 - r0) * 1e-9;
+        System.err.println("\nTest 1: " + time + " seconds");
+        return f1;
+    }
+
+    private static ListOfFloatArrays test2(MatrixZoomData zd) {
+        BigContactList ba = BigContactArrayCreator.createLocalVersionFromZD(zd);
+        long r0 = System.nanoTime();
+        ListOfFloatArrays f1 = ba.getRowSums();
+        long r1 = System.nanoTime();
+        double time = (r1 - r0) * 1e-9;
+        System.err.println("\nTest 1: " + time + " seconds");
+        return f1;
+    }
+}

@@ -123,6 +123,6 @@ public class BigShortsArray {
 	}
 
 	private int getNumThreads() {
-		return Math.min(HiCGlobals.numCPUMatrixThreads, internalList.size());
+		return Math.min(HiCGlobals.normThreads, internalList.size());
 	}
 }

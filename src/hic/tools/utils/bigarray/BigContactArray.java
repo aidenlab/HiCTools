@@ -77,7 +77,7 @@ public class BigContactArray implements BigContactList {
     }
 
     private int getNumThreads() {
-        return Math.min(HiCGlobals.numCPUMatrixThreads, binXs.size());
+        return Math.min(HiCGlobals.normThreads, binXs.size());
     }
 
     public BigFloatsArray parSparseMultiplyAcrossLists(BigFloatsArray vector, long vectorLength) {

@@ -73,7 +73,7 @@ public class LocallySavedContacts implements BigContactList {
     }
 
     private int getNumThreads() {
-        return Math.min(HiCGlobals.numCPUMatrixThreads, filenames.size());
+        return Math.min(HiCGlobals.normThreads, filenames.size());
     }
 
     public BigFloatsArray parSparseMultiplyAcrossLists(BigFloatsArray vector, long vectorLength) {

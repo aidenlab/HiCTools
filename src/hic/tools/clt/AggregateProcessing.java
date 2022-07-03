@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 
 package hic.tools.clt;
 
-import hic.tools.HiCTools;
+import hic.tools.utils.SpeedTests;
 
 /**
  * Created for testing multiple CLTs at once
@@ -32,11 +32,16 @@ import hic.tools.HiCTools;
  */
 class AggregateProcessing {
     public static void main(String[] argv) throws Exception {
+
+        SpeedTests.testRowSums();
+
+        /*
         String[] command = new String[]{"sum", "--diagonals",
                 "/Users/mshamim/Desktop/ovary/ovary.hic",
                 "/Users/mshamim/Desktop/ovary/w61_ovary.hic",
                 "/Users/mshamim/Desktop/ovary/w80_ovary.hic",
         };
         HiCTools.main(command);
+        */
     }
 }

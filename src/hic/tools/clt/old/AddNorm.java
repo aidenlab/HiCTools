@@ -94,10 +94,8 @@ public class AddNorm extends JuiceboxCLT {
         }
         noFragNorm = parser.getNoFragNormOption();
 
-        updateNumberOfCPUThreads(parser, 10);
-        HiCGlobals.numCPUMatrixThreads = numCPUThreads;
-
-        usingMultiThreadedVersion = numCPUThreads > 1;
+        HiCGlobals.normThreads = updateNumberOfCPUThreads(parser, 10);
+        usingMultiThreadedVersion = HiCGlobals.normThreads > 1;
 
         genomeWideResolution = parser.getGenomeWideOption();
         normalizationTypes.addAll(parser.getAllNormalizationTypesOption());
