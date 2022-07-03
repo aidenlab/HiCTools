@@ -32,26 +32,33 @@ import hic.tools.utils.largelists.BigShortsArray;
 import hic.tools.utils.localtemps.BinRecordsReader;
 import hic.tools.utils.localtemps.BinRecordsWriter;
 import hic.tools.utils.original.ExpectedValueCalculation;
+import javastraw.reader.Dataset;
+import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.block.ContactRecord;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
+import javastraw.reader.type.HiCZoom;
 import javastraw.tools.ParallelizationTools;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class LocallySavedContacts implements BigContactList {
-    private final List<String> filenames = new ArrayList<>();
+    public static final String INTRA = "intra.";
+    public static final String INTER = "inter.";
+    public static final String GENERIC = "contacts.";
+    private final List<String> filenames = Collections.synchronizedList(new ArrayList<>());
     private final long matrixSize;
 
     public LocallySavedContacts(Iterator<ContactRecord> directIterator, int bufferSize, long matrixSize) {
         this.matrixSize = matrixSize;
         try {
-            BinRecordsWriter.saveAllContacts(directIterator, bufferSize, filenames);
+            BinRecordsWriter.saveAllContacts(directIterator, bufferSize, filenames, GENERIC);
         } catch (Exception e) {
             System.err.println("ERROR: Unable to save data locally");
             e.printStackTrace();
@@ -59,7 +66,20 @@ public class LocallySavedContacts implements BigContactList {
         }
     }
 
+    public LocallySavedContacts(Dataset ds, ChromosomeHandler handler, HiCZoom zoom, boolean includeIntra,
+                                int bufferSize, long matrixSize) {
+        this.matrixSize = matrixSize;
+        try {
+            BinRecordsWriter.saveAllGWContacts(ds, handler, zoom, includeIntra, bufferSize, filenames,
+                    INTRA, INTER);
+        } catch (Exception e) {
+            System.err.println("ERROR: Unable to save data locally");
+            e.printStackTrace();
+            System.exit(20);
+        }
+    }
 
+    @Override
     public void clear() {
         for (String filename : filenames) {
             File file = new File(filename);
@@ -68,6 +88,20 @@ public class LocallySavedContacts implements BigContactList {
         filenames.clear();
     }
 
+    @Override
+    public void clearIntraAndShiftInter() {
+        List<String> toDelete = new ArrayList<>();
+        for (String filename : filenames) {
+            if (filename.contains(INTRA)) {
+                File file = new File(filename);
+                file.delete();
+                toDelete.add(filename);
+            }
+        }
+        filenames.removeAll(toDelete);
+    }
+
+    @Override
     public long getMatrixSize() {
         return matrixSize;
     }
@@ -76,6 +110,7 @@ public class LocallySavedContacts implements BigContactList {
         return Math.min(HiCGlobals.normThreads, filenames.size());
     }
 
+    @Override
     public BigFloatsArray parSparseMultiplyAcrossLists(BigFloatsArray vector, long vectorLength) {
         final BigDoublesArray totalSumVector = new BigDoublesArray(vectorLength);
 
@@ -109,6 +144,7 @@ public class LocallySavedContacts implements BigContactList {
         return totalSumVector.convertToFloats();
     }
 
+    @Override
     public BigFloatsArray parSparseMultiplyAcrossLists(BigShortsArray vector, long vectorLength) {
         final BigDoublesArray totalSumVector = new BigDoublesArray(vectorLength);
 
@@ -143,6 +179,7 @@ public class LocallySavedContacts implements BigContactList {
         return totalSumVector.convertToFloats();
     }
 
+    @Override
     public ListOfFloatArrays getRowSums() {
         final ListOfFloatArrays totalRowSums = new ListOfFloatArrays(matrixSize, 0);
 
@@ -174,6 +211,7 @@ public class LocallySavedContacts implements BigContactList {
         return totalRowSums;
     }
 
+    @Override
     public double[] getNormMatrixSumFactor(ListOfFloatArrays norm) {
         final AtomicDouble matrixSum = new AtomicDouble(0);
         final AtomicDouble normSum = new AtomicDouble(0);
@@ -213,7 +251,7 @@ public class LocallySavedContacts implements BigContactList {
         return new double[]{normSum.get(), matrixSum.get()};
     }
 
-
+    @Override
     public ListOfFloatArrays normalizeVectorByScaleFactor(ListOfFloatArrays newNormVector) {
         SparseMatrixTools.invertVector(newNormVector);
 
@@ -256,7 +294,7 @@ public class LocallySavedContacts implements BigContactList {
         return newNormVector;
     }
 
-
+    @Override
     public ListOfIntArrays getNumNonZeroInRows() {
         final ListOfIntArrays numNonZeros = new ListOfIntArrays(matrixSize);
 
@@ -291,6 +329,7 @@ public class LocallySavedContacts implements BigContactList {
         return numNonZeros;
     }
 
+    @Override
     public void updateGenomeWideExpected(int chrIdx, ListOfFloatArrays expectedVector, ExpectedValueCalculation exp) {
 
         for (String filename : filenames) {

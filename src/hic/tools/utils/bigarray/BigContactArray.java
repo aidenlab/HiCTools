@@ -71,6 +71,7 @@ public class BigContactArray implements BigContactList {
         binVals.addAll(other.binVals);
     }
 
+    @Override
     public void clear() {
         binXs.clear();
         binYs.clear();
@@ -81,6 +82,7 @@ public class BigContactArray implements BigContactList {
         return Math.min(HiCGlobals.normThreads, binXs.size());
     }
 
+    @Override
     public BigFloatsArray parSparseMultiplyAcrossLists(BigFloatsArray vector, long vectorLength) {
         final BigDoublesArray totalSumVector = new BigDoublesArray(vectorLength);
 
@@ -108,6 +110,12 @@ public class BigContactArray implements BigContactList {
         return totalSumVector.convertToFloats();
     }
 
+    @Override
+    public void clearIntraAndShiftInter() {
+        return;
+    }
+
+    @Override
     public BigFloatsArray parSparseMultiplyAcrossLists(BigShortsArray vector, long vectorLength) {
         final BigDoublesArray totalSumVector = new BigDoublesArray(vectorLength);
 
@@ -135,6 +143,7 @@ public class BigContactArray implements BigContactList {
         return totalSumVector.convertToFloats();
     }
 
+    @Override
     public ListOfFloatArrays getRowSums() {
         final ListOfFloatArrays totalRowSums = new ListOfFloatArrays(matrixSize, 0);
 
@@ -164,6 +173,7 @@ public class BigContactArray implements BigContactList {
         return totalRowSums;
     }
 
+    @Override
     public double[] getNormMatrixSumFactor(ListOfFloatArrays norm) {
         final AtomicDouble matrixSum = new AtomicDouble(0);
         final AtomicDouble normSum = new AtomicDouble(0);
@@ -201,6 +211,7 @@ public class BigContactArray implements BigContactList {
         return matrixSize;
     }
 
+    @Override
     public ListOfFloatArrays normalizeVectorByScaleFactor(ListOfFloatArrays newNormVector) {
         SparseMatrixTools.invertVector(newNormVector);
 
@@ -238,6 +249,7 @@ public class BigContactArray implements BigContactList {
         return newNormVector;
     }
 
+    @Override
     public ListOfIntArrays getNumNonZeroInRows() {
         final ListOfIntArrays numNonZeros = new ListOfIntArrays(matrixSize);
 
@@ -269,6 +281,7 @@ public class BigContactArray implements BigContactList {
         return numNonZeros;
     }
 
+    @Override
     public void updateGenomeWideExpected(int chrIdx, ListOfFloatArrays vector, ExpectedValueCalculation exp) {
         for (int sIndx = 0; sIndx < binXs.size(); sIndx++) {
             int[] subBinXs = binXs.get(sIndx);

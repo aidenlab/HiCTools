@@ -48,4 +48,6 @@ public interface BigContactList {
     BigFloatsArray parSparseMultiplyAcrossLists(BigShortsArray one, long matrixSize);
 
     BigFloatsArray parSparseMultiplyAcrossLists(BigFloatsArray one, long matrixSize);
+
+    void clearIntraAndShiftInter();
 }

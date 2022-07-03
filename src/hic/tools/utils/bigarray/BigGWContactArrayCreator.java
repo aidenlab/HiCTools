@@ -35,6 +35,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class BigGWContactArrayCreator {
+
+    public static LocallySavedContacts createLocalVersionWholeGenome(Dataset dataset, ChromosomeHandler handler,
+                                                                     HiCZoom zoom, boolean includeIntra) {
+        int limit = 100000000;
+        long matrixSize = calculateGWSize(handler, zoom.getBinSize());
+        return new LocallySavedContacts(dataset, handler, zoom, includeIntra, limit, matrixSize);
+    }
+
     public static BigGWContactArray createForWholeGenome(Dataset dataset, ChromosomeHandler handler,
                                                          HiCZoom zoom, boolean includeIntra) {
         int limit = 10000000;

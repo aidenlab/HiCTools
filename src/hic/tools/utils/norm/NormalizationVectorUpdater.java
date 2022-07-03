@@ -123,7 +123,8 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
             List<NormalizationType> interNormalizations = GWNorms.getInterNorms(normalizationsToBuild, resolutionsToBuildTo, zoom);
 
             Map<NormalizationType, Map<Chromosome, NormalizationVector>>
-                    gwNormMaps = GWNorms.getGWNormMaps(gwNormalizations, interNormalizations, ds, zoom);
+                    gwNormMaps = GWNorms.getGWNormMaps(gwNormalizations, interNormalizations, ds, zoom,
+                    resolutionCutoffToSaveRAM);
 
             Map<NormalizationType, ExpectedValueCalculation> gwMapExpected = GWNorms.createdExpectedMap(gwNormalizations,
                     interNormalizations, chromosomeHandler, zoom.getBinSize());
