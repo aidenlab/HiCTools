@@ -25,8 +25,8 @@
 package hic.tools.utils.norm;
 
 import hic.HiCGlobals;
-import hic.tools.utils.bigarray.BigContactArray;
 import hic.tools.utils.bigarray.BigContactArrayCreator;
+import hic.tools.utils.bigarray.BigContactList;
 import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.Dataset;
@@ -71,7 +71,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
     protected static void updateExpectedValueCalculationForChr(final int chrIdx, NormalizationCalculations nc,
                                                                ListOfFloatArrays vec, NormalizationType type,
-                                                               HiCZoom zoom, BigContactArray ba,
+                                                               HiCZoom zoom, BigContactList ba,
                                                                ExpectedValueCalculation ev,
                                                                BigListOfByteWriters normVectorBuffers,
                                                                List<NormalizationVectorIndexEntry> normVectorIndex) throws IOException {
@@ -89,7 +89,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
     public void updateHicFile(String path, List<NormalizationType> normalizationsToBuild,
                               Map<NormalizationType, Integer> resolutionsToBuildTo,
-                              int genomeWideLowestResolutionAllowed, boolean noFrag) throws IOException {
+                              int resolutionCutoffToSaveRAM) throws IOException {
 
         //System.out.println("test: using old norm code");
         int minResolution = Integer.MAX_VALUE;
@@ -123,7 +123,8 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
             List<NormalizationType> interNormalizations = GWNorms.getInterNorms(normalizationsToBuild, resolutionsToBuildTo, zoom);
 
             Map<NormalizationType, Map<Chromosome, NormalizationVector>>
-                    gwNormMaps = GWNorms.getGWNormMaps(gwNormalizations, interNormalizations, ds, zoom);
+                    gwNormMaps = GWNorms.getGWNormMaps(gwNormalizations, interNormalizations, ds, zoom,
+                    resolutionCutoffToSaveRAM);
 
             Map<NormalizationType, ExpectedValueCalculation> gwMapExpected = GWNorms.createdExpectedMap(gwNormalizations,
                     interNormalizations, chromosomeHandler, zoom.getBinSize());
@@ -146,7 +147,12 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                     System.out.println("Now Doing " + chrom.getName());
                 }
 
-                BigContactArray ba = BigContactArrayCreator.createFromZD(zd);
+                BigContactList ba;
+                if (zoom.getBinSize() < resolutionCutoffToSaveRAM) {
+                    ba = BigContactArrayCreator.createLocalVersionFromZD(zd);
+                } else {
+                    ba = BigContactArrayCreator.createFromZD(zd);
+                }
                 matrix.clearCacheForZoom(zoom);
 
                 GWNorms.addGWNormsToBuffer(gwNormalizations, gwNormMaps, chrom, normVectorIndices,
@@ -193,7 +199,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
     private void buildTheNorms(boolean saveVC, boolean saveVCSqrt, boolean saveScale, Chromosome chr,
                                NormalizationCalculations nc, HiCZoom zoom, ExpectedValueCalculation evVC,
                                ExpectedValueCalculation evVCSqrt, ExpectedValueCalculation evSCALE,
-                               BigContactArray ba) throws IOException {
+                               BigContactList ba) throws IOException {
 
         final int chrIdx = chr.getIndex();
         ListOfFloatArrays vc = nc.computeVC();

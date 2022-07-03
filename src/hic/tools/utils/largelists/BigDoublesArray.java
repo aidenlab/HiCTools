@@ -134,7 +134,7 @@ public class BigDoublesArray {
 	}
 
 	private int getNumThreads() {
-		return Math.min(HiCGlobals.numCPUMatrixThreads, internalList.size());
+		return Math.min(HiCGlobals.normThreads, internalList.size());
 	}
 
 	public static double parCalculateError(BigDoublesArray col, BigDoublesArray scale, BigShortsArray target, BigShortsArray bad) {

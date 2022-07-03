@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@ public class ParallelVectorTools {
     public static void process(long matrixSize, VectorFunction function) {
 
         long[] cutoffs = getCutoffs(matrixSize);
-        int numThreads = HiCGlobals.numCPUMatrixThreads;
+        int numThreads = HiCGlobals.normThreads;
 
         AtomicInteger index = new AtomicInteger();
         ParallelizationTools.launchParallelizedCode(numThreads, () -> {
@@ -49,7 +49,7 @@ public class ParallelVectorTools {
     }
 
     private static long[] getCutoffs(long matrixSize) {
-        int n = HiCGlobals.numCPUMatrixThreads;
+        int n = HiCGlobals.normThreads;
         long[] bounds = new long[n + 1];
         for (int z = 0; z < n; z++) {
             bounds[z] = (matrixSize * z / n);

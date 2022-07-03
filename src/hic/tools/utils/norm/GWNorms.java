@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,7 @@
 
 package hic.tools.utils.norm;
 
-import hic.tools.utils.bigarray.BigContactArray;
-import hic.tools.utils.bigarray.BigGWContactArray;
+import hic.tools.utils.bigarray.BigContactList;
 import hic.tools.utils.bigarray.BigGWContactArrayCreator;
 import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
@@ -72,21 +71,17 @@ public class GWNorms {
 
     public static Map<NormalizationType, Map<Chromosome, NormalizationVector>> getGWNormMaps(List<NormalizationType> gwNorms,
                                                                                              List<NormalizationType> interNorms,
-                                                                                             Dataset ds, HiCZoom zoom) {
+                                                                                             Dataset ds, HiCZoom zoom,
+                                                                                             int resCutoffForRAM) {
 
         if (gwNorms.isEmpty() && interNorms.isEmpty()) return new HashMap<>();
 
         final ChromosomeHandler handler = ds.getChromosomeHandler();
-        final BigGWContactArray ba;
-        if (gwNorms.isEmpty()) {
-            // only INTER_ norms getting used
-            ba = BigGWContactArrayCreator.createForWholeGenome(ds, handler, zoom, false);
-        } else if (interNorms.isEmpty()) {
-            // only GW_ norms getting used
-            ba = BigGWContactArrayCreator.createForWholeGenome(ds, handler, zoom, true);
+        final BigContactList ba;
+        if (zoom.getBinSize() < 25 * resCutoffForRAM) {
+            ba = BigGWContactArrayCreator.createLocalVersionWholeGenome(ds, handler, zoom, !gwNorms.isEmpty());
         } else {
-            // using both
-            ba = BigGWContactArrayCreator.createForWholeGenome(ds, handler, zoom, true);
+            ba = BigGWContactArrayCreator.createForWholeGenome(ds, handler, zoom, !gwNorms.isEmpty());
         }
 
         Map<NormalizationType, Map<Chromosome, NormalizationVector>> result = new HashMap<>();
@@ -106,12 +101,12 @@ public class GWNorms {
             }
         }
 
-        ba.clearAll();
+        ba.clear();
         return result;
     }
 
     private static Map<Chromosome, NormalizationVector> getWGVectors(HiCZoom zoom, NormalizationType norm,
-                                                                     BigContactArray ba, ChromosomeHandler handler,
+                                                                     BigContactList ba, ChromosomeHandler handler,
                                                                      String stem) {
         final int resolution = zoom.getBinSize();
         NormalizationCalculations calculations = new NormalizationCalculations(ba, resolution);
@@ -127,7 +122,7 @@ public class GWNorms {
                                           Chromosome chromosome, List<NormalizationVectorIndexEntry> normVectorIndices,
                                           BigListOfByteWriters normVectorBuffers, HiCZoom zoom,
                                           Map<NormalizationType, ExpectedValueCalculation> expectedMap,
-                                          BigContactArray ba) throws IOException {
+                                          BigContactList ba) throws IOException {
         for (NormalizationType norm : norms) {
             if (normMap.containsKey(norm)) {
                 Map<Chromosome, NormalizationVector> map = normMap.get(norm);

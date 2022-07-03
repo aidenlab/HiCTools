@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@
 
 package hic.tools.clt.old;
 
+import hic.HiCGlobals;
 import hic.tools.clt.CommandLineParser;
 import hic.tools.clt.JuiceboxCLT;
 import hic.tools.utils.original.Chunk;
@@ -141,6 +142,7 @@ public class Statistics extends JuiceboxCLT {
     public void run() {
         setMndIndex();
         StatisticsContainer container;
+        int numCPUThreads = HiCGlobals.primaryThreads;
         if (localHandler == null || mndChunks.size() < 2 || numCPUThreads == 1) {
             LoneStatisticsWorker runner = new LoneStatisticsWorker(siteFile, statsFiles, mapqThresholds,
                     ligationJunction, inFile);

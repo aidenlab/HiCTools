@@ -43,6 +43,7 @@ public class AddNorm extends JuiceboxCLT {
     private boolean noFragNorm = false;
     private String inputVectorFile = null;
     private int genomeWideResolution = -100;
+    private int ramSavePoint = 0;
     private String file;
     private final List<NormalizationType> normalizationTypes = new ArrayList<>();
     private Map<NormalizationType, Integer> resolutionsToBuildTo;
@@ -73,12 +74,11 @@ public class AddNorm extends JuiceboxCLT {
         return map;
     }
 
-    public static void launch(String outputFile, List<NormalizationType> normalizationTypes, int genomeWide,
-                              boolean noFragNorm, int numCPUThreads,
+    public static void launch(String outputFile, List<NormalizationType> normalizationTypes, int ramSavePoint,
                               Map<NormalizationType, Integer> resolutionsToBuildTo) throws IOException {
         HiCGlobals.useCache = false;
         NormalizationVectorUpdater updater = new NormalizationVectorUpdater();
-        updater.updateHicFile(outputFile, normalizationTypes, resolutionsToBuildTo, genomeWide, noFragNorm);
+        updater.updateHicFile(outputFile, normalizationTypes, resolutionsToBuildTo, ramSavePoint);
     }
 
     @Override
@@ -94,14 +94,13 @@ public class AddNorm extends JuiceboxCLT {
         }
         noFragNorm = parser.getNoFragNormOption();
 
-        updateNumberOfCPUThreads(parser, 10);
-        HiCGlobals.numCPUMatrixThreads = numCPUThreads;
-
-        usingMultiThreadedVersion = numCPUThreads > 1;
+        HiCGlobals.normThreads = updateNumberOfCPUThreads(parser, 10);
+        usingMultiThreadedVersion = HiCGlobals.normThreads > 1;
 
         genomeWideResolution = parser.getGenomeWideOption();
         normalizationTypes.addAll(parser.getAllNormalizationTypesOption());
         resolutionsToBuildTo = defaultHashMapForResToBuildTo(normalizationTypes);
+        ramSavePoint = parser.getRamSavePoint();
 
         List<String> resolutions = parser.getResolutionOption();
         if (resolutions != null && resolutions.size() > 0) {
@@ -131,8 +130,7 @@ public class AddNorm extends JuiceboxCLT {
             if (inputVectorFile != null) {
                 CustomNormVectorFileHandler.updateHicFile(file, inputVectorFile);
             } else {
-                launch(file, normalizationTypes, genomeWideResolution, noFragNorm,
-                        numCPUThreads, resolutionsToBuildTo);
+                launch(file, normalizationTypes, ramSavePoint, resolutionsToBuildTo);
             }
         } catch (Exception e) {
             e.printStackTrace();

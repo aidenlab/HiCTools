@@ -22,26 +22,32 @@
  *  THE SOFTWARE.
  */
 
-package hic.tools.clt;
+package hic.tools.utils.bigarray;
 
-import hic.tools.utils.SpeedTests;
+import hic.tools.utils.largelists.BigFloatsArray;
+import hic.tools.utils.largelists.BigShortsArray;
+import hic.tools.utils.original.ExpectedValueCalculation;
+import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.datastructures.ListOfIntArrays;
 
-/**
- * Created for testing multiple CLTs at once
- * Basically scratch space
- */
-class AggregateProcessing {
-    public static void main(String[] argv) throws Exception {
+public interface BigContactList {
+    void updateGenomeWideExpected(int chrIdx, ListOfFloatArrays vector, ExpectedValueCalculation exp);
 
-        SpeedTests.testRowSums();
+    long getMatrixSize();
 
-        /*
-        String[] command = new String[]{"sum", "--diagonals",
-                "/Users/mshamim/Desktop/ovary/ovary.hic",
-                "/Users/mshamim/Desktop/ovary/w61_ovary.hic",
-                "/Users/mshamim/Desktop/ovary/w80_ovary.hic",
-        };
-        HiCTools.main(command);
-        */
-    }
+    void clear();
+
+    ListOfFloatArrays getRowSums();
+
+    double[] getNormMatrixSumFactor(ListOfFloatArrays norm);
+
+    ListOfFloatArrays normalizeVectorByScaleFactor(ListOfFloatArrays newNormVector);
+
+    ListOfIntArrays getNumNonZeroInRows();
+
+    BigFloatsArray parSparseMultiplyAcrossLists(BigShortsArray one, long matrixSize);
+
+    BigFloatsArray parSparseMultiplyAcrossLists(BigFloatsArray one, long matrixSize);
+
+    void clearIntraAndShiftInter();
 }

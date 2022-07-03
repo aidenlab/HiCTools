@@ -84,6 +84,16 @@ public class BigFloatsArray {
         }
     }
 
+    public void add(long index, float value) {
+        if (index < overallLength) {
+            int pseudoRow = (int) (index / DEFAULT_LENGTH);
+            int pseudoCol = (int) (index % DEFAULT_LENGTH);
+            internalList.get(pseudoRow)[pseudoCol] += value;
+        } else {
+            System.err.println("long index exceeds max size of list of arrays while setting");
+        }
+    }
+
     public long getLength() {
         return overallLength;
     }
@@ -274,7 +284,7 @@ public class BigFloatsArray {
     }
 
     private int getNumThreads() {
-        return Math.min(HiCGlobals.numCPUMatrixThreads, internalList.size());
+        return Math.min(HiCGlobals.normThreads, internalList.size());
     }
 
     public void parScaleByRatio(BigShortsArray num, BigFloatsArray denom) {
@@ -291,6 +301,18 @@ public class BigFloatsArray {
                 i = index.getAndIncrement();
             }
         });
+    }
+
+    public void addValuesFrom(BigFloatsArray other) {
+        if (overallLength == other.overallLength) {
+            for (int i = 0; i < internalList.size(); i++) {
+                for (int j = 0; j < internalList.get(i).length; j++) {
+                    internalList.get(i)[j] += other.internalList.get(i)[j];
+                }
+            }
+        } else {
+            System.err.println("Adding objects of different sizes!");
+        }
     }
 }
 
