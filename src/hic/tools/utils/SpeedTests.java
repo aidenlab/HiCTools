@@ -57,7 +57,7 @@ public class SpeedTests {
         HiCGlobals.normThreads = 10;
         double[] timeTotals = new double[3];
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 4; i++) {
             // test 1 direct iteration
             ListOfFloatArrays f0 = test0(zd, timeTotals);
             System.gc();
@@ -69,6 +69,9 @@ public class SpeedTests {
             // test 1 local file based iterator
             ListOfFloatArrays f2 = test2(zd, timeTotals);
             System.gc();
+
+            assertAreEqual(f0, f1, "f0_vs_f1");
+            assertAreEqual(f0, f2, "f0_vs_f2");
         }
 
         System.out.println(Arrays.toString(timeTotals));
@@ -124,5 +127,53 @@ public class SpeedTests {
         timeTotals[2] += time;
         System.err.println("\nTest 2: " + time + " seconds");
         return f1;
+    }
+
+    public static void assertAreEqual(ListOfFloatArrays data1, ListOfFloatArrays data2, String description) {
+        double magnitude = 0;
+        double absError = 0;
+        try {
+            if (data1.getLength() != data2.getLength()) {
+                System.err.println("Vector length mismatch: " + data1.getLength() + " vs " + data2.getLength() + " " + description);
+                //System.exit(24);
+            }
+
+            long n = Math.min(data1.getLength(), data2.getLength());
+
+            double magnitude1 = 0;
+            double magnitude2 = 0;
+
+            long numVals = 0;
+            for (long q = 0; q < n; q++) {
+                double err = Math.abs(data1.get(q) - data2.get(q));
+
+                if (!Double.isNaN(data1.get(q))) {
+                    magnitude1 += data1.get(q) * data1.get(q);
+                }
+
+                if (!Double.isNaN(data2.get(q))) {
+                    magnitude2 += data2.get(q) * data2.get(q);
+                }
+
+                if (!Double.isNaN(err)) {
+                    magnitude += data1.get(q) * data2.get(q);
+                    absError += err;
+                    numVals++;
+                }
+            }
+            magnitude = Math.sqrt(magnitude);
+            magnitude1 = Math.sqrt(magnitude1);
+            magnitude2 = Math.sqrt(magnitude2);
+
+            if (numVals > 0) {
+                absError /= numVals;
+            }
+
+            System.err.println("Vector mean error: (" + absError + ") / " + magnitude + " / " + magnitude1
+                    + " / " + magnitude2 + " / " + description);
+
+        } catch (Exception e) {
+            System.exit(26);
+        }
     }
 }
