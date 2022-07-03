@@ -62,7 +62,6 @@ public class BinRecordsWriter {
     private static LittleEndianOutputStream createNewTempFile(List<String> files) throws IOException {
         File tempFile = File.createTempFile("contacts." + (internalCount++), ".tmp.bin");
         tempFile.deleteOnExit();
-        System.out.println("Created " + tempFile.getAbsolutePath());
         files.add(tempFile.getAbsolutePath());
 
         BufferedOutputStream bos = new BufferedOutputStream(Files.newOutputStream(tempFile.toPath()));

@@ -135,23 +135,33 @@ public class BigContactArray implements BigContactList {
     }
 
     public ListOfFloatArrays getRowSums() {
-        ListOfFloatArrays rowsums = new ListOfFloatArrays(matrixSize, 0);
+        final ListOfFloatArrays rowsums = new ListOfFloatArrays(matrixSize, 0);
 
-        for (int sIndx = 0; sIndx < binXs.size(); sIndx++) {
-            int[] subBinXs = binXs.get(sIndx);
-            int[] subBinYs = binYs.get(sIndx);
-            float[] subBinVals = binVals.get(sIndx);
+        AtomicInteger index = new AtomicInteger(0);
+        ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
+            int sIndx = index.getAndIncrement();
+            ListOfFloatArrays sums = new ListOfFloatArrays(matrixSize);
+            while (sIndx < binXs.size()) {
+                int[] subBinXs = binXs.get(sIndx);
+                int[] subBinYs = binYs.get(sIndx);
+                float[] subBinVals = binVals.get(sIndx);
 
-            for (int z = 0; z < subBinXs.length; z++) {
-                int x = subBinXs[z];
-                int y = subBinYs[z];
-                float value = subBinVals[z];
-                rowsums.addTo(x, value);
-                if (x != y) {
-                    rowsums.addTo(y, value);
+                for (int z = 0; z < subBinXs.length; z++) {
+                    int x = subBinXs[z];
+                    int y = subBinYs[z];
+                    float value = subBinVals[z];
+                    sums.addTo(x, value);
+                    if (x != y) {
+                        sums.addTo(y, value);
+                    }
                 }
+                sIndx = index.getAndIncrement();
             }
-        }
+
+            synchronized (rowsums) {
+                rowsums.addValuesFrom(sums);
+            }
+        });
 
         return rowsums;
     }

@@ -24,23 +24,27 @@
 
 package hic.tools.utils;
 
+import hic.HiCGlobals;
 import hic.tools.utils.bigarray.BigContactArrayCreator;
 import hic.tools.utils.bigarray.BigContactList;
 import javastraw.reader.Dataset;
 import javastraw.reader.DatasetReaderV2;
 import javastraw.reader.basics.Chromosome;
+import javastraw.reader.block.ContactRecord;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.mzd.Matrix;
 import javastraw.reader.mzd.MatrixZoomData;
 import javastraw.reader.type.HiCZoom;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
 
 public class SpeedTests {
 
     public static void testRowSums() throws IOException {
 
-        String path = "/Users/muhammad/Desktop/hicfiles/copy_tmp_chr10_subsample0.25";
+        String path = "/Users/muhammad/Desktop/hicfiles/copy_tmp_chr10_subsample0.25.hic";
 
         DatasetReaderV2 reader = new DatasetReaderV2(path, false, false);
         Dataset ds = reader.read();
@@ -50,36 +54,75 @@ public class SpeedTests {
         Matrix matrix = ds.getMatrix(chr10, chr10, 50);
         MatrixZoomData zd = matrix.getZoomData(new HiCZoom(50));
 
-        // test 1 direct iteration
-        ListOfFloatArrays f0 = test1(zd);
-        System.gc();
+        HiCGlobals.normThreads = 10;
+        double[] timeTotals = new double[3];
 
-        // test 1 big contact iterator
-        ListOfFloatArrays f1 = test1(zd);
-        System.gc();
+        for (int i = 0; i < 10; i++) {
+            // test 1 direct iteration
+            ListOfFloatArrays f0 = test0(zd, timeTotals);
+            System.gc();
 
-        // test 1 local file based iterator
-        ListOfFloatArrays f2 = test2(zd);
+            // test 1 big contact iterator
+            ListOfFloatArrays f1 = test1(zd, timeTotals);
+            System.gc();
+
+            // test 1 local file based iterator
+            ListOfFloatArrays f2 = test2(zd, timeTotals);
+            System.gc();
+        }
+
+        System.out.println(Arrays.toString(timeTotals));
 
     }
 
-    private static ListOfFloatArrays test1(MatrixZoomData zd) {
+    private static ListOfFloatArrays test0(MatrixZoomData zd, double[] timeTotals) {
+
+        long r0 = System.nanoTime();
+        ListOfFloatArrays f1 = testOnIterator(zd);
+        long r1 = System.nanoTime();
+        double time = (r1 - r0) * 1e-9;
+        timeTotals[0] += time;
+        System.err.println("\nTest 0: " + time + " seconds");
+        return f1;
+    }
+
+    private static ListOfFloatArrays testOnIterator(MatrixZoomData zd) {
+        final ListOfFloatArrays sums = new ListOfFloatArrays(zd.getMatrixSize());
+
+        Iterator<ContactRecord> iterator = zd.getDirectIterator();
+        while (iterator.hasNext()) {
+            ContactRecord record = iterator.next();
+            int x = record.getBinX();
+            int y = record.getBinY();
+            float value = record.getCounts();
+            sums.addTo(x, value);
+            if (x != y) {
+                sums.addTo(y, value);
+            }
+        }
+
+        return sums;
+    }
+
+    private static ListOfFloatArrays test1(MatrixZoomData zd, double[] timeTotals) {
         BigContactList ba = BigContactArrayCreator.createFromZD(zd);
         long r0 = System.nanoTime();
         ListOfFloatArrays f1 = ba.getRowSums();
         long r1 = System.nanoTime();
         double time = (r1 - r0) * 1e-9;
+        timeTotals[1] += time;
         System.err.println("\nTest 1: " + time + " seconds");
         return f1;
     }
 
-    private static ListOfFloatArrays test2(MatrixZoomData zd) {
+    private static ListOfFloatArrays test2(MatrixZoomData zd, double[] timeTotals) {
         BigContactList ba = BigContactArrayCreator.createLocalVersionFromZD(zd);
         long r0 = System.nanoTime();
         ListOfFloatArrays f1 = ba.getRowSums();
         long r1 = System.nanoTime();
         double time = (r1 - r0) * 1e-9;
-        System.err.println("\nTest 1: " + time + " seconds");
+        timeTotals[2] += time;
+        System.err.println("\nTest 2: " + time + " seconds");
         return f1;
     }
 }
