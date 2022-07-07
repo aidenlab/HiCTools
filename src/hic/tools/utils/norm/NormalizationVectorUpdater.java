@@ -149,7 +149,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
         for (HiCZoom zoom : resolutions) {
             if (zoom.getUnit() == HiCZoom.HiCUnit.FRAG) continue;
             int resolution = zoom.getBinSize();
-            System.out.println("on " + zoom.getBinSize());
+            //System.out.println("on " + zoom.getBinSize());
             if (containers.containsKey(resolution)) {
                 NormVectorsContainer container = containers.get(resolution);
                 if (container == null) continue;
@@ -169,7 +169,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
                     for (NormalizationType norm : sortedNorms) {
                         if (container.containsNorm(norm)) {
-                            System.out.println("doing " + norm + " " + chrom.getName());
+                            //System.out.println("doing " + norm + " " + chrom.getName());
                             Map<Chromosome, FloatNormVector> map = container.get(norm);
                             if (map.containsKey(chrom)) {
                                 ListOfFloatArrays vector = map.get(chrom).getData();
