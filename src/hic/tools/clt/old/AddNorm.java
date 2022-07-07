@@ -40,9 +40,7 @@ import java.util.Map;
 
 public class AddNorm extends JuiceboxCLT {
 
-    private boolean noFragNorm = false;
     private String inputVectorFile = null;
-    private int genomeWideResolution = -100;
     private int ramSavePoint = 0;
     private String file;
     private final List<NormalizationType> normalizationTypes = new ArrayList<>();
@@ -92,12 +90,10 @@ public class AddNorm extends JuiceboxCLT {
         } else if (args.length != 2) {
             printUsageAndExit();
         }
-        noFragNorm = parser.getNoFragNormOption();
 
         HiCGlobals.normThreads = updateNumberOfCPUThreads(parser, 10);
         usingMultiThreadedVersion = HiCGlobals.normThreads > 1;
 
-        genomeWideResolution = parser.getGenomeWideOption();
         normalizationTypes.addAll(parser.getAllNormalizationTypesOption());
         resolutionsToBuildTo = defaultHashMapForResToBuildTo(normalizationTypes);
         ramSavePoint = parser.getRamSavePoint();

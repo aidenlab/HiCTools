@@ -27,9 +27,7 @@ package hic.tools.utils.norm;
 import hic.HiCGlobals;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
-import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.datastructures.ListOfFloatArrays;
-import javastraw.reader.norm.NormalizationVector;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationType;
 import javastraw.tools.ParallelizationTools;
@@ -39,10 +37,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class NormalizationTools {
-    public static Map<Chromosome, NormalizationVector> parCreateNormVectorMap(ChromosomeHandler chromosomeHandler,
-                                                                              int resolution, ListOfFloatArrays vector,
-                                                                              NormalizationType norm, HiCZoom zoom) {
-        final Map<Chromosome, NormalizationVector> normVectorMap = new LinkedHashMap<>();
+    public static Map<Chromosome, FloatNormVector> parCreateNormVectorMap(ChromosomeHandler chromosomeHandler,
+                                                                          int resolution, ListOfFloatArrays vector,
+                                                                          NormalizationType norm, HiCZoom zoom) {
+        final Map<Chromosome, FloatNormVector> normVectorMap = new LinkedHashMap<>();
 
         final AtomicInteger index = new AtomicInteger(0);
         Chromosome[] chromosomes = chromosomeHandler.getChromosomeArrayWithoutAllByAll();
@@ -53,12 +51,12 @@ public class NormalizationTools {
                 Chromosome c1 = chromosomes[i];
                 long offset = offsets[i];
                 long chrBinned = c1.getLength() / resolution + 1;
-                ListOfDoubleArrays chrNV = new ListOfDoubleArrays(chrBinned);
+                ListOfFloatArrays chrNV = new ListOfFloatArrays(chrBinned);
                 for (long k = 0; k < chrNV.getLength(); k++) { // todo optimize a version with system.arraycopy and long
                     chrNV.set(k, vector.get(offset + k));
                 }
                 synchronized (normVectorMap) {
-                    normVectorMap.put(c1, new NormalizationVector(norm, c1.getIndex(), zoom.getUnit(), resolution, chrNV));
+                    normVectorMap.put(c1, new FloatNormVector(norm, c1.getIndex(), zoom, chrNV));
                 }
                 i = index.getAndIncrement();
             }
