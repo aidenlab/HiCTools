@@ -42,24 +42,22 @@ public class NormVectorsContainer {
     }
 
     public static List<NormalizationType> sortedNorms() {
-        List<NormalizationType> norms = new ArrayList<>();
         List<NormalizationType> norms0 = new ArrayList<>();
         norms0.add(NormalizationHandler.GW_SCALE);
         norms0.add(NormalizationHandler.GW_VC);
         norms0.sort(Comparator.comparing(NormalizationType::getLabel));
-        norms.addAll(norms0);
 
         List<NormalizationType> norms1 = new ArrayList<>();
         norms1.add(NormalizationHandler.INTER_SCALE);
         norms1.add(NormalizationHandler.INTER_VC);
         norms1.sort(Comparator.comparing(NormalizationType::getLabel));
-        norms.addAll(norms1);
+        norms0.addAll(norms1);
 
-        norms.add(NormalizationHandler.VC);
-        norms.add(NormalizationHandler.VC_SQRT);
-        norms.add(NormalizationHandler.SCALE);
+        norms0.add(NormalizationHandler.VC);
+        norms0.add(NormalizationHandler.VC_SQRT);
+        norms0.add(NormalizationHandler.SCALE);
 
-        return norms;
+        return norms0;
     }
 
     public boolean hasNoGenomewideNorms() {
@@ -90,15 +88,18 @@ public class NormVectorsContainer {
         allData.get(norm).put(chrom, vector);
     }
 
-    public Set<NormalizationType> getAllNorms() {
-        return allData.keySet();
-    }
-
     public Map<Chromosome, FloatNormVector> get(NormalizationType norm) {
         return allData.get(norm);
     }
 
     public boolean containsNorm(NormalizationType norm) {
         return allData.containsKey(norm);
+    }
+
+    public void clear() {
+        for (NormalizationType norm : allData.keySet()) {
+            allData.get(norm).clear();
+        }
+        allData.clear();
     }
 }

@@ -47,22 +47,8 @@ public class IntraNorms {
                                       Set<Chromosome> scaleBPFailChroms) {
 
         for (Chromosome chrom : ds.getChromosomeHandler().getChromosomeArrayWithoutAllByAll()) {
-            Matrix matrix = ds.getMatrix(chrom, chrom);
-            if (matrix == null) continue;
-            MatrixZoomData zd = matrix.getZoomData(zoom);
-            if (zd == null) continue;
-
-            if (HiCGlobals.printVerboseComments) {
-                System.out.println("Now Doing " + chrom.getName());
-            }
-
-            BigContactList ba;
-            if (zoom.getBinSize() < resolutionCutoffToSaveRAM) {
-                ba = BigContactArrayCreator.createLocalVersionFromZD(zd);
-            } else {
-                ba = BigContactArrayCreator.createFromZD(zd);
-            }
-            matrix.clearCacheForZoom(zoom);
+            BigContactList ba = getBigArrayFromAndClearCache(ds, chrom, zoom, resolutionCutoffToSaveRAM);
+            if (ba == null) continue;
 
             NormalizationCalculations nc = new NormalizationCalculations(ba, zoom.getBinSize());
 
@@ -79,6 +65,27 @@ public class IntraNorms {
             nc = null;
             ba.clear();
         }
+    }
+
+    public static BigContactList getBigArrayFromAndClearCache(Dataset ds, Chromosome chrom, HiCZoom zoom, int resolutionCutoffToSaveRAM) {
+        Matrix matrix = ds.getMatrix(chrom, chrom);
+        if (matrix == null) return null;
+        MatrixZoomData zd = matrix.getZoomData(zoom);
+        if (zd == null) return null;
+
+        if (HiCGlobals.printVerboseComments) {
+            System.out.println("Now Doing " + chrom.getName());
+        }
+
+        BigContactList ba;
+        if (zoom.getBinSize() < resolutionCutoffToSaveRAM) {
+            ba = BigContactArrayCreator.createLocalVersionFromZD(zd);
+        } else {
+            ba = BigContactArrayCreator.createFromZD(zd);
+        }
+        matrix.clearCacheForZoom(zoom);
+
+        return ba;
     }
 
     private static void buildTheNorms(boolean saveVC, boolean saveVCSqrt, boolean saveScale, Chromosome chrom,

@@ -25,7 +25,6 @@
 package hic.tools.utils.norm;
 
 import hic.HiCGlobals;
-import hic.tools.utils.bigarray.BigContactArrayCreator;
 import hic.tools.utils.bigarray.BigContactList;
 import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
@@ -34,8 +33,6 @@ import javastraw.reader.DatasetReaderV2;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.datastructures.ListOfFloatArrays;
-import javastraw.reader.mzd.Matrix;
-import javastraw.reader.mzd.MatrixZoomData;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
@@ -160,22 +157,8 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                 // Loop through chromosomes
                 for (Chromosome chrom : chromosomeHandler.getChromosomeArrayWithoutAllByAll()) {
 
-                    Matrix matrix = ds.getMatrix(chrom, chrom);
-                    if (matrix == null) continue;
-                    MatrixZoomData zd = matrix.getZoomData(zoom);
-                    if (zd == null) continue;
-
-                    if (HiCGlobals.printVerboseComments) {
-                        System.out.println("Now Doing " + chrom.getName());
-                    }
-
-                    BigContactList ba;
-                    if (zoom.getBinSize() < resolutionCutoffToSaveRAM) {
-                        ba = BigContactArrayCreator.createLocalVersionFromZD(zd);
-                    } else {
-                        ba = BigContactArrayCreator.createFromZD(zd);
-                    }
-                    matrix.clearCacheForZoom(zoom);
+                    BigContactList ba = IntraNorms.getBigArrayFromAndClearCache(ds, chrom, zoom, resolutionCutoffToSaveRAM);
+                    if (ba == null) continue;
 
                     for (NormalizationType norm : sortedNorms) {
                         if (container.containsNorm(norm)) {
@@ -195,6 +178,8 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
                     ba.clear();
                 }
+                container.clear();
+                containers.remove(resolution);
             }
         }
 
