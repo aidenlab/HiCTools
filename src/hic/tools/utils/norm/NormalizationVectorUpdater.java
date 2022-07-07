@@ -123,6 +123,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
             IntraNorms.getAllTheNorms(ds, zoom, resolutionCutoffToSaveRAM, container,
                     weShouldBuildVC, weShouldBuildVCSqrt, weShouldBuildScale, resolutionsToBuildTo, scaleBPFailChroms);
 
+            containers.put(zoom.getBinSize(), container);
         }
         ds.clearCache(false);
         ds = null;
@@ -146,13 +147,14 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
         final List<NormalizationType> sortedNorms = NormVectorsContainer.sortedNorms();
 
         for (HiCZoom zoom : resolutions) {
-            finalNormVectorBuffers.expandBuffer();
             if (zoom.getUnit() == HiCZoom.HiCUnit.FRAG) continue;
-
             int resolution = zoom.getBinSize();
+            System.out.println("on " + zoom.getBinSize());
             if (containers.containsKey(resolution)) {
                 NormVectorsContainer container = containers.get(resolution);
                 if (container == null) continue;
+
+                finalNormVectorBuffers.expandBuffer();
 
                 // Loop through chromosomes
                 for (Chromosome chrom : chromosomeHandler.getChromosomeArrayWithoutAllByAll()) {
@@ -162,6 +164,7 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
                     for (NormalizationType norm : sortedNorms) {
                         if (container.containsNorm(norm)) {
+                            System.out.println("doing " + norm + " " + chrom.getName());
                             Map<Chromosome, FloatNormVector> map = container.get(norm);
                             if (map.containsKey(chrom)) {
                                 ListOfFloatArrays vector = map.get(chrom).getData();
