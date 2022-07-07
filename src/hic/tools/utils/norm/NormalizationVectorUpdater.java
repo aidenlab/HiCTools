@@ -156,6 +156,11 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
                 finalNormVectorBuffers.expandBuffer();
 
+                Map<NormalizationType, ExpectedValueCalculation> expMap = new HashMap<>();
+                for (NormalizationType norm : container.getNorms()) {
+                    expMap.put(norm, new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), norm));
+                }
+
                 // Loop through chromosomes
                 for (Chromosome chrom : chromosomeHandler.getChromosomeArrayWithoutAllByAll()) {
 
@@ -172,15 +177,25 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                                         finalNormVectorBuffers,
                                         vector, chrom.getIndex(), norm, zoom);
 
-                                ExpectedValueCalculation expected = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), norm);
-                                ba.updateGenomeWideExpected(chrom.getIndex(), vector, expected);
-                                finalExpectedValueCalculations.add(expected);
+                                if (expMap.containsKey(norm)) {
+                                    ba.updateGenomeWideExpected(chrom.getIndex(), vector, expMap.get(norm));
+                                }
                             }
                         }
                     }
 
                     ba.clear();
                 }
+
+                for (NormalizationType norm : sortedNorms) {
+                    if (expMap.containsKey(norm)) {
+                        if (expMap.get(norm).hasData()) {
+                            finalExpectedValueCalculations.add(expMap.get(norm));
+                        }
+                    }
+                }
+
+                expMap.clear();
                 container.clear();
                 containers.remove(resolution);
             }

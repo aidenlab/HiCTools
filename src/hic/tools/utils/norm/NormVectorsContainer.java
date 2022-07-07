@@ -102,4 +102,8 @@ public class NormVectorsContainer {
         }
         allData.clear();
     }
+
+    public Set<NormalizationType> getNorms() {
+        return allData.keySet();
+    }
 }
