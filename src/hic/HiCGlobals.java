@@ -29,7 +29,7 @@ package hic;
  * @since 11/25/14
  */
 public class HiCGlobals {
-    public static final String versionNum = "3.23.00";
+    public static final String versionNum = "3.23.01";
     public static final int writingVersion = 9;
     public static final int bufferSize = 2097152;
     public static int MAX_PEARSON_ZOOM = 50000;
@@ -39,6 +39,7 @@ public class HiCGlobals {
     public static boolean printVerboseComments = false;
     public static int primaryThreads = 4;
     public static int normThreads = 4;
+    public static int chromThreads = 2;
 
     public static void verifySupportedHiCFileVersion(int version) throws RuntimeException {
         if (version != writingVersion) {

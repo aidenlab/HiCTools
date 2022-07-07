@@ -94,6 +94,8 @@ public class AddNorm extends JuiceboxCLT {
         HiCGlobals.normThreads = updateNumberOfCPUThreads(parser, 10);
         usingMultiThreadedVersion = HiCGlobals.normThreads > 1;
 
+        HiCGlobals.chromThreads = updateSecondaryNumberOfCPUThreads(parser, 1);
+
         normalizationTypes.addAll(parser.getAllNormalizationTypesOption());
         resolutionsToBuildTo = defaultHashMapForResToBuildTo(normalizationTypes);
         ramSavePoint = parser.getRamSavePoint();

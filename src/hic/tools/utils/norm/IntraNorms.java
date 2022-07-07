@@ -35,9 +35,11 @@ import javastraw.reader.mzd.MatrixZoomData;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
+import javastraw.tools.ParallelizationTools;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class IntraNorms {
     public static void getAllTheNorms(Dataset ds, HiCZoom zoom, int resolutionCutoffToSaveRAM,
@@ -46,25 +48,35 @@ public class IntraNorms {
                                       Map<NormalizationType, Integer> resolutionsToBuildTo,
                                       Set<Chromosome> scaleBPFailChroms) {
 
-        for (Chromosome chrom : ds.getChromosomeHandler().getChromosomeArrayWithoutAllByAll()) {
-            BigContactList ba = getBigArrayFromAndClearCache(ds, chrom, zoom, resolutionCutoffToSaveRAM);
-            if (ba == null) continue;
+        final Chromosome[] chromosomes = ds.getChromosomeHandler().getChromosomeArrayWithoutAllByAll();
+        AtomicInteger index = new AtomicInteger(0);
+        ParallelizationTools.launchParallelizedCode(HiCGlobals.chromThreads, () -> {
+            int sIndx = index.getAndIncrement();
+            while (sIndx < chromosomes.length) {
+                Chromosome chrom = chromosomes[sIndx];
 
-            NormalizationCalculations nc = new NormalizationCalculations(ba, zoom.getBinSize());
+                BigContactList ba = getBigArrayFromAndClearCache(ds, chrom, zoom, resolutionCutoffToSaveRAM);
+                if (ba != null) {
 
-            if (weShouldBuildVC || weShouldBuildVCSqrt || weShouldBuildScale) {
-                boolean saveVC = weShouldBuildVC && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC);
-                boolean saveVCSqrt = weShouldBuildVCSqrt && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC_SQRT);
-                boolean saveScale = weShouldBuildScale && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.SCALE);
+                    NormalizationCalculations nc = new NormalizationCalculations(ba, zoom.getBinSize());
 
-                if (saveVC || saveVCSqrt || saveScale) {
-                    buildTheNorms(saveVC, saveVCSqrt, saveScale, chrom, nc, zoom, scaleBPFailChroms, container);
+                    if (weShouldBuildVC || weShouldBuildVCSqrt || weShouldBuildScale) {
+                        boolean saveVC = weShouldBuildVC && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC);
+                        boolean saveVCSqrt = weShouldBuildVCSqrt && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC_SQRT);
+                        boolean saveScale = weShouldBuildScale && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.SCALE);
+
+                        if (saveVC || saveVCSqrt || saveScale) {
+                            buildTheNorms(saveVC, saveVCSqrt, saveScale, chrom, nc, zoom, scaleBPFailChroms, container);
+                        }
+                    }
+
+                    nc = null;
+                    ba.clear();
                 }
-            }
 
-            nc = null;
-            ba.clear();
-        }
+                sIndx = index.getAndIncrement();
+            }
+        });
     }
 
     public static BigContactList getBigArrayFromAndClearCache(Dataset ds, Chromosome chrom, HiCZoom zoom, int resolutionCutoffToSaveRAM) {

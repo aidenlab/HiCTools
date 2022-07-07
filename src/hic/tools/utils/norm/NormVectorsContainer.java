@@ -80,7 +80,7 @@ public class NormVectorsContainer {
         allData.put(normType, wgVectors);
     }
 
-    public void add(Chromosome chrom, FloatNormVector vector) {
+    public synchronized void add(Chromosome chrom, FloatNormVector vector) {
         NormalizationType norm = vector.getNormType();
         if (!allData.containsKey(norm)) {
             allData.put(norm, new HashMap<>());
@@ -88,22 +88,22 @@ public class NormVectorsContainer {
         allData.get(norm).put(chrom, vector);
     }
 
-    public Map<Chromosome, FloatNormVector> get(NormalizationType norm) {
+    public synchronized Map<Chromosome, FloatNormVector> get(NormalizationType norm) {
         return allData.get(norm);
     }
 
-    public boolean containsNorm(NormalizationType norm) {
+    public synchronized boolean containsNorm(NormalizationType norm) {
         return allData.containsKey(norm);
     }
 
-    public void clear() {
+    public synchronized void clear() {
         for (NormalizationType norm : allData.keySet()) {
             allData.get(norm).clear();
         }
         allData.clear();
     }
 
-    public Set<NormalizationType> getNorms() {
+    public synchronized Set<NormalizationType> getNorms() {
         return allData.keySet();
     }
 }
