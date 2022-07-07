@@ -100,6 +100,12 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
         List<HiCZoom> resolutions = ds.getAllPossibleResolutions();
 
+        boolean interDataAvailable = NormalizationTools.checkIfInterDataAvailable(resolutions.get(0), ds);
+        if (!interDataAvailable) {
+            System.out.println("Skipping GW_* and INTER_* normalizations because these regions " +
+                    "have no data in this .hic file");
+        }
+
         for (HiCZoom zoom : resolutions) {
             if (zoom.getBinSize() < minResolution) {
                 System.out.println("Skipping zoom" + zoom);
@@ -112,7 +118,9 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
             NormVectorsContainer container = new NormVectorsContainer(normalizationsToBuild, resolutionsToBuildTo, zoom);
 
-            GWNorms.getGWNormMaps(ds, zoom, resolutionCutoffToSaveRAM, container);
+            if (interDataAvailable) {
+                GWNorms.getGWNormMaps(ds, zoom, resolutionCutoffToSaveRAM, container);
+            }
             ds.clearCache(true);
 
             IntraNorms.getAllTheNorms(ds, zoom, resolutionCutoffToSaveRAM, container,

@@ -25,9 +25,12 @@
 package hic.tools.utils.norm;
 
 import hic.HiCGlobals;
+import javastraw.reader.Dataset;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.mzd.Matrix;
+import javastraw.reader.mzd.MatrixZoomData;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationType;
 import javastraw.tools.ParallelizationTools;
@@ -72,5 +75,24 @@ public class NormalizationTools {
             offsets[i + 1] = offsets[i] + (chromosomes[i].getLength() / resolution) + 1;
         }
         return offsets;
+    }
+
+    public static boolean checkIfInterDataAvailable(HiCZoom zoom, Dataset ds) {
+
+        Chromosome[] chromosomes = ds.getChromosomeHandler().getChromosomeArrayWithoutAllByAll();
+
+        for (int i = 0; i < chromosomes.length; i++) {
+            for (int j = i + 1; j < chromosomes.length; j++) {
+                try {
+                    Matrix matrix = ds.getMatrix(chromosomes[i], chromosomes[j]);
+                    if (matrix == null) return false;
+                    MatrixZoomData zd = matrix.getZoomData(zoom);
+                    if (zd == null) return false;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }
