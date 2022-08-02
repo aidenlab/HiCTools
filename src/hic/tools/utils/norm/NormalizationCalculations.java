@@ -44,7 +44,7 @@ public class NormalizationCalculations {
         this.resolution = resolution;
     }
 
-    public ListOfFloatArrays getNorm(NormalizationType normOption, String stem) {
+    public ListOfFloatArrays getNormWithFix(NormalizationType normOption, String stem) {
         ListOfFloatArrays norm;
         if (NormalizationBuilder.usesVC(normOption)) {
             norm = computeVC();
@@ -58,12 +58,16 @@ public class NormalizationCalculations {
         }
 
         if (norm != null && norm.getLength() > 0) {
-            double factor = getSumFactor(norm);
-            norm.multiplyEverythingBy(factor);
+            fixBySumFactor(norm);
         }
         return norm;
     }
-    
+
+    public void fixBySumFactor(ListOfFloatArrays norm) {
+        double factor = getSumFactor(norm);
+        norm.multiplyEverythingBy(factor);
+    }
+
     /**
      * Compute vanilla coverage norm, just the sum of the rows
      *

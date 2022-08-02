@@ -26,19 +26,19 @@ package hic.tools.utils.norm;
 
 import hic.tools.utils.bigarray.BigContactList;
 import hic.tools.utils.bigarray.BigGWContactArrayCreator;
-import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.Dataset;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.datastructures.ListOfFloatArrays;
-import javastraw.reader.norm.NormalizationVector;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
 
-import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 
 public class GWNorms {
     public static List<NormalizationType> getGWNorms(List<NormalizationType> allNorms,
@@ -69,94 +69,47 @@ public class GWNorms {
         return norms;
     }
 
-    public static Map<NormalizationType, Map<Chromosome, NormalizationVector>> getGWNormMaps(List<NormalizationType> gwNorms,
-                                                                                             List<NormalizationType> interNorms,
-                                                                                             Dataset ds, HiCZoom zoom,
-                                                                                             int resCutoffForRAM) {
+    public static void getGWNormMaps(Dataset ds, HiCZoom zoom, int resCutoffForRAM, NormVectorsContainer container) {
 
-        if (gwNorms.isEmpty() && interNorms.isEmpty()) return new HashMap<>();
+        if (container.hasNoGenomewideNorms()) return;
 
         final ChromosomeHandler handler = ds.getChromosomeHandler();
         final BigContactList ba;
         if (zoom.getBinSize() < 25 * resCutoffForRAM) {
-            ba = BigGWContactArrayCreator.createLocalVersionWholeGenome(ds, handler, zoom, !gwNorms.isEmpty());
+            ba = BigGWContactArrayCreator.createLocalVersionWholeGenome(ds, handler, zoom, container.useGWIntra());
         } else {
-            ba = BigGWContactArrayCreator.createForWholeGenome(ds, handler, zoom, !gwNorms.isEmpty());
+            ba = BigGWContactArrayCreator.createForWholeGenome(ds, handler, zoom, container.useGWIntra());
         }
 
-        Map<NormalizationType, Map<Chromosome, NormalizationVector>> result = new HashMap<>();
-        for (NormalizationType normType : gwNorms) {
-            Map<Chromosome, NormalizationVector> wgVectors = getWGVectors(zoom, normType, ba, handler, "GW");
+        for (NormalizationType normType : container.getGenomewideNorms()) {
+            Map<Chromosome, FloatNormVector> wgVectors = getWGVectors(zoom, normType, ba, handler, "GW");
             if (wgVectors != null) {
-                result.put(normType, wgVectors);
+                container.put(normType, wgVectors);
             }
         }
 
         ba.clearIntraAndShiftInter();
 
-        for (NormalizationType normType : interNorms) {
-            Map<Chromosome, NormalizationVector> wgVectors = getWGVectors(zoom, normType, ba, handler, "INTER");
+        for (NormalizationType normType : container.getGenomewideInterNorms()) {
+            Map<Chromosome, FloatNormVector> wgVectors = getWGVectors(zoom, normType, ba, handler, "INTER");
             if (wgVectors != null) {
-                result.put(normType, wgVectors);
+                container.put(normType, wgVectors);
             }
         }
 
         ba.clear();
-        return result;
     }
 
-    private static Map<Chromosome, NormalizationVector> getWGVectors(HiCZoom zoom, NormalizationType norm,
-                                                                     BigContactList ba, ChromosomeHandler handler,
-                                                                     String stem) {
+    private static Map<Chromosome, FloatNormVector> getWGVectors(HiCZoom zoom, NormalizationType norm,
+                                                                 BigContactList ba, ChromosomeHandler handler,
+                                                                 String stem) {
         final int resolution = zoom.getBinSize();
         NormalizationCalculations calculations = new NormalizationCalculations(ba, resolution);
-        ListOfFloatArrays vector = calculations.getNorm(norm, stem + "_NORM_" + zoom.getBinSize());
+        ListOfFloatArrays vector = calculations.getNormWithFix(norm, stem + "_NORM_" + zoom.getBinSize());
         if (vector == null) {
             return null;
         }
         return NormalizationTools.parCreateNormVectorMap(handler, resolution, vector, norm, zoom);
-    }
-
-    public static void addGWNormsToBuffer(List<NormalizationType> norms,
-                                          Map<NormalizationType, Map<Chromosome, NormalizationVector>> normMap,
-                                          Chromosome chromosome, List<NormalizationVectorIndexEntry> normVectorIndices,
-                                          BigListOfByteWriters normVectorBuffers, HiCZoom zoom,
-                                          Map<NormalizationType, ExpectedValueCalculation> expectedMap,
-                                          BigContactList ba) throws IOException {
-        for (NormalizationType norm : norms) {
-            if (normMap.containsKey(norm)) {
-                Map<Chromosome, NormalizationVector> map = normMap.get(norm);
-                if (map.containsKey(chromosome)) {
-                    ListOfFloatArrays vector = map.get(chromosome).getData().convertToFloats();
-                    NormVectorUpdater.updateNormVectorIndexWithVector(normVectorIndices, normVectorBuffers,
-                            vector, chromosome.getIndex(),
-                            norm, zoom);
-
-                    if (expectedMap.containsKey(norm)) {
-                        ExpectedValueCalculation exp = expectedMap.get(norm);
-                        final int chrIdx = chromosome.getIndex();
-                        ba.updateGenomeWideExpected(chrIdx, vector, exp);
-                    }
-                }
-            }
-        }
-    }
-
-    public static Map<NormalizationType, ExpectedValueCalculation> createdExpectedMap(
-            List<NormalizationType> gwNorms, List<NormalizationType> interNorms,
-            ChromosomeHandler chromosomeHandler, int resolution) {
-
-        Map<NormalizationType, ExpectedValueCalculation> expMap = new HashMap<>();
-
-        for (NormalizationType norm : gwNorms) {
-            expMap.put(norm, new ExpectedValueCalculation(chromosomeHandler, resolution, norm));
-        }
-
-        for (NormalizationType norm : interNorms) {
-            expMap.put(norm, new ExpectedValueCalculation(chromosomeHandler, resolution, norm));
-        }
-
-        return expMap;
     }
 
     public static void populateGWExpecteds(List<ExpectedValueCalculation> expectedValueCalculations,

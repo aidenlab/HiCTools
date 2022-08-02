@@ -25,7 +25,6 @@
 package hic.tools.utils.norm;
 
 import hic.HiCGlobals;
-import hic.tools.utils.bigarray.BigContactArrayCreator;
 import hic.tools.utils.bigarray.BigContactList;
 import hic.tools.utils.largelists.BigListOfByteWriters;
 import hic.tools.utils.original.ExpectedValueCalculation;
@@ -34,9 +33,6 @@ import javastraw.reader.DatasetReaderV2;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.datastructures.ListOfFloatArrays;
-import javastraw.reader.mzd.Matrix;
-import javastraw.reader.mzd.MatrixZoomData;
-import javastraw.reader.norm.NormalizationVector;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationHandler;
 import javastraw.reader.type.NormalizationType;
@@ -52,9 +48,6 @@ import java.util.*;
  */
 public class NormalizationVectorUpdater extends NormVectorUpdater {
 
-    protected final BigListOfByteWriters normVectorBuffers = new BigListOfByteWriters();
-    protected final List<NormalizationVectorIndexEntry> normVectorIndices = new ArrayList<>();
-    protected final List<ExpectedValueCalculation> expectedValueCalculations = new ArrayList<>();
     // Keep track of chromosomes that fail to converge, so we don't try them at higher resolutions.
     protected final Set<Chromosome> scaleBPFailChroms = new HashSet<>();
 
@@ -62,24 +55,6 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
     protected boolean weShouldBuildVC = true;
     protected boolean weShouldBuildVCSqrt = true;
     protected boolean weShouldBuildScale = true;
-
-    protected static void printNormTiming(String norm, Chromosome chr, HiCZoom zoom, long currentTime) {
-        if (HiCGlobals.printVerboseComments) {
-            System.out.println(norm + " normalization of " + chr + " at " + zoom + " took " + (System.currentTimeMillis() - currentTime) + " milliseconds");
-        }
-    }
-
-    protected static void updateExpectedValueCalculationForChr(final int chrIdx, NormalizationCalculations nc,
-                                                               ListOfFloatArrays vec, NormalizationType type,
-                                                               HiCZoom zoom, BigContactList ba,
-                                                               ExpectedValueCalculation ev,
-                                                               BigListOfByteWriters normVectorBuffers,
-                                                               List<NormalizationVectorIndexEntry> normVectorIndex) throws IOException {
-        double factor = nc.getSumFactor(vec);
-        vec.multiplyEverythingBy(factor);
-        updateNormVectorIndexWithVector(normVectorIndex, normVectorBuffers, vec, chrIdx, type, zoom);
-        ba.updateGenomeWideExpected(chrIdx, vec, ev);
-    }
 
     protected void reEvaluateWhichIntraNormsToBuild(List<NormalizationType> normalizationsToBuild) {
         weShouldBuildVC = normalizationsToBuild.contains(NormalizationHandler.VC);
@@ -91,6 +66,21 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
                               Map<NormalizationType, Integer> resolutionsToBuildTo,
                               int resolutionCutoffToSaveRAM) throws IOException {
 
+        reEvaluateWhichIntraNormsToBuild(normalizationsToBuild);
+
+        Map<Integer, NormVectorsContainer> containers = getAllTheNormVectors(path, normalizationsToBuild,
+                resolutionsToBuildTo, resolutionCutoffToSaveRAM);
+
+        System.gc();
+
+        calculateExpectedsAndWriteToFile(path, containers, resolutionCutoffToSaveRAM);
+    }
+
+
+    public Map<Integer, NormVectorsContainer> getAllTheNormVectors(String path, List<NormalizationType> normalizationsToBuild,
+                                                                   Map<NormalizationType, Integer> resolutionsToBuildTo,
+                                                                   int resolutionCutoffToSaveRAM) throws IOException {
+
         //System.out.println("test: using old norm code");
         int minResolution = Integer.MAX_VALUE;
         for (Map.Entry<NormalizationType, Integer> entry : resolutionsToBuildTo.entrySet()) {
@@ -99,16 +89,20 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
             }
         }
 
+        Map<Integer, NormVectorsContainer> containers = new HashMap<>();
+
         DatasetReaderV2 reader = new DatasetReaderV2(path, false, false);
         Dataset ds = reader.read();
         HiCGlobals.verifySupportedHiCFileWritingVersion(reader.getVersion());
 
-        ChromosomeHandler chromosomeHandler = ds.getChromosomeHandler();
         List<HiCZoom> resolutions = ds.getAllPossibleResolutions();
 
-        reEvaluateWhichIntraNormsToBuild(normalizationsToBuild);
+        boolean interDataAvailable = NormalizationTools.checkIfInterDataAvailable(resolutions.get(0), ds);
+        if (!interDataAvailable) {
+            System.out.println("Skipping GW_* and INTER_* normalizations because these regions " +
+                    "have no data in this .hic file");
+        }
 
-        normVectorBuffers.expandBuffer();
         for (HiCZoom zoom : resolutions) {
             if (zoom.getBinSize() < minResolution) {
                 System.out.println("Skipping zoom" + zoom);
@@ -119,111 +113,97 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
             System.out.println();
             System.out.print("Calculating norms for zoom " + zoom);
 
-            List<NormalizationType> gwNormalizations = GWNorms.getGWNorms(normalizationsToBuild, resolutionsToBuildTo, zoom);
-            List<NormalizationType> interNormalizations = GWNorms.getInterNorms(normalizationsToBuild, resolutionsToBuildTo, zoom);
+            NormVectorsContainer container = new NormVectorsContainer(normalizationsToBuild, resolutionsToBuildTo, zoom);
 
-            Map<NormalizationType, Map<Chromosome, NormalizationVector>>
-                    gwNormMaps = GWNorms.getGWNormMaps(gwNormalizations, interNormalizations, ds, zoom,
-                    resolutionCutoffToSaveRAM);
+            if (interDataAvailable) {
+                GWNorms.getGWNormMaps(ds, zoom, resolutionCutoffToSaveRAM, container);
+            }
+            ds.clearCache(true);
 
-            Map<NormalizationType, ExpectedValueCalculation> gwMapExpected = GWNorms.createdExpectedMap(gwNormalizations,
-                    interNormalizations, chromosomeHandler, zoom.getBinSize());
+            IntraNorms.getAllTheNorms(ds, zoom, resolutionCutoffToSaveRAM, container,
+                    weShouldBuildVC, weShouldBuildVCSqrt, weShouldBuildScale, resolutionsToBuildTo, scaleBPFailChroms);
 
-            ds.clearInterCacheForRes(zoom);
+            containers.put(zoom.getBinSize(), container);
+        }
+        ds.clearCache(false);
+        ds = null;
+        System.out.println("Balancing calculations completed");
+        return containers;
+    }
 
-            ExpectedValueCalculation evVC = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), NormalizationHandler.VC);
-            ExpectedValueCalculation evVCSqrt = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), NormalizationHandler.VC_SQRT);
-            ExpectedValueCalculation evSCALE = new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), NormalizationHandler.SCALE);
+    public void calculateExpectedsAndWriteToFile(String path, Map<Integer, NormVectorsContainer> containers,
+                                                 int resolutionCutoffToSaveRAM) throws IOException {
 
-            // Loop through chromosomes
-            for (Chromosome chrom : chromosomeHandler.getChromosomeArrayWithoutAllByAll()) {
+        DatasetReaderV2 reader = new DatasetReaderV2(path, false, false);
+        Dataset ds = reader.read();
+        ds.clearCache(true);
 
-                Matrix matrix = ds.getMatrix(chrom, chrom);
-                if (matrix == null) continue;
-                MatrixZoomData zd = matrix.getZoomData(zoom);
-                if (zd == null) continue;
+        ChromosomeHandler chromosomeHandler = ds.getChromosomeHandler();
+        List<HiCZoom> resolutions = ds.getAllPossibleResolutions();
 
-                if (HiCGlobals.printVerboseComments) {
-                    System.out.println("Now Doing " + chrom.getName());
+        final BigListOfByteWriters finalNormVectorBuffers = new BigListOfByteWriters();
+        final List<NormalizationVectorIndexEntry> finalNormVectorIndices = new ArrayList<>();
+        final List<ExpectedValueCalculation> finalExpectedValueCalculations = new ArrayList<>();
+        final List<NormalizationType> sortedNorms = NormVectorsContainer.sortedNorms();
+
+        for (HiCZoom zoom : resolutions) {
+            if (zoom.getUnit() == HiCZoom.HiCUnit.FRAG) continue;
+            int resolution = zoom.getBinSize();
+            //System.out.println("on " + zoom.getBinSize());
+            if (containers.containsKey(resolution)) {
+                NormVectorsContainer container = containers.get(resolution);
+                if (container == null) continue;
+
+                finalNormVectorBuffers.expandBuffer();
+
+                Map<NormalizationType, ExpectedValueCalculation> expMap = new HashMap<>();
+                for (NormalizationType norm : container.getNorms()) {
+                    expMap.put(norm, new ExpectedValueCalculation(chromosomeHandler, zoom.getBinSize(), norm));
                 }
 
-                BigContactList ba;
-                if (zoom.getBinSize() < resolutionCutoffToSaveRAM) {
-                    ba = BigContactArrayCreator.createLocalVersionFromZD(zd);
-                } else {
-                    ba = BigContactArrayCreator.createFromZD(zd);
+                // Loop through chromosomes
+                for (Chromosome chrom : chromosomeHandler.getChromosomeArrayWithoutAllByAll()) {
+
+                    BigContactList ba = IntraNorms.getBigArrayFromAndClearCache(ds, chrom, zoom, resolutionCutoffToSaveRAM);
+                    if (ba == null) continue;
+
+                    for (NormalizationType norm : sortedNorms) {
+                        if (container.containsNorm(norm)) {
+                            //System.out.println("doing " + norm + " " + chrom.getName());
+                            Map<Chromosome, FloatNormVector> map = container.get(norm);
+                            if (map.containsKey(chrom)) {
+                                ListOfFloatArrays vector = map.get(chrom).getData();
+                                NormVectorUpdater.updateNormVectorIndexWithVector(finalNormVectorIndices,
+                                        finalNormVectorBuffers,
+                                        vector, chrom.getIndex(), norm, zoom);
+
+                                if (expMap.containsKey(norm)) {
+                                    ba.updateGenomeWideExpected(chrom.getIndex(), vector, expMap.get(norm));
+                                }
+                            }
+                        }
+                    }
+
+                    ba.clear();
                 }
-                matrix.clearCacheForZoom(zoom);
 
-                GWNorms.addGWNormsToBuffer(gwNormalizations, gwNormMaps, chrom, normVectorIndices,
-                        normVectorBuffers, zoom, gwMapExpected, ba);
-                GWNorms.addGWNormsToBuffer(interNormalizations, gwNormMaps, chrom, normVectorIndices,
-                        normVectorBuffers, zoom, gwMapExpected, ba);
-
-                NormalizationCalculations nc = new NormalizationCalculations(ba, zoom.getBinSize());
-
-                if (weShouldBuildVC || weShouldBuildVCSqrt || weShouldBuildScale) {
-                    boolean saveVC = weShouldBuildVC && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC);
-                    boolean saveVCSqrt = weShouldBuildVCSqrt && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC_SQRT);
-                    boolean saveScale = weShouldBuildScale && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.SCALE);
-
-                    if (saveVC || saveVCSqrt || saveScale) {
-                        buildTheNorms(saveVC, saveVCSqrt, saveScale, chrom, nc, zoom, evVC, evVCSqrt, evSCALE, ba);
+                for (NormalizationType norm : sortedNorms) {
+                    if (expMap.containsKey(norm)) {
+                        if (expMap.get(norm).hasData()) {
+                            finalExpectedValueCalculations.add(expMap.get(norm));
+                        }
                     }
                 }
 
-                ba.clear();
-            }
-
-            GWNorms.populateGWExpecteds(expectedValueCalculations, gwMapExpected, gwNormalizations);
-            GWNorms.populateGWExpecteds(expectedValueCalculations, gwMapExpected, interNormalizations);
-
-            gwMapExpected.clear();
-            gwNormMaps.clear();
-
-            if (evVC.hasData()) {
-                expectedValueCalculations.add(evVC);
-            }
-            if (weShouldBuildVCSqrt && evVCSqrt.hasData() && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.VC_SQRT)) {
-                expectedValueCalculations.add(evVCSqrt);
-            }
-            if (weShouldBuildScale && evSCALE.hasData() && zoom.getBinSize() >= resolutionsToBuildTo.get(NormalizationHandler.SCALE)) {
-                expectedValueCalculations.add(evSCALE);
+                expMap.clear();
+                container.clear();
+                containers.remove(resolution);
             }
         }
+
         ds.clearCache(false);
-        writeNormsToUpdateFile(reader, path, true, expectedValueCalculations, null, normVectorIndices,
-                normVectorBuffers, "Finished writing norms");
-    }
-
-    private void buildTheNorms(boolean saveVC, boolean saveVCSqrt, boolean saveScale, Chromosome chr,
-                               NormalizationCalculations nc, HiCZoom zoom, ExpectedValueCalculation evVC,
-                               ExpectedValueCalculation evVCSqrt, ExpectedValueCalculation evSCALE,
-                               BigContactList ba) throws IOException {
-
-        final int chrIdx = chr.getIndex();
-        ListOfFloatArrays vc = nc.computeVC();
-        String stem = "NORM_" + chrIdx + "_" + zoom.getBinSize();
-
-        if (saveScale) {
-            if (!scaleBPFailChroms.contains(chr)) {
-                ListOfFloatArrays scale = nc.computeSCALE(vc, stem);
-                if (scale == null) {
-                    scaleBPFailChroms.add(chr);
-                } else {
-                    updateExpectedValueCalculationForChr(chrIdx, nc, scale, NormalizationHandler.SCALE, zoom, ba, evSCALE, normVectorBuffers, normVectorIndices);
-                }
-            }
-        }
-        if (saveVC) {
-            updateExpectedValueCalculationForChr(chrIdx, nc, vc, NormalizationHandler.VC, zoom, ba, evVC, normVectorBuffers, normVectorIndices);
-        }
-        if (saveVCSqrt) {
-            ListOfFloatArrays vcSqrt = new ListOfFloatArrays(vc.getLength());
-            for (int i = 0; i < vc.getLength(); i++) {
-                vcSqrt.set(i, (float) Math.sqrt(vc.get(i)));
-            }
-            updateExpectedValueCalculationForChr(chrIdx, nc, vcSqrt, NormalizationHandler.VC_SQRT, zoom, ba, evVCSqrt, normVectorBuffers, normVectorIndices);
-        }
+        writeNormsToUpdateFile(reader, path, true, finalExpectedValueCalculations,
+                null, finalNormVectorIndices,
+                finalNormVectorBuffers, "Finished writing norms");
     }
 }

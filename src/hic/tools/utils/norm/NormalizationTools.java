@@ -25,11 +25,12 @@
 package hic.tools.utils.norm;
 
 import hic.HiCGlobals;
+import javastraw.reader.Dataset;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.basics.ChromosomeHandler;
-import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.datastructures.ListOfFloatArrays;
-import javastraw.reader.norm.NormalizationVector;
+import javastraw.reader.mzd.Matrix;
+import javastraw.reader.mzd.MatrixZoomData;
 import javastraw.reader.type.HiCZoom;
 import javastraw.reader.type.NormalizationType;
 import javastraw.tools.ParallelizationTools;
@@ -39,10 +40,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class NormalizationTools {
-    public static Map<Chromosome, NormalizationVector> parCreateNormVectorMap(ChromosomeHandler chromosomeHandler,
-                                                                              int resolution, ListOfFloatArrays vector,
-                                                                              NormalizationType norm, HiCZoom zoom) {
-        final Map<Chromosome, NormalizationVector> normVectorMap = new LinkedHashMap<>();
+    public static Map<Chromosome, FloatNormVector> parCreateNormVectorMap(ChromosomeHandler chromosomeHandler,
+                                                                          int resolution, ListOfFloatArrays vector,
+                                                                          NormalizationType norm, HiCZoom zoom) {
+        final Map<Chromosome, FloatNormVector> normVectorMap = new LinkedHashMap<>();
 
         final AtomicInteger index = new AtomicInteger(0);
         Chromosome[] chromosomes = chromosomeHandler.getChromosomeArrayWithoutAllByAll();
@@ -53,12 +54,12 @@ public class NormalizationTools {
                 Chromosome c1 = chromosomes[i];
                 long offset = offsets[i];
                 long chrBinned = c1.getLength() / resolution + 1;
-                ListOfDoubleArrays chrNV = new ListOfDoubleArrays(chrBinned);
+                ListOfFloatArrays chrNV = new ListOfFloatArrays(chrBinned);
                 for (long k = 0; k < chrNV.getLength(); k++) { // todo optimize a version with system.arraycopy and long
                     chrNV.set(k, vector.get(offset + k));
                 }
                 synchronized (normVectorMap) {
-                    normVectorMap.put(c1, new NormalizationVector(norm, c1.getIndex(), zoom.getUnit(), resolution, chrNV));
+                    normVectorMap.put(c1, new FloatNormVector(norm, c1.getIndex(), zoom, chrNV));
                 }
                 i = index.getAndIncrement();
             }
@@ -74,5 +75,24 @@ public class NormalizationTools {
             offsets[i + 1] = offsets[i] + (chromosomes[i].getLength() / resolution) + 1;
         }
         return offsets;
+    }
+
+    public static boolean checkIfInterDataAvailable(HiCZoom zoom, Dataset ds) {
+
+        Chromosome[] chromosomes = ds.getChromosomeHandler().getChromosomeArrayWithoutAllByAll();
+
+        for (int i = 0; i < chromosomes.length; i++) {
+            for (int j = i + 1; j < chromosomes.length; j++) {
+                try {
+                    Matrix matrix = ds.getMatrix(chromosomes[i], chromosomes[j]);
+                    if (matrix == null) return false;
+                    MatrixZoomData zd = matrix.getZoomData(zoom);
+                    if (zd == null) return false;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }
