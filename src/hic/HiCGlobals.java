@@ -29,7 +29,7 @@ package hic;
  * @since 11/25/14
  */
 public class HiCGlobals {
-    public static final String versionNum = "3.23.01";
+    public static final String versionNum = "3.24.00";
     public static final int writingVersion = 9;
     public static final int bufferSize = 2097152;
     public static int MAX_PEARSON_ZOOM = 50000;

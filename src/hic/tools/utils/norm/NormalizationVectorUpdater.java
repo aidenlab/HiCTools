@@ -117,8 +117,8 @@ public class NormalizationVectorUpdater extends NormVectorUpdater {
 
             if (interDataAvailable) {
                 GWNorms.getGWNormMaps(ds, zoom, resolutionCutoffToSaveRAM, container);
+                ds.clearInterCacheForRes(zoom);
             }
-            ds.clearCache(true);
 
             IntraNorms.getAllTheNorms(ds, zoom, resolutionCutoffToSaveRAM, container,
                     weShouldBuildVC, weShouldBuildVCSqrt, weShouldBuildScale, resolutionsToBuildTo, scaleBPFailChroms);
