@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -64,7 +64,7 @@ public class CLTFactory {
             return new PreProcessing();
         } else if (cmd.startsWith("sum")) {
             return new Sum();
-        } else if (cmd.equals("addnorm")) {
+        } else if (cmd.startsWith("addnorm")) {
             return new AddNorm();
         } else if (cmd.equals("bigwig")) {
             return new BigWig();
