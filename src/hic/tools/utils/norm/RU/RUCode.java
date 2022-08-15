@@ -50,18 +50,26 @@ public class RUCode() {
 
         double[] space = new double[threads];
 
-        for (p = 0; p < threads; p++) {
-            space[p] = new double[k];
+        for (int c = 0; c < threads; c++) {
+            space[c] = new double[k];
         }
 
         double perc = pppp;
 
-        for (p = 0; p < k; p++) one[p] = 1.0;
-        for (p = 0; p < k; p++) bad[p] = 0;
+        for (int g = 0; g < k; g++){
+            one[g] = 1.0;
+        }
+
+        for (int g = 0; g < k; g++){
+            bad[g] = 0;
+        }
 
 
         double[] nz = new double[k];
-        for (p = 0; p < k; p++) nz[p] = 0;
+
+        for (int g = 0; g < k; g++){
+            nz[g] = 0;
+        }
 
         for (p = 0; p < m; p++) {
             nz[i[p]] += 1.0;
@@ -69,28 +77,36 @@ public class RUCode() {
         }
 
         n0 = 0;
-        for (p = 0; p < k; p++) if (nz[p] > 0) r0[n0++] = nz[p];
+        for (int g = 0; g < k; g++) if (nz[g] > 0) r0[n0++] = nz[g];
         Arrays.sort(r0);
 
         lind = (int) (n0 * perc + 0.5);
         if (lind < 0) lind = 0;
         low = r0[lind];
 //	find rows which are identically 0 and the perc proportion of rows with the lowest row sums and exclude them
-        for (p = 0; p < k; p++) if (nz[p] < low) bad[p] = 1;
+        for (int g = 0; g < k; g++) if (nz[g] < low) bad[g] = 1;
         //	if bad[p] is 1 we remove row p
         utmvMul(i, j, x, m, one, k, row0, threads, space);
-        for (p = 0; p < k; p++) row[p] = row0[p];
+        for (int g = 0; g < k; g++){
+            row[g] = row0[g];
+        }
 
-        for (p = 0; p < k; p++) one[p] = 1.0 - bad[p];
-        for (p = 0; p < k; p++) if (bad[p] == 1) row[p] = 1.0;
-        for (p = 0; p < k; p++) b[p] = one[p] / Math.sqrt(row[p]);
+        for (int g = 0; g < k; g++){
+            one[g] = 1.0 - bad[g];
+        }
+        for (int g = 0; g < k; g++) if (bad[g] == 1) row[g] = 1.0;
+        for (int g = 0; g < k; g++){
+            b[g] = one[g] / Math.sqrt(row[g]);
+        }
 
         //	start iterations
 //	row is the current rows sum; dr and dc are the current rows and columns scaling vectors
         double ber = 10.0 * (1.0 + tol);
         double err = 10.0 * (1.0 + tol);
         int iter = 0;
-        for (p = 0; p < k; p++) current[p] = b[p];
+        for (int g = 0; g < k; g++){
+            current[g] = b[g];
+        }
         int fail;   // checks whether the convergence rate seems to be good enough; 0 if yes, 1 if no
         int nerr = 0;
 
@@ -103,15 +119,21 @@ public class RUCode() {
             fail = 1;
 
             utmvMul(i, j, x, m, b, k, row, threads, space);
-            for (p = 0; p < k; p++) row[p] *= b[p];
-            for (p = 0; p < k; p++) if (bad[p] == 1) row[p] = 1.0;
-            for (p = 0; p < k; p++) b[p] *= one[p] / Math.sqrt(row[p]);
+            for (int g = 0; g < k; g++){
+                row[g] *= b[g];
+            }
+            for (int g = 0; g < k; g++) if (bad[g] == 1){
+                row[g] = 1.0;
+            }
+            for (int g = 0; g < k; g++){
+                b[g] *= one[g] / Math.sqrt(row[g]);
+            }
             //	calculate the current error
             ber = 0;
-            for (p = 0; p < k; p++) {
-                if (bad[p] == 1) continue;
-                if (Math.abs((b[p] - current[p]) / (b[p] + current[p])) > ber)
-                    ber = Math.abs((b[p] - current[p]) / (b[p] + current[p]));
+            for (int g = 0; g < k; g++) {
+                if (bad[g] == 1) continue;
+                if (Math.abs((b[g] - current[g]) / (b[g] + current[g])) > ber)
+                    ber = Math.abs((b[g] - current[g]) / (b[g] + current[g]));
             }
             report[all_iters - 1] = ber;
             allIters[all_iters - 1] = iter;
@@ -121,20 +143,22 @@ public class RUCode() {
             if (iter % 10 == 0) {
                 utmvMul(i, j, x, m, b, k, row, threads, space);
                 err = 0;
-                for (p = 0; p < k; p++) {
-                    if (bad[p] == 1) continue;
-                    if (err < Math.abs(row[p] * b[p] - one[p]))
-                        err = Math.abs(row[p] * b[p] - one[p]);
+                for (int g = 0; g < k; g++) {
+                    if (bad[g] == 1) continue;
+                    if (err < Math.abs(row[g] * b[g] - one[g]))
+                        err = Math.abs(row[g] * b[g] - one[g]);
                 }
                 errors[nerr++] = err;
             }
-            for (p = 0; p < k; p++) current[p] = b[p];
+            for (int g = 0; g < k; g++){
+                current[g] = b[g];
+            }
             //	check whether convergence rate is satisfactory
 //	if less than 5 iterations (so less than 5 errors) and less than 2 row sums errors, there is nothing to chek
             if ((ber < tol) && (nerr < 2 || (nerr >= 2 && errors[nerr - 1] < 0.5 * errors[nerr - 2]))) continue;
 //	otherwise check
             if (iter > 5) {
-                for (p = 1; p <= 5; p++) if (report[all_iters - p] * (1.0 + del) < report[all_iters - p - 1]) fail = 0;
+                for (int g = 1; g <= 5; g++) if (report[all_iters - g] * (1.0 + del) < report[all_iters - g - 1]) fail = 0;
                 if (nerr >= 2 && errors[nerr - 1] > 0.75 * errors[nerr - 2]) fail = 1;
                 if (iter >= maxiter) fail = 1;
 
@@ -145,10 +169,10 @@ public class RUCode() {
                     nerr = 0;
                     lind = (int) (n0 * perc + 0.5);
                     low = r0[lind];
-                    for (p = 0; p < k; p++) {
-                        if (nz[p] < low) {
-                            bad[p] = 1;
-                            one[p] = 0;
+                    for (int g = 0; g < k; g++) {
+                        if (nz[g] < low) {
+                            bad[g] = 1;
+                            one[g] = 0;
                         }
                     }
 
@@ -157,11 +181,21 @@ public class RUCode() {
                     //	if the current error is larger than 5 iteration ago start from scratch, otherwise continue from the current
                     // 	position
                     if (report[all_iters - 1] > report[all_iters - 6]) {
-                        for (p = 0; p < k; p++) one[p] = 1.0 - bad[p];
-                        for (p = 0; p < k; p++) row0[p] *= one[p];
-                        for (p = 0; p < k; p++) row[p] = row0[p];
-                        for (p = 0; p < k; p++) current[p] = b[p];
-                    } else for (p = 0; p < k; p++) b[p] *= (1.0 - bad[p]);
+                        for (p = 0; p < k; p++){
+                            one[p] = 1.0 - bad[p];
+                        }
+                        for (p = 0; p < k; p++){
+                            row0[p] *= one[p];
+                        }
+                        for (p = 0; p < k; p++){
+                            row[p] = row0[p];
+                        }
+                        for (p = 0; p < k; p++){
+                            current[p] = b[p];
+                        }
+                    } else for (p = 0; p < k; p++){
+                        b[p] *= (1.0 - bad[p]);
+                    }
                     iter = 0;
 
                 }
