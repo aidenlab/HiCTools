@@ -24,12 +24,10 @@
 
 package hic.tools.utils.norm.RU;
 
-import java.util.Arrays;
-
 public class RUCode() {
     public static int balance(long m, double[] b, double[] report, double[] allIters, float tol, float pppp,
                               int maxiter, double del, double dp, int totIter, int threads, int k) {
-
+/*
         int p;
         int n0;
         double low;
@@ -219,6 +217,9 @@ public class RUCode() {
         for (p = 0; p < k; p++) if (bad[p] == 1) b[p] = Float.NaN;
 
         return (iter);
+
+ */
+        return 0;
     }
 }
 
