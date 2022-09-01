@@ -28,6 +28,8 @@ import hic.HiCGlobals;
 import hic.tools.utils.bigarray.BigContactList;
 import hic.tools.utils.largelists.BigFloatsArray;
 import hic.tools.utils.largelists.BigShortsArray;
+import hic.tools.utils.norm.scale.cutoffs.Cutoffs;
+import hic.tools.utils.norm.scale.cutoffs.ZscoreCutoffs;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
 
@@ -38,6 +40,9 @@ public class FinalScale {
     private final static float maxPercentile = 10f;
     private final static float startingPercentile = 0f;
     private final static float deltaPercentile = 0.1f;
+    private final static float maxZscore = -1;
+    private final static float startingZscore = -3.5f;
+    private final static float deltaZscore = 0.05f;
     private final static float tolerance = 5e-4f;
     private final static int maxIter = 100;
     private final static int totalIterations = 3 * maxIter;
@@ -62,7 +67,8 @@ public class FinalScale {
         ListOfIntArrays numNonZero = ba.getNumNonZeroInRows();
 
         //	find relevant percentiles
-        Percentiles percentiles = new Percentiles(numNonZero, startingPercentile, deltaPercentile, maxPercentile);
+        Cutoffs percentiles = new ZscoreCutoffs(numNonZero, startingZscore, deltaZscore, maxZscore);
+
         int cutoffIndex = 0;
         int maxNumCutoffs = percentiles.getMaxNumCutoffs();
         double lowCutoff = percentiles.get(cutoffIndex);
