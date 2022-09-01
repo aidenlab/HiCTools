@@ -24,7 +24,7 @@
 
 package hic.tools.utils.norm.RU;
 
-public class RUCode() {
+public class RUCode {
     public static int balance(long m, double[] b, double[] report, double[] allIters, float tol, float pppp,
                               int maxiter, double del, double dp, int totIter, int threads, int k) {
 /*
