@@ -183,7 +183,7 @@ public class BigFloatsArray {
         AtomicInteger index = new AtomicInteger();
         ParallelizationTools.launchParallelizedCode(current.getNumThreads(), () -> {
             int i = index.getAndIncrement();
-            float err = 0;
+            double err = 0;
             while (i < current.internalList.size()) {
 
                 float[] calcA = calculatedVectorB.internalList.get(i);
@@ -192,9 +192,10 @@ public class BigFloatsArray {
 
                 for (int z = 0; z < calcA.length; z++) {
                     if (badA[z] == 1) continue;
-                    float tempErr = Math.abs(calcA[z] - currA[z]);
-                    if (tempErr > err) {
-                        err = tempErr;
+                    double relativeErr = Math.abs(((calcA[z] - currA[z]) / (calcA[z] + currA[z])));
+                    //float tempErr = Math.abs(calcA[z] - currA[z]);
+                    if (relativeErr > err) {
+                        err = relativeErr;
                     }
                 }
                 i = index.getAndIncrement();
