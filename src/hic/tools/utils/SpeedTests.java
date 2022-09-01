@@ -27,6 +27,7 @@ package hic.tools.utils;
 import hic.HiCGlobals;
 import hic.tools.utils.bigarray.BigContactArrayCreator;
 import hic.tools.utils.bigarray.BigContactList;
+import hic.tools.utils.largelists.BigFloatsArray;
 import javastraw.reader.Dataset;
 import javastraw.reader.DatasetReaderV2;
 import javastraw.reader.basics.Chromosome;
@@ -39,6 +40,7 @@ import javastraw.reader.type.HiCZoom;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Random;
 
 public class SpeedTests {
 
@@ -175,5 +177,79 @@ public class SpeedTests {
         } catch (Exception e) {
             System.exit(26);
         }
+    }
+
+    public static void testDataStructure() {
+        Random generator = new Random(0);
+        double sum = 0;
+        long len = (long) 4e9;
+        ListOfFloatArrays values = new ListOfFloatArrays(len);
+        //List<Float> values = new ArrayList<>((Integer.MAX_VALUE/10)*9);
+        //float[] values = new float[(Integer.MAX_VALUE/10)*9];
+        long time0 = System.nanoTime();
+        for (long k = 0; k < len; k++) {
+            float val = generator.nextFloat();
+            //values.add(val);
+            values.addTo(k, val);
+            sum += val;
+        }
+        long time1 = System.nanoTime();
+        System.out.println("Loading time " + (time1 - time0));
+
+        double sum2 = 0;
+        long actualLen = 0;
+        time0 = System.nanoTime();
+        for (float[] vals : values.getValues()) {
+            for (float val : vals) {
+                sum2 += val;
+                actualLen++;
+            }
+        }
+        time1 = System.nanoTime();
+        System.out.println("Reading time " + (time1 - time0));
+
+        System.out.println("Intended Len " + len);
+        System.out.println("Supposed Len " + values.getLength());
+        System.out.println("Actual Len " + actualLen);
+
+        System.out.println("Intended Sum " + sum);
+        System.out.println("Actual Sum " + sum2);
+    }
+
+    public static void testDataStructure2() {
+        Random generator = new Random(0);
+        double sum = 0;
+        long len = (long) 4e9;
+        BigFloatsArray values = new BigFloatsArray(len);
+        //List<Float> values = new ArrayList<>((Integer.MAX_VALUE/10)*9);
+        //float[] values = new float[(Integer.MAX_VALUE/10)*9];
+        long time0 = System.nanoTime();
+        for (long k = 0; k < len; k++) {
+            float val = generator.nextFloat();
+            //values.add(val);
+            values.set(k, val);
+            sum += val;
+        }
+        long time1 = System.nanoTime();
+        System.out.println("Loading time " + (time1 - time0));
+
+        double sum2 = 0;
+        long actualLen = 0;
+        time0 = System.nanoTime();
+        for (float[] vals : values.getValues()) {
+            for (float val : vals) {
+                sum2 += val;
+                actualLen++;
+            }
+        }
+        time1 = System.nanoTime();
+        System.out.println("Reading time " + (time1 - time0));
+
+        System.out.println("Intended Len " + len);
+        System.out.println("Supposed Len " + values.getLength());
+        System.out.println("Actual Len " + actualLen);
+
+        System.out.println("Intended Sum " + sum);
+        System.out.println("Actual Sum " + sum2);
     }
 }

@@ -24,13 +24,12 @@
 
 package hic.tools.utils.norm.RU;
 
-import java.util.Arrays;
-
-public class RUCode() {
+public class RUCode {
     public static int balance(long m, double[] b, double[] report, double[] allIters, float tol, float pppp,
                               int maxiter, double del, double dp, int totIter, int threads, int k) {
 
-        int p;
+        /*
+
         int n0;
         double low;
         int[] bad;
@@ -50,20 +49,26 @@ public class RUCode() {
 
         double[] space = new double[threads];
 
-        for (p = 0; p < threads; p++) {
+        for (int p = 0; p < threads; p++) {
             space[p] = new double[k];
         }
 
         double perc = pppp;
 
-        for (p = 0; p < k; p++) one[p] = 1.0;
-        for (p = 0; p < k; p++) bad[p] = 0;
+        for (int p = 0; p < k; p++){
+            one[p] = 1.0;
+        }
+        for (int p = 0; p < k; p++){
+            bad[p] = 0;
+        }
 
 
         double[] nz = new double[k];
-        for (p = 0; p < k; p++) nz[p] = 0;
+        for (int p = 0; p < k; p++){
+            nz[p] = 0;
+        }
 
-        for (p = 0; p < m; p++) {
+        for (int p = 0; p < m; p++) {
             nz[i[p]] += 1.0;
             if (i[p] != j[p]) nz[j[p]] += 1.0;
         }
@@ -185,6 +190,9 @@ public class RUCode() {
         for (p = 0; p < k; p++) if (bad[p] == 1) b[p] = Float.NaN;
 
         return (iter);
+
+         */
+        return 0;
     }
 }
 

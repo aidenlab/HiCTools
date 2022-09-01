@@ -35,9 +35,9 @@ public class FinalScale {
 
     private final static short S1 = (short) 1;
     private final static short S0 = (short) 0;
-    private final static float maxPercentile = 20f;
-    private final static float startingPercentile = 1f;
-    private final static float deltaPercentile = 0.5f;
+    private final static float maxPercentile = 10f;
+    private final static float startingPercentile = 0f;
+    private final static float deltaPercentile = 0.1f;
     private final static float tolerance = 5e-4f;
     private final static int maxIter = 100;
     private final static int totalIterations = 3 * maxIter;

@@ -33,7 +33,10 @@ import hic.tools.utils.SpeedTests;
 class AggregateProcessing {
     public static void main(String[] argv) throws Exception {
 
-        SpeedTests.testRowSums();
+        //SpeedTests.testRowSums();
+        SpeedTests.testDataStructure2();
+        System.gc();
+        SpeedTests.testDataStructure();
 
         /*
         String[] command = new String[]{"sum", "--diagonals",
