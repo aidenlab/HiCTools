@@ -30,18 +30,14 @@ import hic.tools.clt.JuiceboxCLT;
 import hic.tools.utils.bigarray.BigContactList;
 import hic.tools.utils.norm.IntraNorms;
 import hic.tools.utils.norm.NormalizationCalculations;
-import hic.tools.utils.norm.NormalizationVectorUpdater;
 import javastraw.reader.Dataset;
 import javastraw.reader.DatasetReaderV2;
 import javastraw.reader.basics.Chromosome;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.type.HiCZoom;
-import javastraw.reader.type.NormalizationType;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
 
 
 public class TestNorm extends JuiceboxCLT {
@@ -51,26 +47,11 @@ public class TestNorm extends JuiceboxCLT {
     private String file, name, output;
 
     public TestNorm() {
-        super(getBasicUsage() + "\n"
-                //+ "           : -k normalizations to include\n"
-                + "           : -r resolutions\n"
-                + "           : --threads number of CPU threads to use\n"
-                + "           : --conserve-ram will minimize RAM usage\n"
-                + "           : --check-ram-usage will check ram requirements prior to running"
-        );
+        super(getBasicUsage());
     }
 
     public static String getBasicUsage() {
-        return "testNorm [-k NORM] [--threads number] [--mthreads number] <input_HiC_file> <chromosome> <resolution> <output>";
-    }
-
-    public static void launch(String outputFile, List<NormalizationType> normalizationTypes, int ramSavePoint,
-                              Map<NormalizationType, Integer> resolutionsToBuildTo) throws IOException {
-        HiCGlobals.useCache = false;
-
-
-        NormalizationVectorUpdater updater = new NormalizationVectorUpdater();
-        updater.updateHicFile(outputFile, normalizationTypes, resolutionsToBuildTo, ramSavePoint);
+        return "testNorm [-k NORM] [--threads number] [--mthreads number] <input.hic> <chromosome> <resolution> <output>";
     }
 
     @Override
@@ -101,11 +82,16 @@ public class TestNorm extends JuiceboxCLT {
             String stem = "NORM_" + chrom.getIndex() + "_" + zoom.getBinSize();
 
             BigContactList ba = IntraNorms.getBigArrayFromAndClearCache(ds, chrom, zoom, 0);
-            NormalizationCalculations nc = new NormalizationCalculations(ba, zoom.getBinSize());
-            ListOfFloatArrays vc = nc.computeVC();
-            ListOfFloatArrays scale = nc.computeSCALE(vc, stem);
-
-            export(scale, output);
+            System.out.println("Contacts loaded to RAM");
+            if (ba != null) {
+                NormalizationCalculations nc = new NormalizationCalculations(ba, zoom.getBinSize());
+                ListOfFloatArrays vc = nc.computeVC();
+                long s0 = System.nanoTime();
+                ListOfFloatArrays scale = nc.computeSCALE(vc, stem);
+                long s1 = System.nanoTime();
+                System.out.println("Overall time taken " + ((s1 - s0) * 1e-9) + " seconds");
+                export(scale, output);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
