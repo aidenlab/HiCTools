@@ -51,7 +51,7 @@ public class TestNorm extends JuiceboxCLT {
     }
 
     public static String getBasicUsage() {
-        return "testNorm [-k NORM] [--threads number] [--mthreads number] <input.hic> <chromosome> <resolution> <output>";
+        return "testNorm [--threads number] <input.hic> <chromosome> <resolution> <output>";
     }
 
     @Override
