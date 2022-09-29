@@ -73,7 +73,7 @@ public class NormalizationCalculations {
      *
      * @return Normalization vector
      */
-    ListOfFloatArrays computeVC() {
+    public ListOfFloatArrays computeVC() {
         return ba.getRowSums();
     }
 
