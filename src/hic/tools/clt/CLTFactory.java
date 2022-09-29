@@ -67,7 +67,7 @@ public class CLTFactory {
         } else if (cmd.startsWith("addnorm")) {
             return new AddNorm();
         } else if (cmd.startsWith("test") && cmd.contains("norm")) {
-            return new AddNorm();
+            return new TestNorm();
         } else if (cmd.equals("bigwig")) {
             return new BigWig();
         } else if (cmd.equals("bintopairs")) {
