@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2022 Broad Institute, Aiden Lab, Rice University, Baylor College of Medicine
+ * Copyright (c) 2020-2022 Rice University, Baylor College of Medicine, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ import javastraw.reader.type.NormalizationType;
 import java.util.List;
 import java.util.Map;
 
-class NormVectorInfo {
+public class NormVectorInfo {
 
     private final BigListOfByteWriters normVectorBuffers;
     private final List<NormalizationVectorIndexEntry> normVectorIndices;
