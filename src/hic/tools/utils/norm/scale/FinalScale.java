@@ -27,6 +27,7 @@ package hic.tools.utils.norm.scale;
 import hic.HiCGlobals;
 import hic.tools.utils.bigarray.BigContactList;
 import hic.tools.utils.largelists.BigFloatsArray;
+//import hic.tools.utils.largelists.BigDoublesArray;
 import hic.tools.utils.largelists.BigShortsArray;
 import hic.tools.utils.norm.scale.cutoffs.Cutoffs;
 import hic.tools.utils.norm.scale.cutoffs.ZscoreCutoffs;
@@ -38,15 +39,12 @@ public class FinalScale {
     private final static short S1 = (short) 1;
     private final static short S0 = (short) 0;
     private final static float maxPercentile = 10f;
-    private final static float startingPercentile = 0f;
-    private final static float deltaPercentile = 0.1f;
-    private final static float maxZscore = -1;
-    private final static float startingZscore = -3.5f;
-    private final static float deltaZscore = 0.05f;
-    private final static float tolerance = 5e-4f;
-    private final static int maxIter = 100;
+    private final static float tolerance = 1e-4f;
+    private final static int maxIter = 500;
     private final static int totalIterations = 3 * maxIter;
     private final static float minErrorThreshold = .02f;
+    private final static float del = .05f;
+
 
     public static ListOfFloatArrays scaleToTargetVector(BigContactList ba, long matrixSize,
                                                         BigFloatsArray initialGuess, String stem) {
@@ -63,15 +61,23 @@ public class FinalScale {
         double[] reportErrorForIteration = new double[totalIterations + 3];
         int[] numItersForAllIterations = new int[totalIterations + 3];
 
-        //	find rows sums
+        //	find numbers of nonzeros
         ListOfIntArrays numNonZero = ba.getNumNonZeroInRows();
+        // find the highest number of nonzeros in a row we are willing to remove
+        // may be better to use ListOfIntArrays instead, but it needs to be sorted
+        int[] simpleNumNonZero = new int[matrixSize];
+        int n0 = 0;
+        for (long p = 0; p < matrixSize; p++) {
+           int a = numNonZero.get(p);
+           if (a > 0)  simpleNumNonZero[n0++] = 0;
+        }
+        java.util.Arrays.sort(simpleNumNonZero,0,n0);
+        // if we need to remove rows with more than upperBound nonzeros, scaling has failed
+        int upperBound;
+        upperBound = simpleNumNonZero[(int) (maxPercentile*n0)];
+//        delete(simpleNumNonZero);  // no longer needed
 
-        //	find relevant percentiles
-        Cutoffs percentiles = new ZscoreCutoffs(numNonZero, startingZscore, deltaZscore, maxZscore);
-
-        int cutoffIndex = 0;
-        int maxNumCutoffs = percentiles.getMaxNumCutoffs();
-        double lowCutoff = percentiles.get(cutoffIndex);
+        int lowCutoff = 1;  // start with removing no nonzerow rows
         for (long p = 0; p < matrixSize; p++) {
             if (numNonZero.get(p) < lowCutoff) {
                 excludeBadRow(p, bad, zTargetVector, one);
@@ -79,7 +85,7 @@ public class FinalScale {
         }
 
         BigFloatsArray row = ba.parSparseMultiplyAcrossLists(one, matrixSize);
-        BigFloatsArray rowBackup = row.deepClone();
+    //    BigFloatsArray rowBackup = row.deepClone();
 
         for (long p = 0; p < matrixSize; p++) {
             one.set(p, (short) (1 - bad.get(p)));
@@ -93,29 +99,31 @@ public class FinalScale {
         }
         BigFloatsArray dc = dr.deepClone();
         BigFloatsArray current = dr.deepClone();
+        row.parMultiplyBy(dr);
+
+        // variables for the new algorithm
+        boolean conv = false, div = false;
+        int low_conv = 1000, low_div = 0;
+        float[] b_conv = new float[matrixSize]; // keep the last converged vector
+        float[] b0 = new float[matrixSize]; // keep the copy of the current vector
+        short[] bad_conv = new int[matrixSize]; // bad rows for Erez's trick
+        double ber_conv;
+        boolean yes = true;
+
         //	start iterations
         //	row is the current rows sum; dr and dc are the current rows and columns scaling vectors
         double convergeError = 10.0 * (1.0 + tolerance);
-        double rowSumError = convergeError;
         int iter = 0;
-        boolean failed;
-        int nerr = 0;
-        float[] errors = new float[10000];
         int allItersI = 0;
         BigFloatsArray col;
         int realIters = 0;
 
-        // rowSumError = .1
-        // total iter ~ 50
-
-        // if perc or perc1 reached upper bound or the total number of iterations is too high, exit
-        while ((convergeError > tolerance || rowSumError > 5.0 * tolerance)
-                && iter < maxIter && allItersI < totalIterations
-                && cutoffIndex < maxNumCutoffs) {
+        ITERS:
+        while (convergeError > tolerance
+                && iter < maxIter && allItersI < totalIterations) {
             iter++;
             allItersI++;
             realIters++;
-            failed = true;
 
             col = update(matrixSize, bad, row, zTargetVector, dr, ba);
             col.parMultiplyBy(dc);
@@ -131,16 +139,18 @@ public class FinalScale {
             //	calculate the current error
             convergeError = BigFloatsArray.parCalculateConvergenceError(calculatedVectorB, current, bad);
 
+            // new stuff
+            double temp1;
+            int numBad = 0;
+            for (long p = 0; p < matrixSize; p++) {
+                if (bad.get(p) == 1) continue;
+                temp1 = Math.abs((calculatedVectorB.get(p) - current.get(p)) / (calculatedVectorB.get(p) + current.get(p)));
+                if (temp1 > tolerance) numBad++;
+            }
+            for (long p = 0; p < matrixSize; p++) b0[p] = current.get(p);
+
             reportErrorForIteration[allItersI - 1] = convergeError;
             numItersForAllIterations[allItersI - 1] = iter;
-
-            //	since calculating the error in row sums requires matrix-vector multiplication
-            //	we are doing this every 10	iterations
-            if (iter % 10 == 0) {
-                col = ba.parSparseMultiplyAcrossLists(calculatedVectorB, matrixSize);
-                rowSumError = BigFloatsArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
-                errors[nerr++] = (float) rowSumError;
-            }
 
             // current = calculatedVectorB
             current.parSetTo(calculatedVectorB);
@@ -148,62 +158,136 @@ public class FinalScale {
             // check whether convergence rate is satisfactory
             // if less than 5 iterations (so less than 5 errors) and less than 2 row sums errors, there is nothing to check
 
-            if (convergeError < tolerance
-                    && (nerr < 2 || errors[nerr - 1] < 0.5 * errors[nerr - 2])) continue;
+            if (convergeError < tolerance) {  //if converged
+                yes = true;
+                if (lowCutoff == 1) break;
+                conv = true;
+                for (long p = 0; p < matrixSize; p++) b_conv[p] = calculatedVectorB.get(p);
+                for (long p = 0; p < matrixSize; p++) bad_conv[p] = bad.get(p);
+                ber_conv = convergeError;
+                low_conv = lowCutoff;
+                //  did it diverge before?
+                if (div) {
+                    if (low_conv - low_div <= 1) break;
+                    lowCutoff = (int) (low_conv + low_div) / 2;
+                }
+//  just halve low
+                else lowCutoff = (int) low_conv / 2;
 
-            if (iter > 5) {
-                for (int q = 1; q <= 5; q++) {
-                    if (reportErrorForIteration[allItersI - q] * (1.0 + minErrorThreshold) < reportErrorForIteration[allItersI - q - 1]) {
-                        failed = false;
-                        break;
+                for (long p = 0; p < matrixSize; p++) {
+                    one.set(p, S1);
+                    bad.set(p, S0);
+                }
+                for (long p = 0; p < matrixSize; p++) {
+                    if (numNonZero.get(p) < lowCutoff) {
+                        bad.set(p, S1);
+                        one.set(p, S0);
                     }
                 }
 
-                if (nerr >= 2 && errors[nerr - 1] > 0.75 * errors[nerr - 2]) {
-                    failed = true;
-                }
-    
-                if (iter >= maxIter) {
-                    failed = true;
-                }
+                convergeError = 10.0;
+                iter = 0;
+                for (long p = 0; p < matrixSize; p++) dr.set(p, 1 - bad.get(p));
+                for (long p = 0; p < matrixSize; p++) dc.set(p, 1 - bad.get(p));
+                row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
+                row.parMultiplyBy(dr);
+                continue;
+            }
 
-                if (failed) {
-                    cutoffIndex++;
-                    nerr = 0;
-                    lowCutoff = percentiles.get(cutoffIndex);
+            if (iter <= 5) continue;
+//      check whether convergence rate is satisfactory
+            if ((reportErrorForIteration[allItersI - 1] * (1.0 + del) < reportErrorForIteration[allItersI - 6]) && (iter < maxIter))
+                continue;
 
+//  diverged
+            div = true;
+            low_div = lowCutoff;
+//  did it converge before? If it converged for low+1 and diverged for low, use the last converged norm vector
+            if (conv) {
+                if (low_conv - low_div <= 1) {
+                    for (long p = 0; p < matrixSize; p++) b.set(p, b_conv[p]);
+                    for (long p = 0; p < matrixSize; p++) bad.set(p, bad_conv[p]);
+                    convergeError = ber_conv;
+                    break;
+                }
+//  if it almost converged (only a very small fraction of errors is above tol) remove bad rows and try again
+//  with the same low (Erez's trick)
+                else if (((double) numBad) / n0 < 1.0e-5 && yes) {
                     for (long p = 0; p < matrixSize; p++) {
-                        if (numNonZero.get(p) < lowCutoff && zTargetVector.get(p) > 0) {
-                            excludeBadRow(p, bad, zTargetVector, one);
+                        if (bad.get(p) == 1) continue;
+                        temp1 = Math.abs((calculatedVectorB.get(p) - b0[p]) / (calculatedVectorB.get(p) + b0[p]));
+                        if (temp1 > tolerance) {
+                            bad.set(p, S1);
+                            one.set(p, 0);
                         }
                     }
-
-                    convergeError = 10.0 * (1.0 + tolerance);
-                    rowSumError = 10.0 * (1.0 + tolerance);
-
-                    //	if the current error is larger than 5 iteration ago start from scratch,
-                    //	otherwise continue from the current position
-                    if (reportErrorForIteration[allItersI - 1] > reportErrorForIteration[allItersI - 6]) {
-                        for (long p = 0; p < matrixSize; p++) {
-                            dr.set(p, 1 - bad.get(p));
-                        }
-                        dc.parSetTo(dr);
-                        one.parSetTo(dr);
-                        current.parSetTo(dr);
-                        row.parSetTo(rowBackup);
-                    } else {
-                        // dr *= (1 - bad);
-                        dr.parMultiplyByOneMinus(bad);
-                        dc.parMultiplyByOneMinus(bad);
-                    }
+                    yes = false;
+                    convergeError = 10.0;
                     iter = 0;
+                    for (long p = 0; p < matrixSize; p++) dr.set(p, 1.0 - bad.get(p));
+                    for (long p = 0; p < matrixSize; p++) dc.set(p, 1.0 - bad.get(p));
+                    row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
+                    row.parMultiplyBy(dr);
+                    //      if perc reached upper bound or the total number of iterationbs is too high, exit
+                    if (lowCutoff > upperBound) break;
+                    if (allItersI > totalIterations) break;
+                    continue ITERS;
+                } else {
+                    lowCutoff = (int) (low_div + low_conv) / 2;
+                    yes = true;
                 }
             }
+            //  have never converged before
+            //  Erez's trick
+            else if (((double) numBad) / n0 < 1.0e-5 && yes) {
+                for (long p = 0; p < matrixSize; p++) {
+                    if (bad.get(p) == 1) continue;
+                    temp1 = Math.abs((calculatedVectorB.get(p) - b0[p]) / (calculatedVectorB.get(p) + b0[p]));
+                    if (temp1 > tolerance) {
+                        bad.set(p, S1);
+                        one.set(p, 0);
+                    }
+                }
+                yes = false;
+                convergeError = 10.0;
+                iter = 0;
+                for (long p = 0; p < matrixSize; p++) dr.set(p, 1.0 - bad.get(p));
+                for (long p = 0; p < matrixSize; p++) dc.set(p, 1.0 - bad.get(p));
+                row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
+                row.parMultiplyBy(dr);
+                //      if perc reached upper bound or the total number of iterationbs is too high, exit
+                if (lowCutoff > upperBound) break;
+                if (allItersI > totalIterations) break;
+                continue ITERS;
+            } else {
+                lowCutoff = 2 * lowCutoff;
+                yes = true;
+            }
+
+            for (long p = 0; p < matrixSize; p++) {
+                bad.set(p, S0);
+                one.set(p, S1);
+            }
+            for (long p = 0; p < matrixSize; p++) {
+                if (numNonZero.get(p) < lowCutoff) {
+                    bad.set(p, S1);
+                    one.set(p, S0);
+                }
+            }
+            convergeError = 10.0;
+            iter = 0;
+            for (long p = 0; p < matrixSize; p++) dr.set(p, 1.0 - bad.get(p));
+            for (long p = 0; p < matrixSize; p++) dc.set(p, 1.0 - bad.get(p));
+            row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
+            row.parMultiplyBy(dr);
+            //      if perc reached upper bound or the total number of iterationbs is too high, exit
+            if (lowCutoff > upperBound) break;
+            if (allItersI > totalIterations) break;
         }
 
         //	find the final error in row sums
         col = ba.parSparseMultiplyAcrossLists(calculatedVectorB, matrixSize);
-        rowSumError = BigFloatsArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
+        double rowSumError = BigFloatsArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
         if (HiCGlobals.printVerboseComments) {
             double err90 = BigFloatsArray.calculateError90(col, calculatedVectorB, zTargetVector, bad);
             System.out.println("Total iters " + realIters + " \nRow Sums Error " + rowSumError + " \nError90 " + err90);
@@ -212,7 +296,7 @@ public class FinalScale {
             reportErrorForIteration[allItersI + 2] = rowSumError;
         }
 
-        if (convergeError > tolerance || rowSumError > 5.0 * tolerance || cutoffIndex >= maxNumCutoffs) {
+        if (convergeError > tolerance || rowSumError > 1.0e-2 || lowCutoff > upperBound) {
             if (HiCGlobals.printVerboseComments) {
                 System.out.println("Setting vector to null (not converged)");
             }
@@ -231,7 +315,6 @@ public class FinalScale {
         one.clear();
         numNonZero.clear();
         row.clear();
-        rowBackup.clear();
         dr.clear();
         dc.clear();
         current.clear();
@@ -242,9 +325,11 @@ public class FinalScale {
             long timeInSecs = (long) ((endTime - startTime) * 1e-9);
 
             System.out.println(stem + " took " + timeInSecs + " seconds");
+         /*
             for (int q = 0; q < allItersI; q++) {
                 System.out.println(numItersForAllIterations[q] + ": " + reportErrorForIteration[q]);
             }
+         */
             System.out.println("Total " + allItersI + " iterations; final zscore = " + percentiles.get(cutoffIndex));
             System.out.println("Final error in scaling vector is " + reportErrorForIteration[allItersI + 1] +
                     " and in row sums is " + reportErrorForIteration[allItersI + 2]);
