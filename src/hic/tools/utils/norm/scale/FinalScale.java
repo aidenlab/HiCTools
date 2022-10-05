@@ -51,6 +51,8 @@ public class FinalScale {
 
         long startTime = System.nanoTime();
 
+        int matrixSizeI = (int) matrixSize;
+
 
         BigShortsArray bad = new BigShortsArray(matrixSize);
 
@@ -65,16 +67,16 @@ public class FinalScale {
         ListOfIntArrays numNonZero = ba.getNumNonZeroInRows();
         // find the highest number of nonzeros in a row we are willing to remove
         // may be better to use ListOfIntArrays instead, but it needs to be sorted
-        int[] simpleNumNonZero = new int[matrixSize];
+        int[] simpleNumNonZero = new int[matrixSizeI];
         int n0 = 0;
         for (long p = 0; p < matrixSize; p++) {
            int a = numNonZero.get(p);
-           if (a > 0)  simpleNumNonZero[n0++] = 0;
+           if (a > 0)  simpleNumNonZero[n0++] = a;
         }
         java.util.Arrays.sort(simpleNumNonZero,0,n0);
         // if we need to remove rows with more than upperBound nonzeros, scaling has failed
         int upperBound;
-        upperBound = simpleNumNonZero[(int) (maxPercentile*n0)];
+        upperBound = simpleNumNonZero[(int) (maxPercentile*n0/100.0)];
 //        delete(simpleNumNonZero);  // no longer needed
 
         int lowCutoff = 1;  // start with removing no nonzerow rows
@@ -104,10 +106,10 @@ public class FinalScale {
         // variables for the new algorithm
         boolean conv = false, div = false;
         int low_conv = 1000, low_div = 0;
-        float[] b_conv = new float[matrixSize]; // keep the last converged vector
-        float[] b0 = new float[matrixSize]; // keep the copy of the current vector
-        short[] bad_conv = new int[matrixSize]; // bad rows for Erez's trick
-        double ber_conv;
+        float[] b_conv = new float[matrixSizeI]; // keep the last converged vector
+        float[] b0 = new float[matrixSizeI]; // keep the copy of the current vector
+        int[] bad_conv = new int[matrixSizeI]; // bad rows for Erez's trick
+        double ber_conv = 10.0;
         boolean yes = true;
 
         //	start iterations
@@ -147,7 +149,7 @@ public class FinalScale {
                 temp1 = Math.abs((calculatedVectorB.get(p) - current.get(p)) / (calculatedVectorB.get(p) + current.get(p)));
                 if (temp1 > tolerance) numBad++;
             }
-            for (long p = 0; p < matrixSize; p++) b0[p] = current.get(p);
+            for (int p = 0; p < matrixSizeI; p++) b0[p] = current.get(p);
 
             reportErrorForIteration[allItersI - 1] = convergeError;
             numItersForAllIterations[allItersI - 1] = iter;
@@ -162,8 +164,8 @@ public class FinalScale {
                 yes = true;
                 if (lowCutoff == 1) break;
                 conv = true;
-                for (long p = 0; p < matrixSize; p++) b_conv[p] = calculatedVectorB.get(p);
-                for (long p = 0; p < matrixSize; p++) bad_conv[p] = bad.get(p);
+                for (int p = 0; p < matrixSizeI; p++) b_conv[p] = calculatedVectorB.get(p);
+                for (int p = 0; p < matrixSizeI; p++) bad_conv[p] = bad.get((long) p);
                 ber_conv = convergeError;
                 low_conv = lowCutoff;
                 //  did it diverge before?
@@ -205,27 +207,27 @@ public class FinalScale {
 //  did it converge before? If it converged for low+1 and diverged for low, use the last converged norm vector
             if (conv) {
                 if (low_conv - low_div <= 1) {
-                    for (long p = 0; p < matrixSize; p++) b.set(p, b_conv[p]);
-                    for (long p = 0; p < matrixSize; p++) bad.set(p, bad_conv[p]);
+                    for (long p = 0; p < matrixSize; p++) calculatedVectorB.set(p, b_conv[(int) p]);
+                    for (int p = 0; p < matrixSizeI; p++) bad.set((long) p, (short) bad_conv[p]);
                     convergeError = ber_conv;
                     break;
                 }
 //  if it almost converged (only a very small fraction of errors is above tol) remove bad rows and try again
 //  with the same low (Erez's trick)
                 else if (((double) numBad) / n0 < 1.0e-5 && yes) {
-                    for (long p = 0; p < matrixSize; p++) {
+                    for (int p = 0; p < matrixSizeI; p++) {
                         if (bad.get(p) == 1) continue;
                         temp1 = Math.abs((calculatedVectorB.get(p) - b0[p]) / (calculatedVectorB.get(p) + b0[p]));
                         if (temp1 > tolerance) {
                             bad.set(p, S1);
-                            one.set(p, 0);
+                            one.set(p, S0);
                         }
                     }
                     yes = false;
                     convergeError = 10.0;
                     iter = 0;
-                    for (long p = 0; p < matrixSize; p++) dr.set(p, 1.0 - bad.get(p));
-                    for (long p = 0; p < matrixSize; p++) dc.set(p, 1.0 - bad.get(p));
+                    for (long p = 0; p < matrixSize; p++) dr.set(p, 1.0f - bad.get(p));
+                    for (long p = 0; p < matrixSize; p++) dc.set(p, 1.0f - bad.get(p));
                     row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
                     row.parMultiplyBy(dr);
                     //      if perc reached upper bound or the total number of iterationbs is too high, exit
@@ -240,19 +242,19 @@ public class FinalScale {
             //  have never converged before
             //  Erez's trick
             else if (((double) numBad) / n0 < 1.0e-5 && yes) {
-                for (long p = 0; p < matrixSize; p++) {
+                for (int p = 0; p < matrixSizeI; p++) {
                     if (bad.get(p) == 1) continue;
                     temp1 = Math.abs((calculatedVectorB.get(p) - b0[p]) / (calculatedVectorB.get(p) + b0[p]));
                     if (temp1 > tolerance) {
                         bad.set(p, S1);
-                        one.set(p, 0);
+                        one.set(p, S0);
                     }
                 }
                 yes = false;
                 convergeError = 10.0;
                 iter = 0;
-                for (long p = 0; p < matrixSize; p++) dr.set(p, 1.0 - bad.get(p));
-                for (long p = 0; p < matrixSize; p++) dc.set(p, 1.0 - bad.get(p));
+                for (long p = 0; p < matrixSize; p++) dr.set(p, 1.0f - bad.get(p));
+                for (long p = 0; p < matrixSize; p++) dc.set(p, 1.0f - bad.get(p));
                 row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
                 row.parMultiplyBy(dr);
                 //      if perc reached upper bound or the total number of iterationbs is too high, exit
@@ -276,8 +278,8 @@ public class FinalScale {
             }
             convergeError = 10.0;
             iter = 0;
-            for (long p = 0; p < matrixSize; p++) dr.set(p, 1.0 - bad.get(p));
-            for (long p = 0; p < matrixSize; p++) dc.set(p, 1.0 - bad.get(p));
+            for (long p = 0; p < matrixSize; p++) dr.set(p, 1.0f - bad.get(p));
+            for (long p = 0; p < matrixSize; p++) dc.set(p, 1.0f - bad.get(p));
             row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
             row.parMultiplyBy(dr);
             //      if perc reached upper bound or the total number of iterationbs is too high, exit
@@ -292,6 +294,7 @@ public class FinalScale {
             double err90 = BigFloatsArray.calculateError90(col, calculatedVectorB, zTargetVector, bad);
             System.out.println("Total iters " + realIters + " \nRow Sums Error " + rowSumError + " \nError90 " + err90);
             System.out.println("Convergence error " + convergeError);
+            System.out.println("Remove rows with less than " + lowCutoff + " nonzeros");
             reportErrorForIteration[allItersI + 1] = convergeError;
             reportErrorForIteration[allItersI + 2] = rowSumError;
         }
@@ -330,7 +333,7 @@ public class FinalScale {
                 System.out.println(numItersForAllIterations[q] + ": " + reportErrorForIteration[q]);
             }
          */
-            System.out.println("Total " + allItersI + " iterations; final zscore = " + percentiles.get(cutoffIndex));
+            //System.out.println("Total " + allItersI + " iterations; final zscore = " + percentiles.get(cutoffIndex));
             System.out.println("Final error in scaling vector is " + reportErrorForIteration[allItersI + 1] +
                     " and in row sums is " + reportErrorForIteration[allItersI + 2]);
         }
