@@ -40,7 +40,6 @@ public class FinalScale {
     private final static float tolerance = 1e-4f;
     private final static int maxIter = 500;
     private final static int totalIterations = 3 * maxIter;
-    private final static float minErrorThreshold = .02f;
     private final static float del = .05f;
 
 
@@ -101,7 +100,6 @@ public class FinalScale {
         boolean conv = false, div = false;
         int low_conv = 1000, low_div = 0;
         BigFloatsArray b_conv = new BigFloatsArray(matrixSize); // keep the last converged vector
-        BigFloatsArray b0 = new BigFloatsArray(matrixSize); // keep the copy of the current vector
         BigIntsArray bad_conv = new BigIntsArray(matrixSize); // bad rows for Erez's trick
         double ber_conv = 10.0;
         boolean yes = true;
@@ -114,7 +112,6 @@ public class FinalScale {
         BigFloatsArray col;
         int realIters = 0;
 
-        ITERS:
         while (convergeError > tolerance && iter < maxIter && allItersI < totalIterations) {
             iter++;
             allItersI++;
@@ -142,7 +139,7 @@ public class FinalScale {
                 temp1 = Math.abs((calculatedVectorB.get(p) - current.get(p)) / (calculatedVectorB.get(p) + current.get(p)));
                 if (temp1 > tolerance) numBad++;
             }
-            b0 = current.deepClone();
+            BigFloatsArray b0 = current.deepClone();
 
             reportErrorForIteration[allItersI - 1] = convergeError;
             numItersForAllIterations[allItersI - 1] = iter;
@@ -226,15 +223,14 @@ public class FinalScale {
                     //      if perc reached upper bound or the total number of iterationbs is too high, exit
                     if (lowCutoff > upperBound) break;
                     if (allItersI > totalIterations) break;
-                    continue ITERS;
+                    continue;
                 } else {
                     lowCutoff = (low_div + low_conv) / 2;
                     yes = true;
                 }
-            }
-            //  have never converged before
-            //  Erez's trick
-            else if (((double) numBad) / n0 < 1.0e-5 && yes) {
+            } else if (((double) numBad) / n0 < 1.0e-5 && yes) {
+                //  have never converged before
+                //  Erez's trick
                 for (long p = 0; p < matrixSize; p++) {
                     if (bad.get(p) == 1) continue;
                     temp1 = Math.abs((calculatedVectorB.get(p) - b0.get(p)) / (calculatedVectorB.get(p) + b0.get(p)));
@@ -253,7 +249,7 @@ public class FinalScale {
                 //      if perc reached upper bound or the total number of iterationbs is too high, exit
                 if (lowCutoff > upperBound) break;
                 if (allItersI > totalIterations) break;
-                continue ITERS;
+                continue;
             } else {
                 lowCutoff = 2 * lowCutoff;
                 yes = true;
