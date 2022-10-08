@@ -82,9 +82,7 @@ public class FinalScale {
         BigFloatsArray row = ba.parSparseMultiplyAcrossLists(one, matrixSize);
     //    BigFloatsArray rowBackup = row.deepClone();
 
-        for (long p = 0; p < matrixSize; p++) {
-            one.set(p, (short) (1 - bad.get(p)));
-        }
+        one.setToOneMinus(bad);
 
         BigFloatsArray dr;
         if (initialGuess == null) {
@@ -166,21 +164,11 @@ public class FinalScale {
 //  just halve low
                 else lowCutoff = low_conv / 2;
 
-                for (long p = 0; p < matrixSize; p++) {
-                    one.set(p, S1);
-                    bad.set(p, S0);
-                }
-                for (long p = 0; p < matrixSize; p++) {
-                    if (numNonZero.get(p) < lowCutoff) {
-                        bad.set(p, S1);
-                        one.set(p, S0);
-                    }
-                }
-
+                resetOneAndBad(one, bad, matrixSize, numNonZero, lowCutoff);
                 convergeError = 10.0;
                 iter = 0;
-                for (long p = 0; p < matrixSize; p++) dr.set(p, 1 - bad.get(p));
-                for (long p = 0; p < matrixSize; p++) dc.set(p, 1 - bad.get(p));
+                dr.setToOneMinus(bad);
+                dc.setToOneMinus(bad);
                 row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
                 row.parMultiplyBy(dr);
                 continue;
@@ -216,8 +204,8 @@ public class FinalScale {
                     yes = false;
                     convergeError = 10.0;
                     iter = 0;
-                    for (long p = 0; p < matrixSize; p++) dr.set(p, 1.0f - bad.get(p));
-                    for (long p = 0; p < matrixSize; p++) dc.set(p, 1.0f - bad.get(p));
+                    dr.setToOneMinus(bad);
+                    dc.setToOneMinus(bad);
                     row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
                     row.parMultiplyBy(dr);
                     //      if perc reached upper bound or the total number of iterationbs is too high, exit
@@ -242,8 +230,8 @@ public class FinalScale {
                 yes = false;
                 convergeError = 10.0;
                 iter = 0;
-                for (long p = 0; p < matrixSize; p++) dr.set(p, 1.0f - bad.get(p));
-                for (long p = 0; p < matrixSize; p++) dc.set(p, 1.0f - bad.get(p));
+                dr.setToOneMinus(bad);
+                dc.setToOneMinus(bad);
                 row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
                 row.parMultiplyBy(dr);
                 //      if perc reached upper bound or the total number of iterationbs is too high, exit
@@ -255,25 +243,15 @@ public class FinalScale {
                 yes = true;
             }
 
-            for (long p = 0; p < matrixSize; p++) {
-                bad.set(p, S0);
-                one.set(p, S1);
-            }
-            for (long p = 0; p < matrixSize; p++) {
-                if (numNonZero.get(p) < lowCutoff) {
-                    bad.set(p, S1);
-                    one.set(p, S0);
-                }
-            }
+            resetOneAndBad(one, bad, matrixSize, numNonZero, lowCutoff);
             convergeError = 10.0;
             iter = 0;
-            for (long p = 0; p < matrixSize; p++) dr.set(p, 1.0f - bad.get(p));
-            for (long p = 0; p < matrixSize; p++) dc.set(p, 1.0f - bad.get(p));
+            dr.setToOneMinus(bad);
+            dc.setToOneMinus(bad);
             row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
             row.parMultiplyBy(dr);
             //      if perc reached upper bound or the total number of iterationbs is too high, exit
-            if (lowCutoff > upperBound) break;
-            if (allItersI > totalIterations) break;
+            if (lowCutoff > upperBound || allItersI > totalIterations) break;
         }
 
         //	find the final error in row sums
@@ -317,11 +295,11 @@ public class FinalScale {
             long timeInSecs = (long) ((endTime - startTime) * 1e-9);
 
             System.out.println(stem + " took " + timeInSecs + " seconds");
-         /*
+            /*
             for (int q = 0; q < allItersI; q++) {
                 System.out.println(numItersForAllIterations[q] + ": " + reportErrorForIteration[q]);
             }
-         */
+            */
             //System.out.println("Total " + allItersI + " iterations; final zscore = " + percentiles.get(cutoffIndex));
             System.out.println("Final error in scaling vector is " + reportErrorForIteration[allItersI + 1] +
                     " and in row sums is " + reportErrorForIteration[allItersI + 2]);
@@ -330,6 +308,17 @@ public class FinalScale {
         ListOfFloatArrays answer = calculatedVectorB.convertToRegular();
         calculatedVectorB.clear();
         return answer;
+    }
+
+    private static void resetOneAndBad(BigIntsArray one, BigIntsArray bad, long matrixSize, ListOfIntArrays numNonZero, int lowCutoff) {
+        bad.setAll(S0);
+        one.setAll(S1);
+        for (long p = 0; p < matrixSize; p++) {
+            if (numNonZero.get(p) < lowCutoff) {
+                bad.set(p, S1);
+                one.set(p, S0);
+            }
+        }
     }
 
     private static void excludeBadRow(long index, BigIntsArray bad, BigIntsArray target, BigIntsArray one) {

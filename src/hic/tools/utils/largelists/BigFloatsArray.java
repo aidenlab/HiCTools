@@ -315,5 +315,16 @@ public class BigFloatsArray {
             System.err.println("Adding objects of different sizes!");
         }
     }
+
+    public void setToOneMinus(BigIntsArray input) {
+        for (int i = 0; i < internalList.size(); i++) {
+            float[] dest = internalList.get(i);
+            int[] in = input.internalList.get(i);
+
+            for (int j = 0; j < dest.length; j++) {
+                dest[j] = 1 - in[j];
+            }
+        }
+    }
 }
 

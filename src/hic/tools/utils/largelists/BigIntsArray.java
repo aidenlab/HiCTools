@@ -133,4 +133,21 @@ public class BigIntsArray {
 	private int getNumThreads() {
 		return Math.min(HiCGlobals.normThreads, internalList.size());
 	}
+
+	public void setAll(int value) {
+		for (int[] row : internalList) {
+			Arrays.fill(row, value);
+		}
+	}
+
+	public void setToOneMinus(BigIntsArray input) {
+		for (int i = 0; i < internalList.size(); i++) {
+			int[] dest = internalList.get(i);
+			int[] in = input.internalList.get(i);
+
+			for (int j = 0; j < dest.length; j++) {
+				dest[j] = 1 - in[j];
+			}
+		}
+	}
 }
