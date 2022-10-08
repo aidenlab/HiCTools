@@ -69,7 +69,12 @@ public class DumpNorm extends JuiceboxCLT {
                 for (HiCZoom zoom : ds.getBpZooms()) {
                     for (NormalizationType norm : ds.getNormalizationHandler().getDefaultSetForHiCFileBuilding()) {
                         String outString = output + "_" + chrom.getName() + "_" + zoom.getBinSize() + "_" + norm.getLabel() + ".txt";
-                        TestNorm.export(ds.getNormalizationVector(chrom.getIndex(), zoom, norm).getData(), outString);
+                        try {
+                            TestNorm.export(ds.getNormalizationVector(chrom.getIndex(), zoom, norm).getData(), outString);
+                        } catch (Exception e) {
+                            //e.printStackTrace();
+                            System.err.println("No norm for " + chrom.getName() + " " + zoom + " " + norm.getLabel());
+                        }
                     }
                 }
             }
