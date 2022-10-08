@@ -164,13 +164,9 @@ public class FinalScale {
 //  just halve low
                 else lowCutoff = low_conv / 2;
 
-                resetOneAndBad(one, bad, matrixSize, numNonZero, lowCutoff);
                 convergeError = 10.0;
                 iter = 0;
-                dr.setToOneMinus(bad);
-                dc.setToOneMinus(bad);
-                row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
-                row.parMultiplyBy(dr);
+                row = resetVars(one, bad, matrixSize, numNonZero, lowCutoff, dr, dc, ba);
                 continue;
             }
 
@@ -243,13 +239,9 @@ public class FinalScale {
                 yes = true;
             }
 
-            resetOneAndBad(one, bad, matrixSize, numNonZero, lowCutoff);
             convergeError = 10.0;
             iter = 0;
-            dr.setToOneMinus(bad);
-            dc.setToOneMinus(bad);
-            row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
-            row.parMultiplyBy(dr);
+            row = resetVars(one, bad, matrixSize, numNonZero, lowCutoff, dr, dc, ba);
             //      if perc reached upper bound or the total number of iterationbs is too high, exit
             if (lowCutoff > upperBound || allItersI > totalIterations) break;
         }
@@ -310,7 +302,7 @@ public class FinalScale {
         return answer;
     }
 
-    private static void resetOneAndBad(BigIntsArray one, BigIntsArray bad, long matrixSize, ListOfIntArrays numNonZero, int lowCutoff) {
+    private static BigFloatsArray resetVars(BigIntsArray one, BigIntsArray bad, long matrixSize, ListOfIntArrays numNonZero, int lowCutoff, BigFloatsArray dr, BigFloatsArray dc, BigContactList ba) {
         bad.setAll(S0);
         one.setAll(S1);
         for (long p = 0; p < matrixSize; p++) {
@@ -319,6 +311,12 @@ public class FinalScale {
                 one.set(p, S0);
             }
         }
+        dr.setToOneMinus(bad);
+        dc.setToOneMinus(bad);
+
+        BigFloatsArray row = ba.parSparseMultiplyAcrossLists(dc, matrixSize);
+        row.parMultiplyBy(dr);
+        return row;
     }
 
     private static void excludeBadRow(long index, BigIntsArray bad, BigIntsArray target, BigIntsArray one) {
