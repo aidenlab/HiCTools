@@ -33,6 +33,7 @@ import hic.tools.utils.norm.NormalizationCalculations;
 import javastraw.reader.Dataset;
 import javastraw.reader.DatasetReaderV2;
 import javastraw.reader.basics.Chromosome;
+import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.type.HiCZoom;
 
@@ -98,13 +99,33 @@ public class TestNorm extends JuiceboxCLT {
         }
     }
 
-    private void export(ListOfFloatArrays scale, String output) {
+    public static void export(ListOfFloatArrays scale, String output) {
         PrintWriter out = null;
         try {
             out = new PrintWriter(new OutputStreamWriter(
                     new BufferedOutputStream(new FileOutputStream(output)), StandardCharsets.UTF_8));
             for (float[] row : scale.getValues()) {
                 for (float val : row) {
+                    out.println(val);
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } finally {
+            if (out != null) {
+                out.flush();
+                out.close();
+            }
+        }
+    }
+
+    public static void export(ListOfDoubleArrays scale, String output) {
+        PrintWriter out = null;
+        try {
+            out = new PrintWriter(new OutputStreamWriter(
+                    new BufferedOutputStream(new FileOutputStream(output)), StandardCharsets.UTF_8));
+            for (double[] row : scale.getValues()) {
+                for (double val : row) {
                     out.println(val);
                 }
             }
