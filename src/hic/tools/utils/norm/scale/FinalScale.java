@@ -30,7 +30,6 @@ import hic.tools.utils.largelists.BigFloatsArray;
 import hic.tools.utils.largelists.BigIntsArray;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 public class FinalScale {
 
@@ -49,6 +48,7 @@ public class FinalScale {
 
         long startTime = System.nanoTime();
 
+        int matrixSizeI = (int) matrixSize;
         BigIntsArray bad = new BigIntsArray(matrixSize);
 
         BigIntsArray zTargetVector = new BigIntsArray(matrixSize, S1);
@@ -62,15 +62,15 @@ public class FinalScale {
         ListOfIntArrays numNonZero = ba.getNumNonZeroInRows();
         // find the highest number of nonzeros in a row we are willing to remove
         // may be better to use ListOfIntArrays instead, but it needs to be sorted
-        DescriptiveStatistics simpleNumNonZero = new DescriptiveStatistics();
+        int[] simpleNumNonZero = new int[matrixSizeI];
+        int n0 = 0;
         for (long p = 0; p < matrixSize; p++) {
             int a = numNonZero.get(p);
-            if (a > 0) simpleNumNonZero.addValue(a);
+            if (a > 0) simpleNumNonZero[n0++] = a;
         }
-
+        java.util.Arrays.sort(simpleNumNonZero, 0, n0);
         // if we need to remove rows with more than upperBound nonzeros, scaling has failed
-        int upperBound = (int) simpleNumNonZero.getPercentile(maxPercentile) + 1;
-        long n0 = simpleNumNonZero.getN();
+        int upperBound = simpleNumNonZero[(int) (maxPercentile * n0 / 100.0)];
 //        delete(simpleNumNonZero);  // no longer needed
 
         int lowCutoff = 1;  // start with removing no nonzerow rows
@@ -100,9 +100,9 @@ public class FinalScale {
         // variables for the new algorithm
         boolean conv = false, div = false;
         int low_conv = 1000, low_div = 0;
-        BigFloatsArray b_conv = new BigFloatsArray(matrixSize); // keep the last converged vector
-        BigFloatsArray b0 = new BigFloatsArray(matrixSize); // keep the copy of the current vector
-        BigIntsArray bad_conv = new BigIntsArray(matrixSize); // bad rows for Erez's trick
+        float[] b_conv = new float[matrixSizeI]; // keep the last converged vector
+        float[] b0 = new float[matrixSizeI]; // keep the copy of the current vector
+        int[] bad_conv = new int[matrixSizeI]; // bad rows for Erez's trick
         double ber_conv = 10.0;
         boolean yes = true;
 
@@ -115,7 +115,8 @@ public class FinalScale {
         int realIters = 0;
 
         ITERS:
-        while (convergeError > tolerance && iter < maxIter && allItersI < totalIterations) {
+        while (convergeError > tolerance
+                && iter < maxIter && allItersI < totalIterations) {
             iter++;
             allItersI++;
             realIters++;
@@ -142,7 +143,7 @@ public class FinalScale {
                 temp1 = Math.abs((calculatedVectorB.get(p) - current.get(p)) / (calculatedVectorB.get(p) + current.get(p)));
                 if (temp1 > tolerance) numBad++;
             }
-            b0 = current.deepClone();
+            for (int p = 0; p < matrixSizeI; p++) b0[p] = current.get(p);
 
             reportErrorForIteration[allItersI - 1] = convergeError;
             numItersForAllIterations[allItersI - 1] = iter;
@@ -157,8 +158,8 @@ public class FinalScale {
                 yes = true;
                 if (lowCutoff == 1) break;
                 conv = true;
-                b_conv = calculatedVectorB.deepClone();
-                bad_conv = bad.deepClone();
+                for (int p = 0; p < matrixSizeI; p++) b_conv[p] = calculatedVectorB.get(p);
+                for (int p = 0; p < matrixSizeI; p++) bad_conv[p] = bad.get(p);
                 ber_conv = convergeError;
                 low_conv = lowCutoff;
                 //  did it diverge before?
@@ -200,17 +201,17 @@ public class FinalScale {
 //  did it converge before? If it converged for low+1 and diverged for low, use the last converged norm vector
             if (conv) {
                 if (low_conv - low_div <= 1) {
-                    calculatedVectorB = b_conv.deepClone();
-                    bad = bad_conv.deepClone();
+                    for (long p = 0; p < matrixSize; p++) calculatedVectorB.set(p, b_conv[(int) p]);
+                    for (int p = 0; p < matrixSizeI; p++) bad.set(p, (short) bad_conv[p]);
                     convergeError = ber_conv;
                     break;
                 }
 //  if it almost converged (only a very small fraction of errors is above tol) remove bad rows and try again
 //  with the same low (Erez's trick)
                 else if (((double) numBad) / n0 < 1.0e-5 && yes) {
-                    for (long p = 0; p < matrixSize; p++) {
+                    for (int p = 0; p < matrixSizeI; p++) {
                         if (bad.get(p) == 1) continue;
-                        temp1 = Math.abs((calculatedVectorB.get(p) - b0.get(p)) / (calculatedVectorB.get(p) + b0.get(p)));
+                        temp1 = Math.abs((calculatedVectorB.get(p) - b0[p]) / (calculatedVectorB.get(p) + b0[p]));
                         if (temp1 > tolerance) {
                             bad.set(p, S1);
                             one.set(p, S0);
@@ -235,9 +236,9 @@ public class FinalScale {
             //  have never converged before
             //  Erez's trick
             else if (((double) numBad) / n0 < 1.0e-5 && yes) {
-                for (long p = 0; p < matrixSize; p++) {
+                for (int p = 0; p < matrixSizeI; p++) {
                     if (bad.get(p) == 1) continue;
-                    temp1 = Math.abs((calculatedVectorB.get(p) - b0.get(p)) / (calculatedVectorB.get(p) + b0.get(p)));
+                    temp1 = Math.abs((calculatedVectorB.get(p) - b0[p]) / (calculatedVectorB.get(p) + b0[p]));
                     if (temp1 > tolerance) {
                         bad.set(p, S1);
                         one.set(p, S0);
