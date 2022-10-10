@@ -41,6 +41,8 @@ public class FinalScale {
     private final static int totalIterations = 3 * maxIter;
     private final static float minErrorThreshold = .02f;
     private final static float del = .05f;
+    private final static float rsError = .05f;
+    private final static float erez = 1.0e-5f;
 
 
     public static ListOfFloatArrays scaleToTargetVector(BigContactList ba, long matrixSize,
@@ -208,7 +210,7 @@ public class FinalScale {
                 }
 //  if it almost converged (only a very small fraction of errors is above tol) remove bad rows and try again
 //  with the same low (Erez's trick)
-                else if (((double) numBad) / n0 < 1.0e-5 && yes) {
+                else if (((double) numBad) / n0 < erez && yes) {
                     for (int p = 0; p < matrixSizeI; p++) {
                         if (bad.get(p) == 1) continue;
                         temp1 = Math.abs((calculatedVectorB.get(p) - b0[p]) / (calculatedVectorB.get(p) + b0[p]));
@@ -235,7 +237,7 @@ public class FinalScale {
             }
             //  have never converged before
             //  Erez's trick
-            else if (((double) numBad) / n0 < 1.0e-5 && yes) {
+            else if (((double) numBad) / n0 < erez && yes) {
                 for (int p = 0; p < matrixSizeI; p++) {
                     if (bad.get(p) == 1) continue;
                     temp1 = Math.abs((calculatedVectorB.get(p) - b0[p]) / (calculatedVectorB.get(p) + b0[p]));
@@ -285,15 +287,16 @@ public class FinalScale {
         col = ba.parSparseMultiplyAcrossLists(calculatedVectorB, matrixSize);
         double rowSumError = BigFloatsArray.parCalculateError(col, calculatedVectorB, zTargetVector, bad);
         if (HiCGlobals.printVerboseComments) {
-            double err90 = BigFloatsArray.calculateError90(col, calculatedVectorB, zTargetVector, bad);
-            System.out.println("Total iters " + realIters + " \nRow Sums Error " + rowSumError + " \nError90 " + err90);
+            //double err90 = BigFloatsArray.calculateError90(col, calculatedVectorB, zTargetVector, bad);
+            //System.out.println("Total iters " + realIters + " \nRow Sums Error " + rowSumError + " \nError90 " + err90);
+            System.out.println("Total iters " + realIters + " \nRow Sums Error " + rowSumError);
             System.out.println("Convergence error " + convergeError);
             System.out.println("Remove rows with less than " + lowCutoff + " nonzeros");
             reportErrorForIteration[allItersI + 1] = convergeError;
             reportErrorForIteration[allItersI + 2] = rowSumError;
         }
 
-        if (convergeError > tolerance || rowSumError > 1.0e-2 || lowCutoff > upperBound) {
+        if (convergeError > tolerance || rowSumError > rsError || lowCutoff > upperBound) {
             if (HiCGlobals.printVerboseComments) {
                 System.out.println("Setting vector to null (not converged)");
             }
