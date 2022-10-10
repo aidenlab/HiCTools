@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class BigDoublesArray {
 
-	final long DEFAULT_LENGTH = BigShortsArray.DEFAULT_LENGTH;
+	final long DEFAULT_LENGTH = BigIntsArray.DEFAULT_LENGTH;
 	final long overallLength;
 	final List<double[]> internalList = new ArrayList<>();
 
@@ -137,7 +137,7 @@ public class BigDoublesArray {
 		return Math.min(HiCGlobals.normThreads, internalList.size());
 	}
 
-	public static double parCalculateError(BigDoublesArray col, BigDoublesArray scale, BigShortsArray target, BigShortsArray bad) {
+	public static double parCalculateError(BigDoublesArray col, BigDoublesArray scale, BigIntsArray target, BigIntsArray bad) {
 		AtomicDouble atomicDouble = new AtomicDouble(0);
 		AtomicInteger index = new AtomicInteger();
 		ParallelizationTools.launchParallelizedCode(col.getNumThreads(), () -> {
@@ -146,8 +146,8 @@ public class BigDoublesArray {
 			while (i < col.internalList.size()) {
 				double[] colA = col.internalList.get(i);
 				double[] scaleA = scale.internalList.get(i);
-				short[] targetA = target.internalList.get(i);
-				short[] badA = bad.internalList.get(i);
+				int[] targetA = target.internalList.get(i);
+				int[] badA = bad.internalList.get(i);
 
 				for (int z = 0; z < colA.length; z++) {
 					if (badA[z] == 1) continue;
@@ -168,13 +168,13 @@ public class BigDoublesArray {
 	}
 
 	public static double calculateError90(BigDoublesArray col, BigDoublesArray scale,
-										  BigShortsArray target, BigShortsArray bad) {
+										  BigIntsArray target, BigIntsArray bad) {
 		DescriptiveStatistics stats = new DescriptiveStatistics();
 		for (int i = 0; i < col.internalList.size(); i++) {
 			double[] colA = col.internalList.get(i);
 			double[] scaleA = scale.internalList.get(i);
-			short[] targetA = target.internalList.get(i);
-			short[] badA = bad.internalList.get(i);
+			int[] targetA = target.internalList.get(i);
+			int[] badA = bad.internalList.get(i);
 
 			for (int z = 0; z < colA.length; z++) {
 				if (badA[z] == 1) continue;
@@ -186,7 +186,7 @@ public class BigDoublesArray {
 	}
 
 	public static double parCalculateConvergenceError(BigDoublesArray calculatedVectorB, BigDoublesArray current,
-													  BigShortsArray bad) {
+													  BigIntsArray bad) {
 		AtomicDouble atomicDouble = new AtomicDouble(0);
 		AtomicInteger index = new AtomicInteger();
 		ParallelizationTools.launchParallelizedCode(current.getNumThreads(), () -> {
@@ -196,7 +196,7 @@ public class BigDoublesArray {
 
 				double[] calcA = calculatedVectorB.internalList.get(i);
 				double[] currA = current.internalList.get(i);
-				short[] badA = bad.internalList.get(i);
+				int[] badA = bad.internalList.get(i);
 
 				for (int z = 0; z < calcA.length; z++) {
 					if (badA[z] == 1) continue;
@@ -224,8 +224,8 @@ public class BigDoublesArray {
 		return clone;
 	}
 
-	public BigShortsArray deepCovertedClone() {
-		BigShortsArray clone = new BigShortsArray(overallLength);
+	public BigIntsArray deepCovertedClone() {
+		BigIntsArray clone = new BigIntsArray(overallLength);
 		for (long p = 0; p < overallLength; p++) {
 			clone.set(p, (short) get(p));
 		}
@@ -261,13 +261,13 @@ public class BigDoublesArray {
 		});
 	}
 
-	public void parMultiplyByOneMinus(BigShortsArray array) {
+	public void parMultiplyByOneMinus(BigIntsArray array) {
 		AtomicInteger index = new AtomicInteger();
 		ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
 			int i = index.getAndIncrement();
 			while (i < internalList.size()) {
 				double[] orig = internalList.get(i);
-				short[] arr = array.internalList.get(i);
+				int[] arr = array.internalList.get(i);
 				for (int p = 0; p < orig.length; p++) {
 					orig[p] *= (1 - arr[p]);
 				}
@@ -291,13 +291,13 @@ public class BigDoublesArray {
 		});
 	}
 
-	public void parSetToDivision(BigShortsArray num, BigDoublesArray denom) {
+	public void parSetToDivision(BigIntsArray num, BigDoublesArray denom) {
 		AtomicInteger index = new AtomicInteger();
 		ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
 			int i = index.getAndIncrement();
 			while (i < internalList.size()) {
 				double[] orig = internalList.get(i);
-				short[] num1 = num.internalList.get(i);
+				int[] num1 = num.internalList.get(i);
 				double[] denom1 = denom.internalList.get(i);
 				for (int p = 0; p < orig.length; p++) {
 					orig[p] = num1[p] / denom1[p];
@@ -307,13 +307,13 @@ public class BigDoublesArray {
 		});
 	}
 
-	public void parScaleByRatio(BigShortsArray num, BigDoublesArray denom) {
+	public void parScaleByRatio(BigIntsArray num, BigDoublesArray denom) {
 		AtomicInteger index = new AtomicInteger();
 		ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
 			int i = index.getAndIncrement();
 			while (i < internalList.size()) {
 				double[] orig = internalList.get(i);
-				short[] num1 = num.internalList.get(i);
+				int[] num1 = num.internalList.get(i);
 				double[] denom1 = denom.internalList.get(i);
 				for (int p = 0; p < orig.length; p++) {
 					orig[p] *= (num1[p] / denom1[p]);

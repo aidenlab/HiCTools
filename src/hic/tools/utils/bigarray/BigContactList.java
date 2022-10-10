@@ -25,7 +25,7 @@
 package hic.tools.utils.bigarray;
 
 import hic.tools.utils.largelists.BigFloatsArray;
-import hic.tools.utils.largelists.BigShortsArray;
+import hic.tools.utils.largelists.BigIntsArray;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
@@ -45,7 +45,7 @@ public interface BigContactList {
 
     ListOfIntArrays getNumNonZeroInRows();
 
-    BigFloatsArray parSparseMultiplyAcrossLists(BigShortsArray one, long matrixSize);
+    BigFloatsArray parSparseMultiplyAcrossLists(BigIntsArray one, long matrixSize);
 
     BigFloatsArray parSparseMultiplyAcrossLists(BigFloatsArray one, long matrixSize);
 

@@ -28,7 +28,7 @@ import com.google.common.util.concurrent.AtomicDouble;
 import hic.HiCGlobals;
 import hic.tools.utils.largelists.BigDoublesArray;
 import hic.tools.utils.largelists.BigFloatsArray;
-import hic.tools.utils.largelists.BigShortsArray;
+import hic.tools.utils.largelists.BigIntsArray;
 import hic.tools.utils.localtemps.BinRecordsReader;
 import hic.tools.utils.localtemps.BinRecordsWriter;
 import hic.tools.utils.original.ExpectedValueCalculation;
@@ -145,7 +145,7 @@ public class LocallySavedContacts implements BigContactList {
     }
 
     @Override
-    public BigFloatsArray parSparseMultiplyAcrossLists(BigShortsArray vector, long vectorLength) {
+    public BigFloatsArray parSparseMultiplyAcrossLists(BigIntsArray vector, long vectorLength) {
         final BigDoublesArray totalSumVector = new BigDoublesArray(vectorLength);
 
         AtomicInteger index = new AtomicInteger(0);

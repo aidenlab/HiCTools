@@ -35,29 +35,29 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * can't use <T> because we need to instantiate the array, otherwise that would have been nice
  */
-public class BigShortsArray {
+public class BigIntsArray {
 
 	public static final int DEFAULT_LENGTH = 10000;
 	final long overallLength;
-	final List<short[]> internalList = new ArrayList<>();
+	final List<int[]> internalList = new ArrayList<>();
 
-	public BigShortsArray(long length) {
+	public BigIntsArray(long length) {
 		this.overallLength = length;
 		long tempLength = length;
 		while (tempLength > 0) {
 			if (tempLength < DEFAULT_LENGTH) {
-				internalList.add(new short[(int) tempLength]);
+				internalList.add(new int[(int) tempLength]);
 				break;
 			} else {
-				internalList.add(new short[DEFAULT_LENGTH]);
+				internalList.add(new int[DEFAULT_LENGTH]);
 				tempLength -= DEFAULT_LENGTH;
 			}
 		}
 	}
 
-	public BigShortsArray(long totSize, short defaultValue) {
+	public BigIntsArray(long totSize, short defaultValue) {
 		this(totSize);
-		for (short[] array : internalList) {
+		for (int[] array : internalList) {
 			Arrays.fill(array, defaultValue);
 		}
 	}
@@ -95,7 +95,7 @@ public class BigShortsArray {
 		BigFloatsArray clone = new BigFloatsArray(overallLength);
 		for (int k = 0; k < internalList.size(); k++) {
 			float[] dest = clone.internalList.get(k);
-			short[] src = internalList.get(k);
+			int[] src = internalList.get(k);
 			for (int q = 0; q < dest.length; q++) {
 				dest[q] = src[q];
 			}
@@ -103,7 +103,7 @@ public class BigShortsArray {
 		return clone;
 	}
 
-	public List<short[]> getValues() {
+	public List<int[]> getValues() {
 		return internalList;
 	}
 
@@ -112,7 +112,7 @@ public class BigShortsArray {
 		ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
 			int i = index.getAndIncrement();
 			while (i < internalList.size()) {
-				short[] dest = internalList.get(i);
+				int[] dest = internalList.get(i);
 				float[] src = srcArrays.internalList.get(i);
 				for (int z = 0; z < dest.length; z++) {
 					dest[z] = (short) src[z];
@@ -120,6 +120,14 @@ public class BigShortsArray {
 				i = index.getAndIncrement();
 			}
 		});
+	}
+
+	public BigIntsArray deepClone() {
+		BigIntsArray clone = new BigIntsArray(overallLength);
+		for (int k = 0; k < internalList.size(); k++) {
+			System.arraycopy(internalList.get(k), 0, clone.internalList.get(k), 0, internalList.get(k).length);
+		}
+		return clone;
 	}
 
 	private int getNumThreads() {

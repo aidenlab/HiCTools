@@ -26,7 +26,7 @@ package hic.tools.utils.bigarray;
 
 import hic.tools.utils.largelists.BigDoublesArray;
 import hic.tools.utils.largelists.BigFloatsArray;
-import hic.tools.utils.largelists.BigShortsArray;
+import hic.tools.utils.largelists.BigIntsArray;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 
@@ -41,7 +41,7 @@ public class SparseMatrixTools {
         sumVector.addTo(y, counts * vector.get(x));
     }
 
-    public static void matrixVectorMult(BigShortsArray vector,
+    public static void matrixVectorMult(BigIntsArray vector,
                                         BigDoublesArray sumVector, int x, int y, float c) {
         double counts = c;
         if (x == y) {
