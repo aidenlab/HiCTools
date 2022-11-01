@@ -79,7 +79,7 @@ public class NormalizationTools {
 
     public static boolean checkIfInterDataAvailable(HiCZoom zoom, Dataset ds) {
 
-        Chromosome[] chromosomes = ds.getChromosomeHandler().getChromosomeArrayWithoutAllByAll();
+        Chromosome[] chromosomes = ds.getChromosomeHandler().getAutosomalChromosomesArray();
 
         for (int i = 0; i < chromosomes.length; i++) {
             for (int j = i + 1; j < chromosomes.length; j++) {
