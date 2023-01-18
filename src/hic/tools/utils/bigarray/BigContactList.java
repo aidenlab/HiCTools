@@ -28,6 +28,7 @@ import hic.tools.utils.largelists.BigFloatsArray;
 import hic.tools.utils.largelists.BigIntsArray;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
 
 public interface BigContactList {
@@ -38,6 +39,8 @@ public interface BigContactList {
     void clear();
 
     ListOfFloatArrays getRowSums();
+
+    ListOfDoubleArrays getNearDiagSums(int width);
 
     double[] getNormMatrixSumFactor(ListOfFloatArrays norm);
 

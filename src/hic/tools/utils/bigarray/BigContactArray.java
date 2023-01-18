@@ -32,11 +32,14 @@ import hic.tools.utils.largelists.BigIntsArray;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.datastructures.ListOfFloatArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
+import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.tools.ParallelizationTools;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.lang.Math.abs;
 
 public class BigContactArray implements BigContactList {
 
@@ -143,7 +146,8 @@ public class BigContactArray implements BigContactList {
     }
 
     @Override
-    public ListOfFloatArrays getRowSums() {
+
+      public ListOfFloatArrays getRowSums() {
         final ListOfFloatArrays totalRowSums = new ListOfFloatArrays(matrixSize, 0);
 
         AtomicInteger index = new AtomicInteger(0);
@@ -168,9 +172,39 @@ public class BigContactArray implements BigContactList {
                 totalRowSums.addValuesFrom(sums);
             }
         });
-
-        return totalRowSums;
+        return(totalRowSums);
     }
+
+
+    public ListOfDoubleArrays getNearDiagSums(int width) {
+        final ListOfDoubleArrays totalRowSums = new ListOfDoubleArrays(matrixSize, 0);
+
+        AtomicInteger index = new AtomicInteger(0);
+        ParallelizationTools.launchParallelizedCode(getNumThreads(), () -> {
+            int sIndx = index.getAndIncrement();
+            ListOfDoubleArrays sums = new ListOfDoubleArrays(matrixSize);
+            while (sIndx < binXs.size()) {
+                int[] subBinXs = binXs.get(sIndx);
+                int[] subBinYs = binYs.get(sIndx);
+                float[] subBinVals = binVals.get(sIndx);
+
+                for (int z = 0; z < subBinXs.length; z++) {
+                    int x = subBinXs[z];
+                    int y = subBinYs[z];
+                    float value = subBinVals[z];
+                    if (y-x <= width) SparseMatrixTools.updateRowSums(sums, x, y, (double) value);
+                }
+                sIndx = index.getAndIncrement();
+            }
+
+            synchronized (totalRowSums) {
+                totalRowSums.addValuesFrom(sums);
+            }
+        });
+
+        return(totalRowSums);
+    }
+
 
     @Override
     public double[] getNormMatrixSumFactor(ListOfFloatArrays norm) {
@@ -202,6 +236,7 @@ public class BigContactArray implements BigContactList {
                 normSum.addAndGet(nSum[0]);
             }
         });
+
 
         return new double[]{normSum.get(), matrixSum.get()};
     }

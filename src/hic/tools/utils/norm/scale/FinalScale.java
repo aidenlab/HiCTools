@@ -29,21 +29,48 @@ import hic.tools.utils.bigarray.BigContactList;
 import hic.tools.utils.largelists.BigFloatsArray;
 import hic.tools.utils.largelists.BigIntsArray;
 import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
 
 public class FinalScale {
 
     private final static short S1 = (short) 1;
     private final static short S0 = (short) 0;
-    private final static float maxPercentile = 10f;
-    private final static float tolerance = 1e-4f;
-    private final static int maxIter = 500;
-    private final static int totalIterations = 3 * maxIter;
-    private final static float minErrorThreshold = .02f;
-    private final static float del = .05f;
-    private final static float rsError = .05f;
-    private final static float erez = 1.0e-5f;
 
+    // Parameters which affect normalization
+    private final static float maxPercentile = 10f;
+    // if more than this percentage of rows needs to be removed produce failure
+    private final static float tolerance = 1e-4f;
+    // convergence occurs when the relative error in the scaling vector must be less than this number
+    private final static int maxIter = 500;
+    // maximum number of iterations allowed without changing the percentage of removed rows
+    private final static int totalIterations = 3 * maxIter;
+    // maximum total number of iterations (set just in case to prevent VERY long runs)
+    private final static int numDec = 5;
+    private final static float del = .05f;
+    // if convergence wasn't reached yet, we want the relative error in the scaling vector to decrease by
+    // at least del every numDec iterations; current settings seem to work pretty well - would not change
+    private final static float rsError = .05f;
+    // after convergence is achieved based on relative error in the scaling vector,
+    // the deviation of row sums from 1 is checked. If it is above this threashold, failure is produced
+    private final static float erez = 1.0e-4f;
+    // if the percentage of rows for which the error in the scaling vector is less that this number
+    // we remove just those offending rows and try again
+    private final static float perc = 0.01f;
+    // the initial percentage of rows with the lowest number of nonzeros to be removed;
+    // this is just an approximation, i.e. we determine what number of nonzeros in a row
+    // corresponds to that percentile and remove rows with LESS than this number of nonzeros;
+    // may end up with not removing any rows at low resolution
+    private final static boolean nearDiag = true;
+    // whether to remove rows with the lowest near-diagonal SUMS (not numbers of nonzeros)
+    private final static double diagPerc = 0.01;
+    // we remove rows whose near-diagonal sums are less than that number times the median of
+    // the near-diagonal sums
+    private final static int bandWidth = 10000;
+    private final static int numBins = 2;
+    // the tow above parameters determine what near-diagonal means; usually these are all the bins
+    // within bandWidth bases from the diagonal; if the number of such bins is less than numBins
+    // we set near-diagonal to +/- numBins bins from the diagonal
 
     public static ListOfFloatArrays scaleToTargetVector(BigContactList ba, long matrixSize,
                                                         BigFloatsArray initialGuess, String stem) {
@@ -51,7 +78,8 @@ public class FinalScale {
         long startTime = System.nanoTime();
 
         int matrixSizeI = (int) matrixSize;
-        BigIntsArray bad = new BigIntsArray(matrixSize);
+        BigIntsArray bad = new BigIntsArray(matrixSize,S0);
+        BigIntsArray bad0 = new BigIntsArray(matrixSize,S0);
 
         BigIntsArray zTargetVector = new BigIntsArray(matrixSize, S1);
         BigFloatsArray calculatedVectorB = new BigFloatsArray(matrixSize);
@@ -73,28 +101,55 @@ public class FinalScale {
         java.util.Arrays.sort(simpleNumNonZero, 0, n0);
         // if we need to remove rows with more than upperBound nonzeros, scaling has failed
         int upperBound = simpleNumNonZero[(int) (maxPercentile * n0 / 100.0)];
+        int lowCutoff0 = simpleNumNonZero[(int) (perc * n0)];
+
+        ListOfDoubleArrays diag;
+        int lowMed;
+        double[] diag0 = new double[matrixSizeI];
+        if (nearDiag) {
+            String[] tempString = stem.split("_");
+            int ijk = tempString.length;
+            int myRes = Integer.parseInt(tempString[ijk - 1]);
+            int width = (int) (bandWidth / myRes);
+            if (width < numBins) width = numBins;
+            diag = ba.getNearDiagSums(width);
+            int d0 = 0;
+            for (long p = 0; p < matrixSize; p++) {
+                double a = diag.get(p);
+                if (a > 0) diag0[d0++] = a;
+            }
+            java.util.Arrays.sort(diag0, 0, d0);
+            double diagMed = diag0[d0/2];
+            lowMed = (int) (diagMed * diagPerc);
+            for (long p = 0; p < matrixSizeI; p++) if (diag.get(p) < lowMed) bad0.set(p,S1);
+            System.out.println("Yes diagonal!  lowMed = "+lowMed);
+            System.out.println("d0 = "+d0+"; diagMed = "+diagMed);
+        }
+
+    //    System.out.println("resolution = " + myRes + " and to validate, " + (myRes+1));
+
 //        delete(simpleNumNonZero);  // no longer needed
 
-        int lowCutoff = 1;  // start with removing no nonzerow rows
+        int lowCutoff = lowCutoff0;
+        for (long p = 0; p < matrixSizeI; p++) if (numNonZero.get(p) < lowCutoff) bad.set(p,S1);
+
+
+      //    BigFloatsArray rowBackup = row.deepClone();
+
         for (long p = 0; p < matrixSize; p++) {
-            if (numNonZero.get(p) < lowCutoff) {
-                excludeBadRow(p, bad, zTargetVector, one);
-            }
+            bad.set(p, (short) (bad0.get(p) | bad.get(p)));
+            one.set(p, (short) (1 - bad.get(p)));
+            zTargetVector.set(p,  (short) (S1 - (short) bad.get(p)));
         }
 
         BigFloatsArray row = ba.parSparseMultiplyAcrossLists(one, matrixSize);
-    //    BigFloatsArray rowBackup = row.deepClone();
-
-        for (long p = 0; p < matrixSize; p++) {
-            one.set(p, (short) (1 - bad.get(p)));
-        }
 
         BigFloatsArray dr;
-        if (initialGuess == null) {
+    //    if (initialGuess == null) {
             dr = one.deepConvertedClone();
-        } else {
-            dr = initialGuess;
-        }
+    //    } else {
+    //        dr = initialGuess;
+    //    }
         BigFloatsArray dc = dr.deepClone();
         BigFloatsArray current = dr.deepClone();
         row.parMultiplyBy(dr);
@@ -158,7 +213,7 @@ public class FinalScale {
 
             if (convergeError < tolerance) {  //if converged
                 yes = true;
-                if (lowCutoff == 1) break;
+                if (lowCutoff <= lowCutoff0) break;
                 conv = true;
                 for (int p = 0; p < matrixSizeI; p++) b_conv[p] = calculatedVectorB.get(p);
                 for (int p = 0; p < matrixSizeI; p++) bad_conv[p] = bad.get(p);
@@ -172,17 +227,12 @@ public class FinalScale {
 //  just halve low
                 else lowCutoff = low_conv / 2;
 
+                for (long p = 0; p < matrixSize; p++) one.set(p, S1);
+                for (long p = 0; p < matrixSize; p++) if (numNonZero.get(p) < lowCutoff) bad.set(p, S1);
                 for (long p = 0; p < matrixSize; p++) {
-                    one.set(p, S1);
-                    bad.set(p, S0);
+                    bad.set(p, (short) (bad0.get(p) | bad.get(p)));
+                    one.set(p, (short) (1 - bad.get(p)));
                 }
-                for (long p = 0; p < matrixSize; p++) {
-                    if (numNonZero.get(p) < lowCutoff) {
-                        bad.set(p, S1);
-                        one.set(p, S0);
-                    }
-                }
-
                 convergeError = 10.0;
                 iter = 0;
                 for (long p = 0; p < matrixSize; p++) dr.set(p, 1 - bad.get(p));
@@ -192,7 +242,7 @@ public class FinalScale {
                 continue;
             }
 
-            if (iter <= 5) continue;
+            if (iter <= numDec) continue;
 //      check whether convergence rate is satisfactory
             if ((reportErrorForIteration[allItersI - 1] * (1.0 + del) < reportErrorForIteration[allItersI - 6]) && (iter < maxIter))
                 continue;
@@ -262,15 +312,11 @@ public class FinalScale {
                 yes = true;
             }
 
+            for (long p = 0; p < matrixSize; p++) bad.set(p, S0);
+            for (long p = 0; p < matrixSize; p++) if (numNonZero.get(p) < lowCutoff)  bad.set(p, S1);
             for (long p = 0; p < matrixSize; p++) {
-                bad.set(p, S0);
-                one.set(p, S1);
-            }
-            for (long p = 0; p < matrixSize; p++) {
-                if (numNonZero.get(p) < lowCutoff) {
-                    bad.set(p, S1);
-                    one.set(p, S0);
-                }
+                bad.set(p, (short) (bad0.get(p) | bad.get(p)));
+                one.set(p, (short) (1 - bad.get(p)));
             }
             convergeError = 10.0;
             iter = 0;
@@ -334,6 +380,7 @@ public class FinalScale {
             System.out.println("Final error in scaling vector is " + reportErrorForIteration[allItersI + 1] +
                     " and in row sums is " + reportErrorForIteration[allItersI + 2]);
         }
+
 
         ListOfFloatArrays answer = calculatedVectorB.convertToRegular();
         calculatedVectorB.clear();

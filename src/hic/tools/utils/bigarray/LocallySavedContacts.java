@@ -36,6 +36,7 @@ import javastraw.reader.Dataset;
 import javastraw.reader.basics.ChromosomeHandler;
 import javastraw.reader.block.ContactRecord;
 import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.datastructures.ListOfDoubleArrays;
 import javastraw.reader.datastructures.ListOfIntArrays;
 import javastraw.reader.type.HiCZoom;
 import javastraw.tools.ParallelizationTools;
@@ -211,6 +212,12 @@ public class LocallySavedContacts implements BigContactList {
         return totalRowSums;
     }
 
+
+    @Override
+    public ListOfDoubleArrays getNearDiagSums(int width) {
+        final ListOfDoubleArrays totalRowSums = new ListOfDoubleArrays(matrixSize, Double.NaN);
+        return(totalRowSums);
+    }
     @Override
     public double[] getNormMatrixSumFactor(ListOfFloatArrays norm) {
         final AtomicDouble matrixSum = new AtomicDouble(0);

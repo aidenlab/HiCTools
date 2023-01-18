@@ -29,6 +29,7 @@ import hic.tools.utils.largelists.BigFloatsArray;
 import hic.tools.utils.largelists.BigIntsArray;
 import hic.tools.utils.original.ExpectedValueCalculation;
 import javastraw.reader.datastructures.ListOfFloatArrays;
+import javastraw.reader.datastructures.ListOfDoubleArrays;
 
 public class SparseMatrixTools {
     public static void matrixVectorMult(BigFloatsArray vector,
@@ -107,6 +108,12 @@ public class SparseMatrixTools {
     }
 
     public static void updateRowSums(ListOfFloatArrays sums, int x, int y, float value) {
+        sums.addTo(x, value);
+        if (x != y) {
+            sums.addTo(y, value);
+        }
+    }
+    public static void updateRowSums(ListOfDoubleArrays sums, int x, int y, double value) {
         sums.addTo(x, value);
         if (x != y) {
             sums.addTo(y, value);
